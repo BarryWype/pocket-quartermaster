@@ -1,6 +1,6 @@
 # Supply lines (experimental)
 
-**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (steps 0–6 built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. Street routes for the cart and the guided first chain come next.
+**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (steps 0–7 built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. The guided first chain, the rebuilt Network tab and the simulator come next.
 
 The whole feature sits behind **Settings → Developer → "Supply lines (experimental)"**, off by default. With it off, nothing changes or shows, and the simulator's default run doesn't play it. Every number lives in `src/content/supplyLines.ts` (table below). The rules are pure functions in `src/game/supply/`, settled from timestamps when read; nothing runs on a timer except one timeout for the next cart or raid moment while the app is open.
 
@@ -132,12 +132,19 @@ Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
 
 ## The cart and its route
 
-- **One cart** runs loops (hall → route points in order → hall) while a route is set, in straight lines between cell centres.
-- **The route planner** is a mode on the map. Tap buildings in order, and any cell as a waypoint. A bottom bar shows the length, loop time and chance of at least one ambush per loop, and crossed cells are tinted by danger.
-- **Speed and load:** 3 km/h, or 60% of that with no driver. It carries 20 units. It loads at each building, largest material first, and delivers at the hall.
+- **One cart** runs loops (hall → stops in order → hall) while a route is set, along the streets (proposal and measurements in `streets.md`).
+- **Stops** are buildings and discovered places with a live order, within the tier's reach of the hall, plus streets the player forces the route through.
+  - At a building it loads everything it can carry, largest stock first.
+  - At a place it unloads everything that place's order still wants (a market takes any good), paid and counted exactly like a delivery in person.
+  - What remains comes home to the hall.
+  - A stop that has left is skipped: the cart still drives the stored path past it, and the Network tab asks for the route to be set again.
+- **Streets:** the walkable ways of the zoom-14 tiles over the hall's reach plus 300 m, with way ends joined to the nearest point within 15 m (on the Wellington fixture: 53 pieces become 8, the largest holding 94%). The hall and stops snap to the nearest way within 200 m, with a straight last leg; shortest paths between them (Dijkstra). A leg with no street path is straight, and the planner says so.
+- **Found once, stored with the route:** the path is computed when the route is set (`useStreetPath`, off the press) and stored with it (`cart.path`, simplified to 5 m). Settling never touches tiles or searches; a stored path stays until the route is next changed, even when the map data updates.
+- **The planner** is a guided sheet (`RoutePlannerSheet`, after `mockups/RoutePlanner.html`): pick stops (what each gives or wants, time left), order them (arrows, and "Suggest": buildings before the places they serve, nearest next), see the result (a flow strip of loads, unloads and what comes home, the loop time, the street length, the ambush chance per loop, warnings for stops leaving before the next loop ends and for straight legs). A tap on a street at the result step forces the route through it. Opened from the cart's sheet, the Network tab, and "Add to the cart's route" on a building or an order.
+- **Speed and load:** 3 km/h, or 60% of that with no driver. It carries 20 units.
   - A Teamster driving adds 15/30/50% speed and 25/50/100% capacity.
 - **Crew:** a driver and up to two escorts. They are away during a loop, and the crew can only change while the cart is parked.
-- **Ambushes:** at departure, each distinct crossed cell rolls its level's chance once, seeded by loop and cell, at the danger of the window it's crossed in.
+- **Ambushes:** at departure, each distinct crossed cell rolls its level's chance once, seeded by loop and cell, at the cell's **day average** danger (8 samples over the local day, cached per cell and day), the same the planner shows.
   - The ambusher is the strongest patrol touching the cell then. With none, a patrol of your tier at the level's difficulty.
   - The fights are played out at departure with the patrol fight simulation, so the whole loop is fixed when it starts.
   - **Won:** the cart goes on, and damage, consumables and loot are applied at home.
@@ -145,7 +152,8 @@ Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
 - **Back home:** a crew member under half HP parks the cart until you start it again.
 - **Changes:** a route changed mid-loop applies from the next departure; Stop parks the cart after the current loop.
 - **Offline time:** opening the app after hours replays every loop in between, in one pass; 8 hours take about 30 ms.
-- **On the map:** the route line, the cart moving on the map's slow clock, a toast for an ambush, and the last ten loops on the cart's sheet.
+- **On the map:** the route along the streets (dashed while a change waits for the next departure), the cart moving on the map's slow clock, a note for an ambush or a delivery ("Delivered 12 grain to the Rusty Tankard"), and at the Full animation level a small "+12" pop over the cart.
+- **The cart's sheet:** where it is, its cargo by icon, its crew, and the last ten loops in plain sentences ("Delivered 12 grain to the Rusty Tankard, 8 stone home."). An order's section shows what the cart will unload there next, and when.
 
 ## Raids
 
@@ -182,7 +190,8 @@ Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
 - **Version 55** adds `save.supply.discovered`, empty.
 - **Version 56** turns camps into buildings (`toV56`): `supply.camps` becomes an empty `supply.buildings`, route points name buildings, a pending raid is dropped, `personalSite` is added, and the trial's trades become Herbalist and Farmer.
 - **Version 57** adds `save.supply.orders`, empty.
-- Renumber all six whenever the branch is brought up to date with main.
+- **Version 58** stores the street path with the route (`cart.path`, `nextPath`); the trial's waypoint cells became forced street points.
+- Renumber all seven whenever the branch is brought up to date with main.
 - **Types** are in `src/game/supply/types.ts`. **The switch** is a setting, not save data.
 
 ## Simulator

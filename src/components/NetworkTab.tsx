@@ -3,6 +3,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { FillBar, PressScale } from '@/components/motion';
 
+import { GameIcon } from '@/components/GameIcon';
+import { RoutePlannerSheet } from '@/components/RoutePlannerSheet';
 import { Text } from '@/components/Text';
 import { IconLabel } from '@/components/IconLabel';
 import { LootGrid } from '@/components/LootGrid';
@@ -23,6 +25,7 @@ import { formatDistance, formatDuration, formatPercent, t } from '@/i18n';
 import { raidText } from '@/hooks/useCartTick';
 import { useNow } from '@/hooks/useNow';
 import { useGameStore } from '@/store/gameStore';
+import { useMapPanels } from '@/store/mapPanelsStore';
 import { useWorldStore } from '@/store/worldStore';
 import { ui } from '@/theme';
 
@@ -42,8 +45,17 @@ export function NetworkTab() {
   const buildings = save.supply.buildings;
   const [cartOpen, setCartOpen] = useState(false);
   const [openBuilding, setOpenBuilding] = useState<string | null>(null);
+  const routePlanner = useMapPanels((state) => state.routePlanner);
+  const closeRoutePlanner = useMapPanels((state) => state.closeRoutePlanner);
 
   const lastRaid = save.supply.raidLog.at(-1);
+  // A stop the route still names but the world no longer holds: a gone building or an expired order.
+  const route = save.supply.cart.nextRoute ?? save.supply.cart.route;
+  const routeLeft = route.some(
+    (point) =>
+      ('building' in point && !buildings.some((building) => building.id === point.building)) ||
+      ('place' in point && ((save.supply.orders[point.place]?.expiresAt ?? 0) <= now)),
+  );
   const orders = Object.values(save.supply.orders).sort((a, b) => a.expiresAt - b.expiresAt);
   // Whatever is in its last day leaves the two lists below and comes first, soonest at the top.
   const leaving = [
@@ -94,12 +106,20 @@ export function NetworkTab() {
       ) : (
         stayingOrders.map((order) => <OrderCard key={order.placeId} order={order} now={now} />)
       )}
+      {routeLeft && (
+        <View style={styles.routeLeftRow}>
+          <GameIcon emoji="⚠️" size={18} />
+          <Text style={[styles.line, styles.routeLeftText]}>{t('supply.network.routeLeft')}</Text>
+          <WoodButton compact title={t('supply.cart.setRoute')} onPress={() => useMapPanels.getState().openRoutePlanner(route)} />
+        </View>
+      )}
       <CartCard now={now} onOpen={() => setCartOpen(true)} />
       {cartOpen && <SupplyCartPanel onClose={() => setCartOpen(false)} />}
       {/* The building sheet wants the player's position; the hall's centre stands in while the map has none. */}
       {openBuilding && (player ?? (save.supply.hall ? tileCenter(save.supply.hall.cell) : null)) && (
         <SupplyCampPanel id={openBuilding} player={player ?? tileCenter(save.supply.hall!.cell)} onClose={() => setOpenBuilding(null)} />
       )}
+      {routePlanner !== null && <RoutePlannerSheet overlay onClose={closeRoutePlanner} />}
     </View>
   );
 }
@@ -193,5 +213,7 @@ const styles = StyleSheet.create({
   barWrap: { flex: 1, position: 'relative' },
   notch: { position: 'absolute', top: -2, bottom: -2, width: 2, backgroundColor: ui.outline },
   orderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  routeLeftRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  routeLeftText: { flex: 1 },
   lastDay: { color: ui.onEmber, backgroundColor: ui.ember, fontSize: 12, letterSpacing: 1, paddingHorizontal: 4, paddingVertical: 2 },
 });

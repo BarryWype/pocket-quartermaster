@@ -1,9 +1,11 @@
 import { supplyRules } from '@/content/supplyLines';
+import { placeRules } from '@/content/places';
 
+import { localDayIndex, localDayStart } from '../generation/localDays';
 import { offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import { cellAt, cellsAlong } from '../discovery/cells';
-import { ambushChance, cellAmbusher, cellDangers, dangerContextOf, dangerLevel } from './danger';
+import { ambushChance, cellAmbusher, cellDangers, dangerContextOf, dangerLevel, dayDangers } from './danger';
 import type { DangerContext } from './danger';
 import { createInitialSave } from '../save';
 
@@ -63,6 +65,31 @@ describe('cellDangers', () => {
     const elapsed = Date.now() - started;
     expect(Object.keys(dangers)).toHaveLength(route.length);
     expect(elapsed).toBeLessThan(100);
+  });
+});
+
+describe('dayDangers', () => {
+  it('gives every crossing time within a day the same level', () => {
+    const cell = nearby[0];
+    const day = localDayIndex(t0, placeRules.changeHourLocal);
+    const start = localDayStart(day, placeRules.changeHourLocal);
+    const end = localDayStart(day + 1, placeRules.changeHourLocal);
+    const level = dayDangers([cell], start + 3_600_000, ctx)[cell].level;
+    for (const t of [start + 5 * 3_600_000, start + 12 * 3_600_000, end - 3_600_000]) {
+      expect(dayDangers([cell], t, ctx)[cell].level).toBe(level);
+    }
+  });
+
+  it('levels the rounded mean of the day\'s samples', () => {
+    const cell = nearby[1];
+    const day = localDayIndex(t0, placeRules.changeHourLocal);
+    const start = localDayStart(day, placeRules.changeHourLocal);
+    const end = localDayStart(day + 1, placeRules.changeHourLocal);
+    const samples = supplyRules.danger.daySamples;
+    let sum = 0;
+    for (let k = 0; k < samples; k++) sum += cellDangers([cell], start + (k * (end - start)) / samples, ctx)[cell].score;
+    const mean = Math.round(sum / samples);
+    expect(dayDangers([cell], t0, ctx)[cell].level).toBe(dangerLevel(mean));
   });
 });
 

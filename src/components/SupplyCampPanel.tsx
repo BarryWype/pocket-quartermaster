@@ -25,6 +25,7 @@ import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
+import { useMapPanels } from '@/store/mapPanelsStore';
 import { colors, ui } from '@/theme';
 
 import { PostHeroList } from './PostHeroList';
@@ -46,7 +47,6 @@ export function SupplyCampPanel({ id, player, onClose }: Props) {
   const save = useGameStore((s) => s.save);
   const recallPosted = useGameStore((s) => s.recallPosted);
   const collectBuilding = useGameStore((s) => s.collectBuilding);
-  const setRoute = useGameStore((s) => s.setRoute);
   const debugOn = useDebugStore(debugEnabled);
   const debugRaid = useGameStore((s) => s.debugRaid);
   const debugExpireBuilding = useGameStore((s) => s.debugExpireBuilding);
@@ -264,9 +264,9 @@ export function SupplyCampPanel({ id, player, onClose }: Props) {
               <View style={styles.cardRow}>
                 <Text style={styles.line}>{t('supply.building.cartOff')}</Text>
                 {emberRoute ? (
-                  <EmberButton compact title={t('supply.building.addToRoute')} onPress={() => setRoute([...route, { building: building.id }])} />
+                  <EmberButton compact title={t('supply.building.addToRoute')} onPress={() => useMapPanels.getState().openRoutePlanner([...route, { building: building.id }])} />
                 ) : (
-                  <WoodButton compact title={t('supply.building.addToRoute')} onPress={() => setRoute([...route, { building: building.id }])} />
+                  <WoodButton compact title={t('supply.building.addToRoute')} onPress={() => useMapPanels.getState().openRoutePlanner([...route, { building: building.id }])} />
                 )}
               </View>
             )}

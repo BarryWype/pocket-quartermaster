@@ -177,7 +177,21 @@ export const supplyRules = {
     logSize: 10,
   },
 
+  /** The street network the cart drives on (see game/supply/streets.ts). */
+  streets: {
+    /** Loose way ends within this many metres of another way are joined into one network. */
+    joinMeters: 15,
+    /** A stop further than this from any street gets a straight leg. */
+    snapMeters: 200,
+    /** Stored path points are simplified to about this resolution. */
+    simplifyMeters: 5,
+    /** The network covers this far beyond the hall's building reach. */
+    extraReachMeters: 300,
+  },
+
   danger: {
+    /** The day's average danger samples the patrol day this many times (every 3 hours). */
+    daySamples: 8,
     /** A patrol counts for a cell when its track comes this close to the cell's centre. */
     patrolMeters: 150,
     /** Fight events within this many metres of the cell's centre add to its score. */

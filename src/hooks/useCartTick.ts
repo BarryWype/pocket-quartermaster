@@ -1,12 +1,16 @@
 import { useEffect } from 'react';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
+import { materialById } from '@/content/lookup';
 import { patrolTexts } from '@/content/patrols';
 import type { PatrolKind } from '@/game/patrols/generate';
 import { cartNextEventAt } from '@/game/supply/cart';
+import { orderPlaceName } from '@/game/supply/orders';
 import { raidNextEventAt } from '@/game/supply/raids';
-import type { CartLogLine, RaidLogLine } from '@/game/supply/types';
-import { localized, t } from '@/i18n';
+import type { CartPlaceLine, CartLogLine, RaidLogLine } from '@/game/supply/types';
+import { tavernNameOf } from '@/game/taverns/taverns';
+import type { SaveData } from '@/game/save';
+import { localized, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 
@@ -26,6 +30,15 @@ export function ambushText(line: CartLogLine): string | null {
   return t(line.ambush.won === null ? 'supply.cart.toastUnguarded' : 'supply.cart.toastLost', { kind });
 }
 
+/** The map's note for an unload the cart just made at a place. */
+export function deliveryText(save: SaveData, line: CartPlaceLine): string | null {
+  const [good, amount] = Object.entries(line.goods).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1])[0] ?? [];
+  if (good === undefined) return null;
+  const order = save.supply.orders[line.placeId];
+  const place = order ? orderPlaceName(order, tavernNameOf) : line.placeId;
+  return t('supply.cart.deliveredNote', { n: amount, good: tr(materialById[good]?.name ?? good), place });
+}
+
 /** The map's note for a raid that just landed. */
 export function raidText(line: RaidLogLine): string {
   const kind = kindName(line.kind);
@@ -36,7 +49,8 @@ export function raidText(line: RaidLogLine): string {
 /**
  * Settles the supply lines when the cart's or a raid's next moment is due,
  * while the app is open: one timeout at a time, none while nothing is under
- * way. An ambushed loop or a landed raid shows a note on the map.
+ * way. An unload at a place, an ambushed loop or a landed raid shows a note on
+ * the map, and an unload pops over the cart marker.
  */
 export function useCartTick() {
   const on = useSupplyOn();
@@ -54,14 +68,31 @@ export function useCartTick() {
       const before = useGameStore.getState().save.supply;
       const lastLoop = before.cart.log.at(-1)?.n ?? 0;
       const lastRaid = before.raidLog.at(-1)?.landsAt ?? 0;
+      const beforeUnloaded = before.cart.loop?.unloaded.length ?? 0;
       useGameStore.getState().settleSupply();
-      const after = useGameStore.getState().save.supply;
+      const settled = useGameStore.getState().save;
+      const after = settled.supply;
+      // Unloads that just played out: the ones still on the running loop, and those of loops that just ended.
+      const unloads = [
+        ...(after.cart.loop?.unloaded.slice(beforeUnloaded) ?? []),
+        ...after.cart.log.filter((line) => line.n > lastLoop).flatMap((line) => line.places),
+      ];
+      const unload = unloads[unloads.length - 1];
       const notes = [
         ...after.cart.log.filter((line) => line.n > lastLoop).map(ambushText),
         ...after.raidLog.filter((line) => line.landsAt > lastRaid).map(raidText),
       ].filter((line): line is string => line !== null);
+      if (unload) {
+        const text = deliveryText(settled, unload);
+        const [good, n] = Object.entries(unload.goods).sort((a, b) => b[1] - a[1])[0] ?? [];
+        if (text && good !== undefined) {
+          useWorldStore.getState().set({ supplyMessage: { text, at: Date.now() }, cartPop: { good, n, at: Date.now() } });
+          return;
+        }
+      }
       if (notes.length > 0) useWorldStore.getState().set({ supplyMessage: { text: notes[notes.length - 1], at: Date.now() } });
     }, delay);
     return () => clearTimeout(timer);
   }, [on, cart, raid]);
 }
+

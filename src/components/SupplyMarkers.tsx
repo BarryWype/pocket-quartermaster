@@ -85,14 +85,10 @@ type Props = { sites: PlaceSpawn[]; now: number };
  */
 export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) {
   const on = useSupplyOn();
-  const planning = useMapPanels((state) => state.routeDraft !== null);
   const hall = useGameStore((s) => s.save.supply.hall);
   const buildings = useGameStore((s) => s.save.supply.buildings);
   const discovered = useGameStore((s) => s.save.supply.discovered);
   if (!on) return null;
-  // While the planner is open, a building tap adds it to the draft instead of opening its sheet.
-  const openBuilding = (id: string) =>
-    planning ? useMapPanels.getState().addToRoute({ building: id }) : useMapPanels.getState().openSupplyBuilding(id);
   return (
     <>
       {hall && (
@@ -105,7 +101,7 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
           key={building.id}
           id={`supply-building:${building.id}`}
           lngLat={toLngLat(building.position)}
-          onPress={tapped(() => openBuilding(building.id))}
+          onPress={tapped(() => useMapPanels.getState().openSupplyBuilding(building.id))}
         >
           <View style={styles.building}>
             <TimeRing

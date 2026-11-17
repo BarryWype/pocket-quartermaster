@@ -10,6 +10,7 @@ import { mergeLoot } from '@/game/loot/roll';
 import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { buildingNameKey } from '@/game/supply/buildings';
+import { upcomingUnload } from '@/game/supply/cart';
 import {
   deliverFromBag,
   deliverProblem,
@@ -22,9 +23,10 @@ import {
 import type { BuildingKind } from '@/game/supply/types';
 import { tavernNameOf } from '@/game/taverns/taverns';
 import { useSupplyOn } from '@/hooks/useSupply';
-import { formatDistance, formatPercent, t, tr } from '@/i18n';
+import { formatDistance, formatDuration, formatPercent, t, tr } from '@/i18n';
 import { feel } from '@/services/feel';
 import { useGameStore } from '@/store/gameStore';
+import { useMapPanels } from '@/store/mapPanelsStore';
 import { fonts, ui } from '@/theme';
 
 import { GameIcon } from './GameIcon';
@@ -83,6 +85,12 @@ export function OrderSection({ place, player, now }: Props) {
   const eachGold = Math.min(...goods.map(unitGold));
   const headlineId = order.headline.consumables[0]?.itemId ?? order.headline.gear[0]?.itemId;
   const headline = headlineId ? itemById[headlineId] : undefined;
+  // The cart's side of the order: what the running loop will still unload here, and the way to put the place on its route.
+  const cart = save.supply.cart;
+  const route = cart.nextRoute ?? cart.route;
+  const onRoute = route.some((point) => 'place' in point && point.place === place.id);
+  const upcoming = upcomingUnload(save, place.id, now);
+  const callAt = cart.loop?.events.find((event) => event.kind === 'place' && event.placeId === place.id && event.at > cart.settledAt)?.at;
   // The preview is the delivery itself, run on the current save: what hands over and what it pays can't drift from the real thing.
   const preview = problem === null ? deliverFromBag(save, place.id, place.position, player, now) : null;
 
@@ -200,6 +208,29 @@ export function OrderSection({ place, player, now }: Props) {
               ) : null;
             })}
       </View>
+      {upcoming && callAt !== undefined && (
+        <View style={styles.handsRow}>
+          <Text style={styles.small}>{t('supply.order.onItsWay')}</Text>
+          {Object.entries(upcoming).map(([good, take]) => (
+            <IconLabel
+              key={good}
+              emoji={materialById[good].emoji}
+              icon={materialById[good].icon}
+              label={`×${take}`}
+              size={14}
+              labelStyle={styles.small}
+            />
+          ))}
+          <Text style={styles.small}>{t('supply.order.inTime', { time: formatDuration(Math.max(0, callAt - now), false) })}</Text>
+        </View>
+      )}
+      {!onRoute && (
+        <WoodButton
+          compact
+          title={t('supply.building.addToRoute')}
+          onPress={() => useMapPanels.getState().openRoutePlanner([...route, { place: place.id, position: place.position }])}
+        />
+      )}
       {preview ? (
         <>
           <View style={styles.handsRow}>

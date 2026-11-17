@@ -1,13 +1,17 @@
 import { supplyRules } from '@/content/supplyLines';
+import { materialPrices } from '@/content/shops';
 
 import { cellAt } from '../discovery/cells';
 import { offsetPosition } from '../generation/geo';
+import { tileCenter } from '../generation/tiles';
 import type { LatLng } from '../generation/types';
+import { emptyLoot } from '../loot/types';
 import { createInitialSave, type SaveData } from '../save';
 import { currentHp } from '../team/health';
 import { isAway } from '../team/team';
 import { emptySupply } from './state';
 import type { Building, CartEvent } from './types';
+import type { Order } from './orders';
 import {
   cartCapacity,
   cartNextEventAt,
@@ -15,13 +19,16 @@ import {
   cartProblem,
   cartSpeedMps,
   crewProblem,
+  loopPreview,
   routeCells,
   routePreview,
+  routeProblem,
   setCrew,
   setRoute,
   settleCart,
   startCart,
   stopCart,
+  upcomingUnload,
 } from './cart';
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
@@ -56,7 +63,7 @@ const baseSave = (): SaveData => {
   return { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, buildings } };
 };
 
-const readySave = () => setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ building: 'b1' }, { building: 'b2' }], now);
+const readySave = () => setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ building: 'b1' }, { building: 'b2' }], null, now);
 
 beforeEach(() => {
   // No ambushes unless a test forces them.
@@ -108,7 +115,7 @@ describe('a full loop', () => {
 
   it('applies a route changed mid-loop from the next departure', () => {
     const started = startCart(readySave(), now);
-    const changed = setRoute(started, [{ building: 'b2' }], now);
+    const changed = setRoute(started, [{ building: 'b2' }], null, now);
     expect(changed.supply.cart.nextRoute).toEqual([{ building: 'b2' }]);
     const done = settleCart(changed, started.supply.cart.loop!.endsAt);
     expect(done.supply.cart.route).toEqual([{ building: 'b2' }]);
@@ -126,6 +133,17 @@ describe('a full loop', () => {
     expect(line.delivered.stone ?? 0).toBe(0);
     expect(line.delivered.grain).toBeGreaterThanOrEqual(8);
   });
+
+  it('keeps the stored path and the next stop\'s call time when an earlier building on the route is gone', () => {
+    const ready = readySave();
+    const withB1 = startCart(ready, now).supply.cart.loop!;
+    const callAt = (loop: typeof withB1) => loop.events.find((event) => event.kind === 'building' && event.buildingId === 'b2')!.at;
+    const withoutB1: SaveData = { ...ready, supply: { ...ready.supply, buildings: ready.supply.buildings.filter((building) => building.id !== 'b1') } };
+    const loop = startCart(withoutB1, now).supply.cart.loop!;
+    expect(loop.points).toEqual(withB1.points);
+    expect(callAt(loop)).toBe(callAt(withB1));
+    expect(loop.events.some((event) => event.kind === 'building' && event.buildingId === 'b1')).toBe(false);
+  });
 });
 
 describe('ambushes', () => {
@@ -141,7 +159,7 @@ describe('ambushes', () => {
       const hallCell = cellNear(offset);
       const buildings = [buildingAt(offsetPosition(origin, offset + 300, 0), 'b1', { grain: 8 }), buildingAt(offsetPosition(origin, offset + 600, 90), 'b2', { stone: 6 })];
       const withBuildings: SaveData = { ...createInitialSave(), supply: { ...emptySupply(now), hall: { cell: hallCell, moves: [] }, buildings } };
-      return setRoute(setCrew(withBuildings, 'bram', ['lyra', 'mira'], now), [{ building: 'b1' }, { building: 'b2' }], now);
+      return setRoute(setCrew(withBuildings, 'bram', ['lyra', 'mira'], now), [{ building: 'b1' }, { building: 'b2' }], null, now);
     };
     let started = startCart(strong(placed(0)), now);
     let ambush: Extract<CartEvent, { kind: 'ambush' }> | undefined;
@@ -188,7 +206,7 @@ describe('ambushes', () => {
 
 describe('crew and parking', () => {
   it('a hurt crew parks the cart with waitingForCrew, and startCart starts it again', () => {
-    const started = startCart(setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ building: 'b1' }], now), now);
+    const started = startCart(setRoute(setCrew(baseSave(), 'bram', ['lyra'], now), [{ building: 'b1' }], null, now), now);
     const exhausted = {
       ...started,
       heroes: started.heroes.map((hero) => (hero.id === 'bram' ? { ...hero, exhaustedUntil: now + 48 * HOUR } : hero)),
@@ -213,7 +231,7 @@ describe('crew and parking', () => {
     expect(cartSpeedMps(plain)).toBeCloseTo((supplyRules.cart.speedKmh * 1000) / 3600);
     expect(cartSpeedMps(noDriver)).toBeCloseTo((supplyRules.cart.speedKmh * supplyRules.cart.noDriverSpeed * 1000) / 3600);
     expect(cartCapacity(teamster)).toBeCloseTo(supplyRules.cart.capacity * (1 + supplyRules.cart.teamster.capacity[level]));
-    const started = startCart(setRoute(teamster, [{ building: 'b1' }], now), now);
+    const started = startCart(setRoute(teamster, [{ building: 'b1' }], null, now), now);
     const loop = started.supply.cart.loop!;
     const done = settleCart(started, loop.endsAt);
     const hours = done.heroes.find((hero) => hero.id === 'mira')!.trade.hours;
@@ -242,7 +260,7 @@ describe('routePreview', () => {
     jest.restoreAllMocks();
     const save = baseSave();
     const waypoint = cellNear(900, 200);
-    const route = [{ building: 'b1' }, { cell: waypoint }] as ({ building: string } | { cell: string })[];
+    const route = [{ building: 'b1' }, { via: tileCenter(waypoint) }] as ({ building: string } | { via: LatLng })[];
     const preview = routePreview(save, route, now);
     const crossed = routeCells(preview.points);
     expect(crossed).toContain(waypoint);
@@ -253,6 +271,139 @@ describe('routePreview', () => {
       none *= 1 - supplyRules.danger.ambushChance[level];
     }
     expect(preview.ambushChance).toBeCloseTo(1 - none);
+  });
+});
+
+describe('place stops', () => {
+  const order: Order = {
+    placeId: 't1',
+    kind: 'tavern',
+    wants: { grain: 10 },
+    total: 10,
+    delivered: {},
+    goldFraction: 0,
+    goldPaid: 0,
+    steps: [],
+    headline: emptyLoot(),
+    expiresAt: now + 6 * 24 * HOUR,
+  };
+  const placePosition = offsetPosition(origin, 400, 45);
+  const placeSave = (): SaveData => {
+    const save = baseSave();
+    return { ...save, supply: { ...save.supply, orders: { t1: order } } };
+  };
+  const placeRoute = [{ building: 'b1' }, { place: 't1', position: placePosition }] as ({ building: string } | { place: string; position: LatLng })[];
+
+  it('unloads what the order wants at the place, paid like a delivery in person, and logs it', () => {
+    const started = startCart(setRoute(setCrew(placeSave(), 'bram', ['lyra'], now), placeRoute, null, now), now);
+    const loop = started.supply.cart.loop!;
+    expect(loop.events.some((event) => event.kind === 'place' && event.placeId === 't1')).toBe(true);
+    const done = settleCart(started, loop.endsAt);
+    const line = done.supply.cart.log.find((entry) => entry.n === 1)!;
+    const gold = Math.floor(8 * supplyRules.orders.goldPerUnitShare * materialPrices.grain);
+    expect(line.places).toEqual([{ placeId: 't1', goods: { grain: 8 }, gold }]);
+    expect(line.delivered).toEqual({});
+    expect(done.gold).toBe(started.gold + gold);
+    expect(done.supply.orders.t1.delivered.grain).toBe(8);
+    expect(done.supply.orders.t1.goldPaid).toBe(gold);
+  });
+
+  it('skips a place whose order has expired, and brings the cargo home', () => {
+    const expired = { ...placeSave(), supply: { ...placeSave().supply, orders: { t1: { ...order, expiresAt: now + 1 } } } };
+    const started = startCart(setRoute(setCrew(expired, 'bram', ['lyra'], now), placeRoute, null, now), now);
+    const done = settleCart(started, started.supply.cart.loop!.endsAt);
+    const line = done.supply.cart.log.find((entry) => entry.n === 1)!;
+    expect(line.places).toEqual([]);
+    expect(line.delivered.grain).toBeGreaterThanOrEqual(8);
+  });
+
+  it('keeps looping while the route holds a live order place, and parks when it expires', () => {
+    const onlyPlace = [{ place: 't1', position: placePosition }] as { place: string; position: LatLng }[];
+    const started = startCart(setRoute(setCrew(placeSave(), 'bram', [], now), onlyPlace, null, now), now);
+    const once = settleCart(started, started.supply.cart.loop!.endsAt);
+    expect(once.supply.cart.loop).not.toBeNull();
+    const expired = { ...once, supply: { ...once.supply, orders: { t1: { ...order, expiresAt: now } } } };
+    const parked = settleCart(expired, expired.supply.cart.loop!.endsAt);
+    expect(parked.supply.cart.loop).toBeNull();
+  });
+});
+
+describe('routeProblem', () => {
+  it('rejects a route with no building or place, and one beyond the tier\'s building reach', () => {
+    const save = baseSave();
+    expect(routeProblem(save, [{ via: origin }])).toBe('noStop');
+    const far = buildingAt(offsetPosition(origin, supplyRules.buildings.limits[1].meters + 500, 0), 'b3', {});
+    const beyond = { ...save, supply: { ...save.supply, buildings: [...save.supply.buildings, far] } };
+    expect(routeProblem(beyond, [{ building: 'b3' }])).toBe('tooFar');
+    expect(routeProblem(save, [{ building: 'b1' }])).toBeNull();
+    expect(routeProblem(save, [{ place: 't1', position: offsetPosition(origin, 400, 0) }])).toBeNull();
+    expect(routeProblem({ ...save, supply: { ...save.supply, hall: null } }, [{ building: 'b1' }])).toBe('noHall');
+  });
+});
+
+describe('upcomingUnload', () => {
+  const order: Order = {
+    placeId: 't1',
+    kind: 'tavern',
+    wants: { grain: 10 },
+    total: 10,
+    delivered: {},
+    goldFraction: 0,
+    goldPaid: 0,
+    steps: [],
+    headline: emptyLoot(),
+    expiresAt: now + 6 * 24 * HOUR,
+  };
+  const placePosition = offsetPosition(origin, 400, 45);
+  const route = [{ building: 'b1' }, { place: 't1', position: placePosition }] as ({ building: string } | { place: string; position: LatLng })[];
+
+  it('plays the loop from the current cargo: the building loads, the place takes what it still wants', () => {
+    const save = { ...baseSave(), supply: { ...baseSave().supply, orders: { t1: order } } };
+    const started = startCart(setRoute(setCrew(save, 'bram', ['lyra'], now), route, null, now), now);
+    expect(upcomingUnload(started, 't1', now)).toEqual({ grain: 8 });
+  });
+
+  it('is null when the cart is parked, when the place is not on the route, and once the call has passed', () => {
+    const save = { ...baseSave(), supply: { ...baseSave().supply, orders: { t1: order } } };
+    expect(upcomingUnload(setRoute(setCrew(save, 'bram', [], now), route, null, now), 't1', now)).toBeNull();
+    const started = startCart(setRoute(setCrew(save, 'bram', ['lyra'], now), route, null, now), now);
+    expect(upcomingUnload(started, 'other', now)).toBeNull();
+    const loop = started.supply.cart.loop!;
+    const atPlace = loop.events.find((event) => event.kind === 'place')!.at;
+    const settled = settleCart(started, atPlace + 1);
+    expect(upcomingUnload(settled, 't1', atPlace + 1)).toBeNull();
+  });
+});
+
+describe('loopPreview', () => {
+  it('shows each stop\'s loads and unloads, what comes home, and the stops leaving before the next loop ends', () => {
+    const order: Order = {
+      placeId: 't1',
+      kind: 'tavern',
+      wants: { grain: 10 },
+      total: 10,
+      delivered: {},
+      goldFraction: 0,
+      goldPaid: 0,
+      steps: [],
+      headline: emptyLoot(),
+      expiresAt: now + 6 * 24 * HOUR,
+    };
+    const leaving = buildingAt(offsetPosition(origin, 300, 0), 'b1', { grain: 8 });
+    leaving.expiresAt = now + 10 * MINUTE;
+    const save: SaveData = {
+      ...baseSave(),
+      supply: { ...baseSave().supply, buildings: [leaving, buildingAt(offsetPosition(origin, 600, 90), 'b2', { stone: 6 })], orders: { t1: order } },
+    };
+    const route = [{ building: 'b1' }, { place: 't1', position: offsetPosition(origin, 400, 45) }] as ({ building: string } | { place: string; position: LatLng })[];
+    const preview = loopPreview(save, route, null, now);
+    expect(preview.stops[0].loads.grain).toBe(8);
+    expect(preview.stops[1].unloads.grain).toBe(8);
+    expect(preview.home).toEqual({});
+    expect(preview.meters).toBeGreaterThan(0);
+    expect(preview.minutes).toBeGreaterThan(0);
+    expect(preview.straightLegs).toEqual([0, 1, 2]);
+    expect(preview.leaving).toEqual(['b1']);
   });
 });
 

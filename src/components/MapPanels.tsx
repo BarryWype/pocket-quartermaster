@@ -11,7 +11,7 @@ import { useWorldStore } from '@/store/worldStore';
 import { PatrolPanel } from './PatrolPanel';
 import { PlaceFightPanel } from './PlaceFightPanel';
 import { PlacePanel } from './PlacePanel';
-import { RoutePlannerBar } from './RoutePlannerBar';
+import { RoutePlannerSheet } from './RoutePlannerSheet';
 import { SanctumPanel } from './SanctumPanel';
 import { SecretPanel } from './SecretPanel';
 import { SupplyCampPanel } from './SupplyCampPanel';
@@ -66,7 +66,8 @@ export function MapPanels({ player, patrols }: Props) {
   const closeSite = useMapPanels((state) => state.closeSite);
   const cartOpen = useMapPanels((state) => state.cartOpen);
   const closeCart = useMapPanels((state) => state.closeCart);
-  const routeDraft = useMapPanels((state) => state.routeDraft);
+  const routePlanner = useMapPanels((state) => state.routePlanner);
+  const closeRoutePlanner = useMapPanels((state) => state.closeRoutePlanner);
   const focusPatrol = useWorldStore((state) => state.focusPatrol);
   const focusedPatrol = focusPatrol ? (patrols.find((spawn) => spawn.id === focusPatrol.id) ?? null) : null;
   const selectedPatrol = openPatrol ?? focusedPatrol;
@@ -92,7 +93,7 @@ export function MapPanels({ player, patrols }: Props) {
       {supplyBuilding && <TimedSupplyBuildingPanel id={supplyBuilding} player={player} onClose={closeSupplyBuilding} />}
       {site && <TimedSupplySitePanel site={site} player={player} onClose={closeSite} />}
       {cartOpen && <TimedSupplyCartPanel onClose={closeCart} />}
-      {routeDraft !== null && <RoutePlannerBar />}
+      {routePlanner !== null && <RoutePlannerSheet onClose={closeRoutePlanner} />}
     </>
   );
 }

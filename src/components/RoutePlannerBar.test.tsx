@@ -2,6 +2,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { cellAt } from '@/game/discovery/cells';
 import { offsetPosition } from '@/game/generation/geo';
+import { tileCenter } from '@/game/generation/tiles';
 import type { Building, RoutePoint } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
@@ -86,7 +87,7 @@ describe('the route planner bar', () => {
   });
 
   it('a draft with only a waypoint: Save is disabled', () => {
-    const { sheet, disabled } = open([{ cell: cellAt(offsetPosition(origin, 1500, 90)) }]);
+    const { sheet, disabled } = open([{ via: offsetPosition(origin, 1500, 90) }]);
     expect(sheet).toContain('The hall → waypoint → The hall');
     expect(disabled).toBe(true);
   });
@@ -95,9 +96,9 @@ describe('the route planner bar', () => {
     act(() => {
       useMapPanels.getState().planRoute([]);
       useMapPanels.getState().addToRoute({ building: 'b1' });
-      useMapPanels.getState().addToRoute({ cell: hallCell });
+      useMapPanels.getState().addToRoute({ via: tileCenter(hallCell) });
     });
-    expect(useMapPanels.getState().routeDraft).toEqual([{ building: 'b1' }, { cell: hallCell }]);
+    expect(useMapPanels.getState().routeDraft).toEqual([{ building: 'b1' }, { via: tileCenter(hallCell) }]);
     act(() => useMapPanels.getState().undoRoute());
     expect(useMapPanels.getState().routeDraft).toEqual([{ building: 'b1' }]);
     act(() => useMapPanels.getState().clearRoute());

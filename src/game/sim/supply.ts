@@ -119,7 +119,7 @@ export function supplyEvening(sim: Sim, supply: SupplySim, walking: boolean, las
       .sort((a, b) => distanceMeters(tileCenter(hall.cell), a.position) - distanceMeters(tileCenter(hall.cell), b.position))
       .map((building) => ({ building: building.id }));
     const escort = freeHeroes(sim)[0];
-    sim.save = setRoute(setCrew(sim.save, null, escort ? [escort.id] : [], sim.now), route, sim.now);
+    sim.save = setRoute(setCrew(sim.save, null, escort ? [escort.id] : [], sim.now), route, null, sim.now);
     // An escort too hurt to set out stays home; the cart goes without one.
     if (cartProblem(sim.save, sim.now) === 'crewHurt') sim.save = setCrew(sim.save, null, [], sim.now);
     if (cartProblem(sim.save, sim.now) === null) sim.save = startCart(sim.save, sim.now);

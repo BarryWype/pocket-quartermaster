@@ -10,6 +10,8 @@ export function emptySupply(now: number): SupplyState {
     cart: {
       route: [],
       nextRoute: null,
+      path: null,
+      nextPath: null,
       crew: { driver: null, escorts: [] },
       loop: null,
       cargo: {},

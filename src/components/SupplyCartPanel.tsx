@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { IconLabel } from '@/components/IconLabel';
@@ -10,8 +10,11 @@ import { clockConfig } from '@/content/clockConfig';
 import { heroClasses } from '@/content/heroes';
 import { materialById } from '@/content/lookup';
 import { supplyRules } from '@/content/supplyLines';
+import { buildingNameKey } from '@/game/supply/buildings';
 import { cartCapacity, cartProblem, cartSpeedMps, crewProblem, routePreview, settleCart } from '@/game/supply/cart';
-import type { CartLogLine } from '@/game/supply/types';
+import { orderPlaceName } from '@/game/supply/orders';
+import type { CartLogLine, CartPlaceLine } from '@/game/supply/types';
+import { tavernNameOf } from '@/game/taverns/taverns';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isBusy } from '@/game/team/team';
 import type { SaveData } from '@/game/save';
@@ -33,12 +36,52 @@ const amountsText = (amounts: Record<string, number>) =>
     .map(([id, amount]) => `${amount} ${tr(materialById[id]?.name ?? id)}`)
     .join(', ');
 
-/** A log line: when, what was delivered, and the ambush if any. */
-function logText(line: CartLogLine, now: number): string {
-  const delivered = amountsText(line.delivered) || t('supply.cart.nothingDelivered');
-  const base = t('supply.cart.logLine', { n: line.n, time: formatDuration(now - line.endedAt, false), delivered });
+/** A place the cart unloaded at, by name: a tavern by its name, the rest by their kind. */
+const placeName = (save: SaveData, placeId: string): string => {
+  const order = save.supply.orders[placeId];
+  return order ? orderPlaceName(order, tavernNameOf) : placeId;
+};
+
+/** The goods of an unload or a homecoming: one icon-and-count element each. */
+function goodsElements(goods: Record<string, number>) {
+  return Object.entries(goods)
+    .filter(([, amount]) => amount > 0)
+    .map(([id, amount]) => (
+      <IconLabel key={id} emoji={materialById[id]?.emoji} icon={materialById[id]?.icon} label={String(amount)} size={14} />
+    ));
+}
+
+/** One loop of the log as a plain sentence: what went where, what came home, and the ambush if any. */
+function LoopSentence({ save, line }: { save: SaveData; line: CartLogLine }) {
   const ambush = ambushText(line);
-  return ambush ? `${base} · ${ambush}` : base;
+  const home = Object.entries(line.delivered).filter(([, amount]) => amount > 0);
+  const empty = line.places.length === 0 && home.length === 0;
+  return (
+    <View style={styles.sentence}>
+      {empty ? (
+        <Text style={styles.line}>{t('supply.cart.logEmpty')}</Text>
+      ) : (
+        <View style={styles.sentenceParts}>
+          {line.places.map((place: CartPlaceLine, i) => (
+            <Fragment key={place.placeId}>
+              {i > 0 && <Text style={styles.line}>{', '}</Text>}
+              <Text style={styles.line}>{i === 0 ? `${t('supply.cart.logDelivered')} ` : ''}</Text>
+              {goodsElements(place.goods)}
+              <Text style={styles.line}>{` ${t('supply.cart.logTo', { place: placeName(save, place.placeId) })}`}</Text>
+            </Fragment>
+          ))}
+          {home.length > 0 && (
+            <>
+              {line.places.length > 0 && <Text style={styles.line}>{', '}</Text>}
+              {goodsElements(Object.fromEntries(home))}
+              <Text style={styles.line}>{` ${t('supply.cart.logHome')}`}</Text>
+            </>
+          )}
+        </View>
+      )}
+      {ambush && <Text style={styles.muted}>{ambush}</Text>}
+    </View>
+  );
 }
 
 /** The crew members too hurt to set out again. */
@@ -90,8 +133,23 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
       .filter((hero) => !isBusy(save, hero.id) && !crewIds.includes(hero.id))
       .sort((a, b) => (slot === 'driver' ? Number(b.trade.id === 'teamster') - Number(a.trade.id === 'teamster') : 0));
 
+  // The stop the loop is heading to next, by name; the hall once it is only coming home.
+  const nextStopName = (() => {
+    if (!loop) return null;
+    const next = loop.events.find(
+      (event): event is Extract<typeof event, { kind: 'building' | 'place' }> => event.at > now && (event.kind === 'building' || event.kind === 'place'),
+    );
+    if (!next) return null;
+    if (next.kind === 'building') {
+      const building = save.supply.buildings.find((b) => b.id === next.buildingId);
+      return building ? t(buildingNameKey[building.kind]) : null;
+    }
+    return placeName(save, next.placeId);
+  })();
   const status = loop
-    ? t('supply.cart.running', { n: loop.n, time: formatDuration(Math.max(0, loop.endsAt - now), false) })
+    ? nextStopName
+      ? t('supply.cart.onItsWay', { stop: nextStopName, time: formatDuration(Math.max(0, loop.endsAt - now), false) })
+      : t('supply.cart.running', { n: loop.n, time: formatDuration(Math.max(0, loop.endsAt - now), false) })
     : cart.waitingForCrew
       ? t('supply.cart.waiting', { names: hurtNames(save, crewIds, now) })
       : t('supply.cart.parked');
@@ -132,7 +190,7 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
                 <Text style={styles.line}>{t('supply.cart.ambushChance', { percent: formatPercent(preview.ambushChance) })}</Text>
               </>
             )}
-            <WoodButton title={t('supply.cart.planRoute')} onPress={() => useMapPanels.getState().planRoute(cart.nextRoute ?? cart.route)} />
+            <WoodButton title={t('supply.cart.setRoute')} onPress={() => useMapPanels.getState().openRoutePlanner(cart.nextRoute ?? cart.route)} />
           </View>
 
           <View style={styles.section}>
@@ -184,11 +242,7 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
             {cart.log.length === 0 ? (
               <Text style={styles.muted}>{t('supply.cart.noLog')}</Text>
             ) : (
-              [...cart.log].reverse().map((line) => (
-                <Text key={line.n} style={styles.line}>
-                  {logText(line, now)}
-                </Text>
-              ))
+              [...cart.log].reverse().map((line) => <LoopSentence key={line.n} save={save} line={line} />)
             )}
           </View>
         </View>
@@ -208,4 +262,6 @@ const styles = StyleSheet.create({
   slotRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   who: { flex: 1 },
   picker: { paddingLeft: 8, gap: 6 },
+  sentence: { gap: 2 },
+  sentenceParts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
 });

@@ -1,12 +1,13 @@
-import { patrolRules, type PatrolDifficulty } from '@/content/patrols';
+import type { PatrolDifficulty } from '@/content/patrols';
+import { placeRules } from '@/content/places';
 import { supplyRules } from '@/content/supplyLines';
 
 import { cellAt, cellsAlong } from '../discovery/cells';
 import { highestUnlockedTier } from '../expeditions/expeditions';
+import { localDayIndex, localDayStart } from '../generation/localDays';
 import { distanceMeters, interpolate } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import { tileCenter } from '../generation/tiles';
-import { windowIndex, windowRange } from '../generation/time';
 import type { LatLng } from '../generation/types';
 import { addMaterials } from '../inventory';
 import { grantLoot } from '../loot/grant';
@@ -16,38 +17,76 @@ import type { PatrolKind, PatrolSpawn } from '../patrols/generate';
 import { applyRunHp, currentHp, isExhausted, maxHp } from '../team/health';
 import { isBusy } from '../team/team';
 import type { SaveData } from '../save';
-import { ambushChance, cellAmbusher, cellDangers, dangerContextOf } from './danger';
+import { buildingReach } from './buildings';
+import { ambushChance, cellAmbusher, dangerContextOf, dayDangers } from './danger';
 import { playPatrolFight, syntheticPatrol } from './fights';
+import { deliverGoods, orderProgress } from './orders';
 import { settleBuilding } from './production';
+import { straightStreetPath } from './streets';
 import { tradeLevel } from './trades';
-import type { Cart, CartEvent, RoutePoint } from './types';
+import type { Cart, CartEvent, RoutePoint, StreetPath } from './types';
 
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
 
-/** A stop on the route: a building's position, or a waypoint cell's centre. */
-type Stop = { at: LatLng; buildingId: string | null };
+/** A stop on the route: a building's position, a discovered place's, or a street point forced between them. */
+/** A route point as a stop; a building gone since the route was set keeps its slot with no position. */
+type Stop = { at: LatLng | null; buildingId: string | null; placeId: string | null };
 
-/** The route's stops, dropping points whose building no longer exists. */
-function stopsOf(save: SaveData, route: RoutePoint[]): Stop[] {
+/** The route's stops, one per route point, in order. */
+export function routeStops(save: SaveData, route: RoutePoint[]): Stop[] {
   const stops: Stop[] = [];
   for (const point of route) {
     if ('building' in point) {
       const building = save.supply.buildings.find((b) => b.id === point.building);
-      if (building) stops.push({ at: building.position, buildingId: building.id });
+      stops.push({ at: building?.position ?? null, buildingId: point.building, placeId: null });
+    } else if ('place' in point) {
+      stops.push({ at: point.position, buildingId: null, placeId: point.place });
     } else {
-      stops.push({ at: tileCenter(point.cell), buildingId: null });
+      stops.push({ at: point.via, buildingId: null, placeId: null });
     }
   }
   return stops;
 }
 
-/** The loop's path: the hall's centre, each point's centre, back to the hall. */
+/** The loop's straight-line path: the hall's centre, each stop, back to the hall. */
 export function routePoints(save: SaveData, route: RoutePoint[]): LatLng[] {
   const hall = save.supply.hall;
   if (!hall) return [];
   const centre = tileCenter(hall.cell);
-  return [centre, ...stopsOf(save, route).map((stop) => stop.at), centre];
+  return [centre, ...liveStopPositions(routeStops(save, route)), centre];
+}
+
+const liveStopPositions = (stops: Stop[]): LatLng[] => stops.flatMap((stop) => (stop.at ? [stop.at] : []));
+
+/**
+ * The path the loop drives and its stops, paired index for index: the stored
+ * street path holds one stop per route point, so a building gone since keeps
+ * its slot and the cart simply drives past; without a matching stored path,
+ * the straight path through the stops still there.
+ */
+function loopPlan(save: SaveData, route: RoutePoint[], path: StreetPath | null, hall: LatLng): { path: StreetPath; stops: Stop[] } {
+  const stops = routeStops(save, route);
+  if (path && path.stopAt.length === stops.length) return { path, stops };
+  const live = stops.filter((stop) => stop.at !== null);
+  return { path: straightStreetPath(hall, liveStopPositions(live)), stops: live };
+}
+
+/** The distance travelled along the path up to each of its points. */
+function travelledMeters(points: LatLng[]): number[] {
+  const travelled = [0];
+  for (let i = 1; i < points.length; i++) travelled.push(travelled[i - 1] + distanceMeters(points[i - 1], points[i]));
+  return travelled;
+}
+
+/** The cargo minus what was handed over. */
+function cargoLeft(cargo: Record<string, number>, taken: Record<string, number>): Record<string, number> {
+  const left: Record<string, number> = {};
+  for (const [good, amount] of Object.entries(cargo)) {
+    const rest = amount - (taken[good] ?? 0);
+    if (rest > 0) left[good] = rest;
+  }
+  return left;
 }
 
 /** The distinct cells the path crosses, in first-crossing order. */
@@ -113,17 +152,17 @@ export function cartCapacity(save: SaveData): number {
   return supplyRules.cart.capacity * (1 + bonus);
 }
 
-/** The danger level of each crossing, one danger call per patrol window. */
+/** Each crossed cell's danger level, by the day average of the day it is crossed on. */
 function levelsOf(save: SaveData, crossed: { cell: string; at: number }[]): Map<string, 0 | 1 | 2 | 3> {
   const ctx = dangerContextOf(save);
-  const byWindow = new Map<number, string[]>();
+  const byDay = new Map<number, string[]>();
   for (const { cell, at } of crossed) {
-    const w = windowIndex(at, patrolRules.windowMinutes);
-    byWindow.set(w, [...(byWindow.get(w) ?? []), cell]);
+    const day = localDayIndex(at, placeRules.changeHourLocal);
+    byDay.set(day, [...(byDay.get(day) ?? []), cell]);
   }
   const levels = new Map<string, 0 | 1 | 2 | 3>();
-  for (const [w, cells] of byWindow) {
-    const dangers = cellDangers(cells, windowRange(w, patrolRules.windowMinutes).start, ctx);
+  for (const [day, cells] of byDay) {
+    const dangers = dayDangers(cells, localDayStart(day, placeRules.changeHourLocal), ctx);
     for (const cell of cells) levels.set(cell, dangers[cell].level);
   }
   return levels;
@@ -148,19 +187,22 @@ function fightEvent(
 /** Everything about a loop, fixed when it starts: its path, speed, and the events with their fights played out. */
 function planLoop(save: SaveData, at: number, n: number): Cart['loop'] {
   const cart = save.supply.cart;
-  const stops = stopsOf(save, cart.route);
-  const points = routePoints(save, cart.route);
+  const hall = save.supply.hall;
+  if (!hall) return { n, startedAt: at, endsAt: at, points: [], speedMps: cartSpeedMps(save), capacity: cartCapacity(save), events: [], unloaded: [] };
+  const centre = tileCenter(hall.cell);
+  const { path, stops } = loopPlan(save, cart.route, cart.path, centre);
+  const points = path.points;
+  const travelled = travelledMeters(points);
   const speedMps = cartSpeedMps(save);
   const capacity = cartCapacity(save);
   const crew = crewIds(cart);
 
   const events: CartEvent[] = [];
-  let travelled = 0;
-  for (let i = 0; i < stops.length; i++) {
-    travelled += distanceMeters(points[i], points[i + 1]);
-    const buildingId = stops[i].buildingId;
-    if (buildingId) events.push({ at: at + (travelled / speedMps) * 1000, kind: 'building', buildingId });
-  }
+  stops.forEach((stop, i) => {
+    const atStop = at + (travelled[path.stopAt[i]] / speedMps) * 1000;
+    if (stop.buildingId && stop.at) events.push({ at: atStop, kind: 'building', buildingId: stop.buildingId });
+    else if (stop.placeId) events.push({ at: atStop, kind: 'place', placeId: stop.placeId });
+  });
 
   const crossed = crossings(points, at, speedMps);
   const levels = levelsOf(save, crossed);
@@ -190,8 +232,8 @@ function planLoop(save: SaveData, at: number, n: number): Cart['loop'] {
   events.sort((a, b) => a.at - b.at);
   // A lost ambush ends the loop: no later events, and the cart comes home empty.
   const kept = lostAt === null ? events : events.filter((event) => event.at <= lostAt!);
-  const endsAt = lostAt === null ? at + (routeLength(points) / speedMps) * 1000 : lostAt + supplyRules.cart.lostReturnMinutes * MINUTE;
-  return { n, startedAt: at, endsAt, points, speedMps, capacity, events: kept };
+  const endsAt = lostAt === null ? at + (travelled[travelled.length - 1] / speedMps) * 1000 : lostAt + supplyRules.cart.lostReturnMinutes * MINUTE;
+  return { n, startedAt: at, endsAt, points, speedMps, capacity, events: kept, unloaded: [] };
 }
 
 /** Starts a loop at `at`: the plan is fixed, and the cargo starts empty. */
@@ -232,6 +274,15 @@ function crewHurt(save: SaveData, crew: string[], at: number): boolean {
   });
 }
 
+/** Whether the route still holds a stop worth a loop: a live building, or a place whose order is alive. */
+function hasLiveStop(save: SaveData, route: RoutePoint[], at: number): boolean {
+  return route.some((point) => {
+    if ('building' in point) return save.supply.buildings.some((building) => building.id === point.building);
+    if ('place' in point) return (save.supply.orders[point.place]?.expiresAt ?? 0) > at;
+    return false;
+  });
+}
+
 /** Closes a finished loop at its end: delivers, pays the fights, logs it, and either parks or starts the next one. */
 function finishLoop(save: SaveData): SaveData {
   const cart = save.supply.cart;
@@ -261,26 +312,32 @@ function finishLoop(save: SaveData): SaveData {
     n: loop.n,
     endedAt: loop.endsAt,
     delivered: Object.fromEntries(delivered),
+    places: loop.unloaded,
     ambush: first ? { cell: first.cell, kind: first.patrolKind, won: first.won } : null,
   };
   let route = cart.route;
   let nextRoute = cart.nextRoute;
+  let path = cart.path;
+  let nextPath = cart.nextPath;
   if (nextRoute !== null) {
     route = nextRoute;
     nextRoute = null;
+    path = nextPath;
+    nextPath = null;
   }
   const parked: Cart = {
     ...cart,
     route,
     nextRoute,
+    path,
+    nextPath,
     cargo: {},
     log: [...cart.log, line].slice(-supplyRules.cart.logSize),
     settledAt: loop.endsAt,
   };
   next = { ...next, supply: { ...next.supply, cart: parked } };
   if (crewHurt(next, crew, loop.endsAt)) return { ...next, supply: { ...next.supply, cart: { ...parked, loop: null, waitingForCrew: true } } };
-  const hasBuilding = route.some((point) => 'building' in point && next.supply.buildings.some((building) => building.id === point.building));
-  if (!next.supply.hall || !hasBuilding) return { ...next, supply: { ...next.supply, cart: { ...parked, loop: null } } };
+  if (!next.supply.hall || !hasLiveStop(next, route, loop.endsAt)) return { ...next, supply: { ...next.supply, cart: { ...parked, loop: null } } };
   return startLoop(next, loop.endsAt, loop.n + 1);
 }
 
@@ -299,6 +356,7 @@ export function settleCart(save: SaveData, now: number): SaveData {
     const upto = Math.min(now, loop.endsAt);
     let cargo = cart.cargo;
     let buildings = next.supply.buildings;
+    let unloaded = loop.unloaded;
     let changed = false;
     for (const event of loop.events) {
       if (event.at <= cart.settledAt || event.at > upto) continue;
@@ -311,11 +369,21 @@ export function settleCart(save: SaveData, now: number): SaveData {
         const loaded = loadStock(cargo, settled.stock, loop.capacity);
         cargo = loaded.cargo;
         buildings = buildings.map((building, i) => (i === index ? { ...settled, stock: loaded.stock } : building));
+      } else if (event.kind === 'place') {
+        // A place whose order is gone, expired or filled is simply skipped.
+        const order = next.supply.orders[event.placeId];
+        if (!order || order.expiresAt <= event.at || orderProgress(order) >= 1) continue;
+        const given = deliverGoods(next, event.placeId, cargo, event.at);
+        next = given.save;
+        cargo = cargoLeft(cargo, given.taken);
+        unloaded = [...unloaded, { placeId: event.placeId, goods: given.taken, gold: given.gold }];
       } else if (event.won !== true) {
         cargo = {};
       }
     }
-    if (changed) next = { ...next, supply: { ...next.supply, buildings, cart: { ...next.supply.cart, cargo } } };
+    if (changed) {
+      next = { ...next, supply: { ...next.supply, buildings, cart: { ...next.supply.cart, cargo, loop: { ...loop, unloaded } } } };
+    }
     if (loop.endsAt > now) return { ...next, supply: { ...next.supply, cart: { ...next.supply.cart, settledAt: now } } };
     next = finishLoop(next);
   }
@@ -327,13 +395,101 @@ export function routePreview(save: SaveData, route: RoutePoint[], now: number) {
   const meters = routeLength(points);
   const speedMps = cartSpeedMps(save);
   const crossed = routeCells(points);
-  const dangers = crossed.length > 0 ? cellDangers(crossed, now, dangerContextOf(save)) : {};
+  const dangers = crossed.length > 0 ? dayDangers(crossed, now, dangerContextOf(save)) : {};
   const cells = crossed.map((cell) => ({
     cell,
     level: (dangers[cell]?.level ?? 0) as 0 | 1 | 2 | 3,
   }));
   const ambushChanceTotal = 1 - cells.reduce((none, { level }) => none * (1 - ambushChance(level)), 1);
   return { points, meters, loopMinutes: meters / speedMps / 60, cells, ambushChance: ambushChanceTotal };
+}
+
+/**
+ * What one loop from now would do, with today's stock and orders: each stop's
+ * loads and unloads, what comes home, the loop's length and time, its chance
+ * of at least one ambush, its straight legs, and the stops that leave before
+ * the end of the loop after it.
+ */
+export function loopPreview(save: SaveData, route: RoutePoint[], path: StreetPath | null, now: number) {
+  const hall = save.supply.hall;
+  const centre = hall ? tileCenter(hall.cell) : { latitude: 0, longitude: 0 };
+  const { path: used, stops: planned } = loopPlan(save, route, path, centre);
+  const travelled = travelledMeters(used.points);
+  const speedMps = cartSpeedMps(save);
+  const capacity = cartCapacity(save);
+  const meters = travelled[travelled.length - 1] ?? 0;
+  const minutes = meters / speedMps / 60;
+
+  let cargo: Record<string, number> = {};
+  const stops = planned.map((stop): { point: Stop; loads: Record<string, number>; unloads: Record<string, number> } => {
+    if (stop.buildingId) {
+      const building = save.supply.buildings.find((b) => b.id === stop.buildingId);
+      if (!building) return { point: stop, loads: {}, unloads: {} };
+      const before = cargo;
+      cargo = loadStock(cargo, building.stock, capacity).cargo;
+      const loads = Object.fromEntries(
+        Object.keys(cargo)
+          .map((good) => [good, cargo[good] - (before[good] ?? 0)] as const)
+          .filter(([, amount]) => amount > 0),
+      );
+      return { point: stop, loads, unloads: {} };
+    }
+    if (stop.placeId) {
+      const order = save.supply.orders[stop.placeId];
+      if (order && order.expiresAt > now && orderProgress(order) < 1) {
+        const unloads = deliverGoods(save, stop.placeId, cargo, now).taken;
+        cargo = cargoLeft(cargo, unloads);
+        return { point: stop, loads: {}, unloads };
+      }
+    }
+    return { point: stop, loads: {}, unloads: {} };
+  });
+
+  const crossed = routeCells(used.points);
+  const dangers = crossed.length > 0 ? dayDangers(crossed, now, dangerContextOf(save)) : {};
+  const ambushChanceTotal = 1 - crossed.reduce((none, cell) => none * (1 - ambushChance(dangers[cell]?.level ?? 0)), 1);
+  const nextLoopEnd = now + 2 * minutes * MINUTE;
+  const leaving = route.flatMap((point) => {
+    if ('building' in point) {
+      return save.supply.buildings.some((b) => b.id === point.building && b.expiresAt < nextLoopEnd) ? [point.building] : [];
+    }
+    if ('place' in point) {
+      return (save.supply.orders[point.place]?.expiresAt ?? Infinity) < nextLoopEnd ? [point.place] : [];
+    }
+    return [];
+  });
+  return { stops, home: cargo, meters, minutes, ambushChance: ambushChanceTotal, straightLegs: used.straightLegs, leaving };
+}
+
+/**
+ * What the running loop will still unload at the place, played out from the
+ * cart's current cargo: the remaining building loads and place unloads, in
+ * order. Null when the loop will not call there again.
+ */
+export function upcomingUnload(save: SaveData, placeId: string, _now: number): Record<string, number> | null {
+  const cart = save.supply.cart;
+  const loop = cart.loop;
+  if (!loop) return null;
+  if (!loop.events.some((event) => event.kind === 'place' && event.placeId === placeId && event.at > cart.settledAt)) return null;
+  let cargo = cart.cargo;
+  let unload: Record<string, number> | null = null;
+  for (const event of loop.events) {
+    if (event.at <= cart.settledAt) continue;
+    if (event.kind === 'building') {
+      const building = save.supply.buildings.find((b) => b.id === event.buildingId);
+      if (building) cargo = loadStock(cargo, building.stock, loop.capacity).cargo;
+    } else if (event.kind === 'place') {
+      const order = save.supply.orders[event.placeId];
+      if (order && order.expiresAt > event.at && orderProgress(order) < 1) {
+        const given = deliverGoods(save, event.placeId, cargo, event.at);
+        cargo = cargoLeft(cargo, given.taken);
+        if (event.placeId === placeId) unload = given.taken;
+      }
+    } else if (event.won !== true) {
+      cargo = {};
+    }
+  }
+  return unload;
 }
 
 export type CartProblem = 'noHall' | 'noRoute' | 'running' | 'crewBusy' | 'crewHurt' | null;
@@ -359,30 +515,44 @@ export function startCart(save: SaveData, now: number): SaveData {
   return startLoop({ ...save, supply: { ...save.supply, cart: { ...cart, waitingForCrew: false } } }, now, n);
 }
 
-export type RouteProblem = 'noBuilding' | null;
+export type RouteProblem = 'noHall' | 'noStop' | 'tooFar' | null;
 
-/** Why a route cannot be set, or null. */
+/** Why a route cannot be set, or null: it needs a hall and a live stop within the tier's building reach of it. */
 export function routeProblem(save: SaveData, route: RoutePoint[]): RouteProblem {
+  if (!save.supply.hall) return 'noHall';
+  if (!route.some((point) => 'building' in point || 'place' in point)) return 'noStop';
+  const hall = save.supply.hall;
+  const centre = tileCenter(hall.cell);
+  const reach = buildingReach(save).meters;
   for (const point of route) {
-    if ('building' in point && !save.supply.buildings.some((building) => building.id === point.building)) return 'noBuilding';
+    const at = 'building' in point
+      ? save.supply.buildings.find((building) => building.id === point.building)?.position
+      : 'place' in point
+        ? point.position
+        : null;
+    if (at && distanceMeters(centre, at) > reach) return 'tooFar';
   }
   return null;
 }
 
-/** Sets the route: while a loop runs it applies at the next departure. */
-export function setRoute(save: SaveData, route: RoutePoint[], _now: number): SaveData {
+/** Sets the route and its path: while a loop runs both apply at the next departure. */
+export function setRoute(save: SaveData, route: RoutePoint[], path: StreetPath | null, _now: number): SaveData {
   const problem = routeProblem(save, route);
   if (problem) throw new Error(`Cannot set the route: ${problem}`);
   const cart = save.supply.cart;
-  if (cart.loop) return { ...save, supply: { ...save.supply, cart: { ...cart, nextRoute: route } } };
-  return { ...save, supply: { ...save.supply, cart: { ...cart, route } } };
+  const hall = save.supply.hall;
+  const stored =
+    path ??
+    (hall ? straightStreetPath(tileCenter(hall.cell), liveStopPositions(routeStops(save, route))) : null);
+  if (cart.loop) return { ...save, supply: { ...save.supply, cart: { ...cart, nextRoute: route, nextPath: stored } } };
+  return { ...save, supply: { ...save.supply, cart: { ...cart, route, path: stored } } };
 }
 
 /** Parks the cart: after the current loop, or at once when parked. */
 export function stopCart(save: SaveData, _now: number): SaveData {
   const cart = save.supply.cart;
-  if (cart.loop) return { ...save, supply: { ...save.supply, cart: { ...cart, nextRoute: [] } } };
-  return { ...save, supply: { ...save.supply, cart: { ...cart, route: [] } } };
+  if (cart.loop) return { ...save, supply: { ...save.supply, cart: { ...cart, nextRoute: [], nextPath: null } } };
+  return { ...save, supply: { ...save.supply, cart: { ...cart, route: [], path: null } } };
 }
 
 export type CrewProblem = 'running' | 'tooMany' | 'busy' | 'duplicate' | null;

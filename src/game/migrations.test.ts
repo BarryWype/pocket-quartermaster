@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57, toV58 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -17,6 +17,8 @@ import { rolledTrade } from "./supply/trades";
 import { emptySupply } from "./supply/state";
 import { cellAt } from "./discovery/cells";
 import { offsetPosition } from "./generation/geo";
+import { tileCenter } from "./generation/tiles";
+import type { Building } from "./supply/types";
 import { rosterCap } from "./guild/guild";
 import { rosterRules } from "@/content/roster";
 
@@ -1364,5 +1366,81 @@ describe("toV57", () => {
 
   it("runs from migrateSave on a version 56 save", () => {
     expect(migrateSave(v56(), 56, 0).supply.orders).toEqual({});
+  });
+});
+
+describe("toV58", () => {
+  const origin = { latitude: -41.2865, longitude: 174.7762 };
+
+  /** A version 57 save: its cart's routes hold waypoint cells and no street paths. */
+  const v57 = (): SaveData => {
+    const base = createInitialSave();
+    const hallCell = cellAt(origin);
+    const building: Building = {
+      id: "b1",
+      kind: "farm",
+      siteId: "s1",
+      position: offsetPosition(origin, 300, 0),
+      quality: 2,
+      builtAt: 0,
+      expiresAt: 6 * 86_400_000,
+      heroId: null,
+      postedAt: null,
+      stock: {},
+      progress: 0,
+      made: 0,
+      settledAt: 0,
+      inspectedUntil: 0,
+      closedUntil: 0,
+    };
+    const cart = { ...base.supply.cart } as Record<string, unknown>;
+    delete cart.path;
+    delete cart.nextPath;
+    cart.route = [{ building: "b1" }, { cell: cellAt(offsetPosition(origin, 400, 90)) }];
+    cart.nextRoute = null;
+    cart.loop = {
+      n: 1,
+      startedAt: 0,
+      endsAt: 1,
+      points: [origin],
+      speedMps: 1,
+      capacity: 20,
+      events: [],
+      unloaded: [],
+    };
+    return {
+      ...base,
+      supply: {
+        ...base.supply,
+        hall: { cell: hallCell, moves: [] },
+        buildings: [building],
+        cart: cart as unknown as SaveData["supply"]["cart"],
+      },
+    };
+  };
+
+  it("turns waypoint cells into forced street points", () => {
+    const next = toV58(v57());
+    expect(next.supply.cart.route).toEqual([{ building: "b1" }, { via: tileCenter(cellAt(offsetPosition(origin, 400, 90))) }]);
+  });
+
+  it("gives each route the straight path of its stops, and a running loop keeps its own points", () => {
+    const next = toV58(v57());
+    const path = next.supply.cart.path!;
+    const building = next.supply.buildings[0];
+    expect(path.points).toEqual([tileCenter(cellAt(origin)), building.position, tileCenter(cellAt(offsetPosition(origin, 400, 90))), tileCenter(cellAt(origin))]);
+    expect(path.stopAt).toEqual([1, 2]);
+    expect(path.straightLegs).toEqual([0, 1, 2]);
+    expect(next.supply.cart.nextPath).toBeNull();
+    expect(next.supply.cart.loop!.points).toEqual([origin]);
+  });
+
+  it("returns the same save when the paths are already there", () => {
+    const save = createInitialSave();
+    expect(toV58(save)).toBe(save);
+  });
+
+  it("runs from migrateSave on a version 57 save", () => {
+    expect(migrateSave(v57(), 57, 0).supply.cart.path).not.toBeNull();
   });
 });

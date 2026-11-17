@@ -39,6 +39,9 @@ import { emptyHistory } from "./gear/history";
 import { emptyRecord, factsOfReport, noteRunOnHeroes } from "./team/record";
 import { emptySupply } from "./supply/state";
 import { rolledTrade } from "./supply/trades";
+import { routeStops } from "./supply/cart";
+import { straightStreetPath } from "./supply/streets";
+import { tileCenter } from "./generation/tiles";
 import { supplyRules } from "@/content/supplyLines";
 import type { TradeId } from "@/content/supplyLines";
 
@@ -964,7 +967,7 @@ export function toV56(save: SaveData): SaveData {
       ...(rest as unknown as SaveData['supply']),
       buildings: [],
       personalSite: null,
-      cart: { ...cart, route: cellsOnly(cart.route), nextRoute: cellsOnly(cart.nextRoute), loop, cargo: {} },
+      cart: { ...cart, route: cellsOnly(cart.route) as unknown as SaveData["supply"]["cart"]["route"], nextRoute: cellsOnly(cart.nextRoute) as unknown as SaveData["supply"]["cart"]["route"], loop, cargo: {} },
       raid: null,
       raidLog,
     },
@@ -978,6 +981,38 @@ export function toV56(save: SaveData): SaveData {
 export function toV57(save: SaveData): SaveData {
   if (save.supply.orders) return save;
   return { ...save, supply: { ...save.supply, orders: {} } };
+}
+
+/**
+ * Version 58: the cart drives streets (see supply/streets.ts). Waypoint cells
+ * become forced street points, and each route's path starts as its straight
+ * line (or null with no hall or route); a running loop keeps driving its own
+ * points.
+ */
+export function toV58(save: SaveData): SaveData {
+  type OldPoint = { building: string } | { cell: string };
+  type OldCart = Omit<SaveData["supply"]["cart"], "route" | "nextRoute" | "path" | "nextPath"> & {
+    route: OldPoint[];
+    nextRoute: OldPoint[] | null;
+    path?: unknown;
+  };
+  const cart = save.supply.cart as unknown as OldCart;
+  // A save already on version 58 has a path field: nothing left to migrate.
+  if (cart.path !== undefined) return save;
+  const toPoints = (route: OldPoint[]): SaveData["supply"]["cart"]["route"] =>
+    route.map((point) => ("cell" in point ? { via: tileCenter(point.cell) } : point));
+  const route = toPoints(cart.route);
+  const nextRoute = cart.nextRoute === null ? null : toPoints(cart.nextRoute);
+  const hall = save.supply.hall;
+  const straightOf = (points: SaveData["supply"]["cart"]["route"]) =>
+    hall && points.length > 0 ? straightStreetPath(tileCenter(hall.cell), routeStops(save, points).flatMap((stop) => (stop.at ? [stop.at] : []))) : null;
+  return {
+    ...save,
+    supply: {
+      ...save.supply,
+      cart: { ...cart, route, nextRoute, path: straightOf(route), nextPath: nextRoute === null ? null : straightOf(nextRoute) },
+    },
+  };
 }
 
 /** Applies the migration steps in order, from the save's own version on. */
@@ -1014,5 +1049,6 @@ export function migrateSave(
   if (fromVersion < 55) next = toV55(next);
   if (fromVersion < 56) next = toV56(next);
   if (fromVersion < 57) next = toV57(next);
+  if (fromVersion < 58) next = toV58(next);
   return next;
 }

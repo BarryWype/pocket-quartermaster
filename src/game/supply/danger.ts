@@ -1,10 +1,12 @@
 import { patrolRules } from '@/content/patrols';
 import type { PatrolDifficulty } from '@/content/patrols';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
+import { placeRules } from '@/content/places';
 import { supplyRules } from '@/content/supplyLines';
 import type { Difficulty } from '@/content/difficulty';
 
 import { highestUnlockedTier } from '../expeditions/expeditions';
+import { localDayIndex, localDayStart } from '../generation/localDays';
 import { distanceMeters } from '../generation/geo';
 import { tileCenter, tilesAround } from '../generation/tiles';
 import { windowIndex, windowRange } from '../generation/time';
@@ -114,6 +116,57 @@ export function cellDangers(cells: string[], timeMs: number, ctx: DangerContext)
       if (withinMeters(lair, centre, supplyRules.danger.lairMeters)) score += supplyRules.danger.lairWeight;
     }
     dangers[cell] = { score, level: dangerLevel(score) };
+  }
+  return dangers;
+}
+
+/** Day-average dangers, memoised per cell, day and context, bounded so a long session cannot grow it without end. */
+const dayDangerCache = new Map<string, { score: number; level: 0 | 1 | 2 | 3 }>();
+const DAY_DANGER_CACHE_MAX = 2000;
+
+/** The cache key of one cell's day average: the cell, the local day, and everything the score depends on. */
+function dayDangerKey(cell: string, day: number, ctx: DangerContext): string {
+  return [
+    cell,
+    day,
+    ctx.tier,
+    Object.keys(ctx.beatenPatrols).sort().join(','),
+    Object.keys(ctx.usedPlaces).sort().join(','),
+  ].join('|');
+}
+
+/**
+ * Each cell's danger averaged over its local day: the mean score over the
+ * day's samples (patrols, fight events and lairs as at each sampled moment),
+ * with the level of the rounded mean. The same day gives every moment the
+ * same answer, so what the planner showed is what the ambush rolls use.
+ */
+export function dayDangers(cells: string[], timeMs: number, ctx: DangerContext): Record<string, { score: number; level: 0 | 1 | 2 | 3 }> {
+  const hour = placeRules.changeHourLocal;
+  const day = localDayIndex(timeMs, hour);
+  const start = localDayStart(day, hour);
+  const end = localDayStart(day + 1, hour);
+  const dangers: Record<string, { score: number; level: 0 | 1 | 2 | 3 }> = {};
+  const missing: string[] = [];
+  for (const cell of [...new Set(cells)]) {
+    const cached = dayDangerCache.get(dayDangerKey(cell, day, ctx));
+    if (cached) dangers[cell] = cached;
+    else missing.push(cell);
+  }
+  if (missing.length > 0) {
+    const samples = supplyRules.danger.daySamples;
+    const sums = new Map(missing.map((cell) => [cell, 0]));
+    for (let k = 0; k < samples; k++) {
+      const sampled = cellDangers(missing, start + (k * (end - start)) / samples, ctx);
+      for (const cell of missing) sums.set(cell, sums.get(cell)! + sampled[cell].score);
+    }
+    for (const cell of missing) {
+      const score = sums.get(cell)! / samples;
+      const value = { score, level: dangerLevel(Math.round(score)) };
+      if (dayDangerCache.size >= DAY_DANGER_CACHE_MAX) dayDangerCache.delete(dayDangerCache.keys().next().value!);
+      dayDangerCache.set(dayDangerKey(cell, day, ctx), value);
+      dangers[cell] = value;
+    }
   }
   return dangers;
 }

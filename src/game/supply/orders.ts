@@ -227,6 +227,56 @@ export function deliverProblem(
 }
 
 /**
+ * The core of a delivery, from the bag or the cart: what the order still
+ * takes of the goods at hand (a market: any network good, largest stack
+ * first), the gold it pays for them with the fraction carried, and the save
+ * with that gold paid and the order updated. The caller takes the goods out
+ * of wherever they came from. Pure: returns a new save.
+ */
+export function deliverGoods(
+  save: SaveData,
+  placeId: string,
+  goods: Record<string, number>,
+  now: number,
+): { save: SaveData; taken: Record<string, number>; gold: number } {
+  const order = save.supply.orders[placeId];
+  if (!order) throw new Error(`Cannot deliver to ${placeId}: unknown`);
+  const needed = stillNeeded(order);
+  const list =
+    order.wants === null
+      ? [...networkGoods].sort((a, b) => (goods[b] ?? 0) - (goods[a] ?? 0))
+      : Object.keys(order.wants);
+  const taken: Record<string, number> = {};
+  let fraction = order.goldFraction;
+  let left = order.total - deliveredTotal(order);
+  for (const good of list) {
+    const take = Math.min(order.wants === null ? left : needed[good], goods[good] ?? 0);
+    if (take <= 0) continue;
+    taken[good] = take;
+    left -= take;
+    fraction += take * supplyRules.orders.goldPerUnitShare * materialPrices[good];
+  }
+  const gold = Math.floor(fraction);
+  const orders = {
+    ...save.supply.orders,
+    [placeId]: {
+      ...order,
+      delivered: {
+        ...order.delivered,
+        ...Object.fromEntries(Object.entries(taken).map(([good, amount]) => [good, (order.delivered[good] ?? 0) + amount])),
+      },
+      goldFraction: fraction - gold,
+      goldPaid: order.goldPaid + gold,
+    },
+  };
+  return {
+    save: { ...save, gold: save.gold + gold, supply: { ...save.supply, orders } },
+    taken,
+    gold,
+  };
+}
+
+/**
  * Hands over every wanted good the player holds, up to what the order still
  * takes (a market: any network good, largest stack first), paying the order's
  * gold per unit with the fraction carried. Pure: returns a new save.
@@ -240,37 +290,13 @@ export function deliverFromBag(
 ): { save: SaveData; delivered: Record<string, number>; gold: number } {
   const problem = deliverProblem(save, placeId, placePosition, player);
   if (problem) throw new Error(`Cannot deliver to ${placeId}: ${problem}`);
-  const order = save.supply.orders[placeId];
-  const needed = stillNeeded(order);
-  const goods =
-    order.wants === null
-      ? [...networkGoods].sort((a, b) => (save.materials[b] ?? 0) - (save.materials[a] ?? 0))
-      : Object.keys(order.wants);
-  const delivered: Record<string, number> = {};
-  let materials = save.materials;
-  let fraction = order.goldFraction;
-  let left = order.total - deliveredTotal(order);
-  for (const good of goods) {
-    const take = Math.min(order.wants === null ? left : needed[good], save.materials[good] ?? 0);
-    if (take <= 0) continue;
-    delivered[good] = take;
-    left -= take;
-    materials = removeMaterials(materials, [{ materialId: good, amount: take }]);
-    fraction += take * supplyRules.orders.goldPerUnitShare * materialPrices[good];
-  }
-  const gold = Math.floor(fraction);
-  const orders = {
-    ...save.supply.orders,
-    [placeId]: {
-      ...order,
-      delivered: { ...order.delivered, ...Object.fromEntries(Object.entries(delivered).map(([good, amount]) => [good, (order.delivered[good] ?? 0) + amount])) },
-      goldFraction: fraction - gold,
-      goldPaid: order.goldPaid + gold,
-    },
-  };
+  const { save: given, taken, gold } = deliverGoods(save, placeId, save.materials, now);
   return {
-    save: { ...save, gold: save.gold + gold, materials, supply: { ...save.supply, orders } },
-    delivered,
+    save: {
+      ...given,
+      materials: removeMaterials(given.materials, Object.entries(taken).map(([materialId, amount]) => ({ materialId, amount }))),
+    },
+    delivered: taken,
     gold,
   };
 }

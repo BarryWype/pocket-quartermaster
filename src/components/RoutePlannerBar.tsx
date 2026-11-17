@@ -45,7 +45,6 @@ export function RoutePlannerBar() {
   }, [draft, save]);
 
   if (!draft) return null;
-  const hasBuilding = draft.some((point) => 'building' in point);
   const problem = routeProblem(save, draft);
   const hall = t('supply.network.hall');
   const pointsLine = [hall, ...draft.map((point) => pointName(save, point)), hall].join(' → ');
@@ -69,7 +68,7 @@ export function RoutePlannerBar() {
           <WoodButton compact title={t('common.cancel')} onPress={() => useMapPanels.getState().cancelRoute()} />
           <EmberButton
             title={t('supply.planner.save')}
-            disabled={problem !== null || !hasBuilding}
+            disabled={problem !== null}
             onPress={() => {
               setRoute(draft);
               useMapPanels.getState().cancelRoute();

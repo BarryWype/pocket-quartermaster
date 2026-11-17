@@ -49,7 +49,7 @@ describe('building expiry in settleNetwork', () => {
     // The building is 600 m out: the cart calls at 12 minutes, an hour before it expires.
     const expiresAt = now + 1.2 * HOUR;
     const save = saveWith([buildingIn({ stock: { grain: 10 }, expiresAt })]);
-    const started = startCart(setRoute(setCrew(save, 'bram', [], now), [{ building: 'b1' }], now), now);
+    const started = startCart(setRoute(setCrew(save, 'bram', [], now), [{ building: 'b1' }], null, now), now);
     const midLoop = settleNetwork(started, now + 15 * 60_000);
     expect(midLoop.supply.cart.cargo.grain).toBeGreaterThanOrEqual(10);
     // The loop finishes before the building goes, and the cargo aboard is delivered anyway.

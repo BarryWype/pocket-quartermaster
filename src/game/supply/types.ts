@@ -52,11 +52,23 @@ export type Building = {
   closedUntil: number;
 };
 
-export type RoutePoint = { building: string } | { cell: string };
+/**
+ * A building on the route, a discovered order place (its placed position is
+ * stored, so settling never regenerates places), or a street point the player
+ * forced the route through.
+ */
+export type RoutePoint = { building: string } | { place: string; position: LatLng } | { via: LatLng };
 
-/** What happens on a loop: a building call, or an ambush played out at departure. */
+/** The path the cart drives: its points, where each stop sits on it, and which legs fell back to a straight line. */
+export type StreetPath = { points: LatLng[]; stopAt: number[]; straightLegs: number[] };
+
+/** What was unloaded at a place on a loop, and the gold it paid. */
+export type CartPlaceLine = { placeId: string; goods: Record<string, number>; gold: number };
+
+/** What happens on a loop: a building call, a place unload, or an ambush played out at departure. */
 export type CartEvent =
   | { at: number; kind: 'building'; buildingId: string }
+  | { at: number; kind: 'place'; placeId: string }
   | {
       at: number;
       kind: 'ambush';
@@ -75,9 +87,23 @@ export type Cart = {
   route: RoutePoint[];
   /** A route changed mid-loop: applies at the next departure. */
   nextRoute: RoutePoint[] | null;
+  /** The street path of the route, found when the route was set. */
+  path: StreetPath | null;
+  /** The path of a route changed mid-loop, applied with it. */
+  nextPath: StreetPath | null;
   crew: { driver: string | null; escorts: string[] };
   /** The loop under way, fixed when it starts; null: parked at the hall. */
-  loop: { n: number; startedAt: number; endsAt: number; points: LatLng[]; speedMps: number; capacity: number; events: CartEvent[] } | null;
+  loop: {
+    n: number;
+    startedAt: number;
+    endsAt: number;
+    points: LatLng[];
+    speedMps: number;
+    capacity: number;
+    events: CartEvent[];
+    /** What has been unloaded at places so far, for the log line when the loop ends. */
+    unloaded: CartPlaceLine[];
+  } | null;
   cargo: Record<string, number>;
   settledAt: number;
   /** Someone came home too hurt: the cart waits for the player. */
@@ -89,7 +115,10 @@ export type Cart = {
 export type CartLogLine = {
   n: number;
   endedAt: number;
+  /** What reached the hall. */
   delivered: Record<string, number>;
+  /** What was unloaded at places on the way, and the gold each paid. */
+  places: CartPlaceLine[];
   ambush: { cell: string; kind: PatrolKind; won: boolean | null } | null;
 };
 

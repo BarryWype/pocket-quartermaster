@@ -87,7 +87,7 @@ import { ageNetwork } from '@/game/supply/debug';
 import { debugRaid as debugRaidInSave, sendDefenders as sendDefendersInSave } from '@/game/supply/raids';
 import { settleNetwork } from '@/game/supply/settle';
 import { setCrew as setCrewInSave, setRoute as setRouteInSave, startCart as startCartInSave, stopCart as stopCartInSave } from '@/game/supply/cart';
-import type { BuildingKind, RoutePoint } from '@/game/supply/types';
+import type { BuildingKind, RoutePoint, StreetPath } from '@/game/supply/types';
 import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, PlaceFight, Rarity } from '@/game/types';
 
 import { t } from '@/i18n';
@@ -146,8 +146,8 @@ type GameState = {
   debugExpireSite: (site: PlaceSpawn) => void;
   /** Debug: marks every live network place and site within 1.2 km of the position discovered. */
   debugDiscoverAround: (position: LatLng) => void;
-  /** Supply lines: sets the cart's route; while a loop runs it applies at the next departure. */
-  setRoute: (route: RoutePoint[]) => void;
+  /** Supply lines: sets the cart's route and its street path (straight when omitted); while a loop runs both apply at the next departure. */
+  setRoute: (route: RoutePoint[], path?: StreetPath) => void;
   /** Supply lines: sets the cart's crew, which can only change while the cart is parked. */
   setCrew: (driver: string | null, escorts: string[]) => void;
   /** Supply lines: starts the cart on its route. */
@@ -472,7 +472,7 @@ export const useGameStore = create<GameState>()(
         }
         set({ save: next });
       },
-      setRoute: (route) => set({ save: setRouteInSave(get().save, route, Date.now()) }),
+      setRoute: (route, path) => set({ save: setRouteInSave(get().save, route, path ?? null, Date.now()) }),
       setCrew: (driver, escorts) => set({ save: setCrewInSave(get().save, driver, escorts, Date.now()) }),
       startCart: () => set({ save: startCartInSave(get().save, Date.now()) }),
       stopCart: () => set({ save: stopCartInSave(get().save, Date.now()) }),
@@ -885,7 +885,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 57,
+      version: 58,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).

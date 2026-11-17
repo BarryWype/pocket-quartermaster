@@ -796,11 +796,12 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
             setDebug({ mockLocation: { latitude, longitude } });
           } else if (supplyOn) {
             const [longitude, latitude] = event.nativeEvent.lngLat;
-            const cell = cellAt({ latitude, longitude });
-            if (useMapPanels.getState().routeDraft !== null) {
-              useMapPanels.getState().addToRoute({ cell });
+            const panels = useMapPanels.getState();
+            // On the planner's result step a tap becomes a via point; anywhere else it opens the cell's sheet.
+            if (panels.routePlanner !== null && panels.plannerStep === 3) {
+              panels.notePlannerTap({ latitude, longitude });
             } else {
-              useMapPanels.getState().openSupplyCell(cell);
+              panels.openSupplyCell(cellAt({ latitude, longitude }));
             }
           }
         }}

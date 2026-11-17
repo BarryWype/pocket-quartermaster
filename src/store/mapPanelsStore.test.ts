@@ -12,12 +12,12 @@ describe('the route planner store slice', () => {
   it('addToRoute appends to the draft, starting one from nothing', () => {
     act(() => useMapPanels.getState().planRoute([]));
     act(() => useMapPanels.getState().addToRoute({ building: 'b1' }));
-    act(() => useMapPanels.getState().addToRoute({ cell: 'abc' }));
-    expect(useMapPanels.getState().routeDraft).toEqual([{ building: 'b1' }, { cell: 'abc' }]);
+    act(() => useMapPanels.getState().addToRoute({ via: { latitude: -41.28, longitude: 174.77 } }));
+    expect(useMapPanels.getState().routeDraft).toEqual([{ building: 'b1' }, { via: { latitude: -41.28, longitude: 174.77 } }]);
   });
 
   it('undoRoute drops the last point, and an empty draft stays open', () => {
-    act(() => useMapPanels.getState().planRoute([{ building: 'b1' }, { cell: 'abc' }]));
+    act(() => useMapPanels.getState().planRoute([{ building: 'b1' }, { via: { latitude: -41.28, longitude: 174.77 } }]));
     act(() => useMapPanels.getState().undoRoute());
     expect(useMapPanels.getState().routeDraft).toEqual([{ building: 'b1' }]);
     act(() => useMapPanels.getState().undoRoute());

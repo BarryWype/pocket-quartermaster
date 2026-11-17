@@ -107,7 +107,7 @@ describe('balance lab', () => {
 
   it('keeps heroes out on the supply lines (cart crew, raid defenders) out of the bot’s parties', () => {
     const base = createInitialSave();
-    const loop = { n: 1, startedAt: 0, endsAt: 1, points: [], speedMps: 1, capacity: 1, events: [] };
+    const loop = { n: 1, startedAt: 0, endsAt: 1, points: [], speedMps: 1, capacity: 1, events: [], unloaded: [] };
     const save: SaveData = {
       ...base,
       supply: {

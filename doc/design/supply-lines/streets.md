@@ -1,6 +1,6 @@
 # Street routes · proposal (step 7)
 
-**Status: proposal, for review.** Nothing below is built yet. Once approved and built, the rules move into the README.
+**Status: approved as proposed and built 2026-11-17.** The rules as built are in the README ("The cart and its route").
 
 ## What the game already has
 

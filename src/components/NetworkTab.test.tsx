@@ -91,4 +91,24 @@ describe('the Network tab', () => {
     // The card appears once: in the section, not again in the buildings list.
     expect(tab.split('Leaves in').length - 1).toBe(1);
   });
+
+  it('warns when a stop on the cart’s route has left, and the button opens the planner', () => {
+    useSettingsStore.setState({ supplyLines: true });
+    const base = createInitialSave();
+    const save: SaveData = {
+      ...base,
+      supply: { ...base.supply, hall: { cell: 'c1', moves: [] }, cart: { ...base.supply.cart, route: [{ building: 'gone' }] } },
+    };
+    act(() => {
+      useGameStore.setState({ save });
+    });
+    act(() => {
+      renderer = create(<NetworkTab />);
+    });
+    expect(text(renderer!)).toContain('A stop on the cart’s route has left. Set the route again.');
+    act(() => {
+      renderer!.root.findAll((node) => node.props.title === 'Set the route' && typeof node.props.onPress === 'function')[0].props.onPress();
+    });
+    expect(text(renderer!)).toContain('Cart route');
+  });
 });

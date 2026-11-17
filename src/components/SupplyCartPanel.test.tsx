@@ -3,7 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { cellAt } from '@/game/discovery/cells';
 import { offsetPosition } from '@/game/generation/geo';
 import { startCart } from '@/game/supply/cart';
-import type { Building } from '@/game/supply/types';
+import type { Building, CartLogLine } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useCartTick } from '@/hooks/useCartTick';
 import { useGameStore } from '@/store/gameStore';
@@ -72,11 +72,23 @@ describe('the cart sheet', () => {
     expect(sheet).toContain('Plan a route first.');
   });
 
-  it('running: shows the loop and when it is back', () => {
+  it('running: shows the stop it is heading to and when it is back', () => {
     const sheet = open(startCart(withNetwork({ route: [{ building: 'b1' }] }), Date.now()));
-    expect(sheet).toContain('Loop 1: back at the hall in');
+    expect(sheet).toContain('On its way to Farm, back at the hall in');
     expect(sheet).toContain('Stop after this loop');
     expect(sheet).toContain('The crew can change once the cart is parked.');
+  });
+
+  it('tells the last loops as sentences: what went where, what came home, and the empty one', () => {
+    const log: CartLogLine[] = [
+      { n: 1, endedAt: Date.now() - 2 * 3_600_000, delivered: { stone: 4 }, places: [{ placeId: 't1', goods: { grain: 8 }, gold: 10 }], ambush: null },
+      { n: 2, endedAt: Date.now() - 3_600_000, delivered: {}, places: [], ambush: null },
+    ];
+    const sheet = open(withNetwork({ log }));
+    expect(sheet).toContain('Delivered');
+    expect(sheet).toContain('to t1');
+    expect(sheet).toContain('home.');
+    expect(sheet).toContain('Came home empty.');
   });
 
   it('back with a hurt crew: names them and offers to start again', () => {
