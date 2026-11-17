@@ -5,6 +5,7 @@ import { offsetPosition } from '../../generation/geo';
 import { createRng } from '../../generation/rng';
 import type { LatLng } from '../../generation/types';
 import { placesWithin, type PlaceSpawn } from '../../places/generate';
+import { placeStock } from '../../places/shops';
 import { createInitialSave, type SaveData } from '../../save';
 import type { HeroClassId } from '../../types';
 import { generateTavernsAround } from '../../taverns/taverns';
@@ -107,8 +108,6 @@ describe('map rules', () => {
 
   it('buys the material a wanted forge is short of at the nearest place stocking it', () => {
     const now = simConfig.startDay;
-    const sawmill = placesWithin(LOCATION, 2000, now).find((p) => p.kind === 'sawmill');
-    expect(sawmill).toBeDefined();
     const save: SaveData = {
       ...createInitialSave(),
       tutorial: { step: 'done', spawns: [], lastPickupAt: null, rewarded: true },
@@ -117,13 +116,17 @@ describe('map rules', () => {
       materials: { wood: 0 },
       gold: 10,
     };
+    const market = placesWithin(LOCATION, 2000, now)
+      .filter((p) => p.kind === 'market')
+      .find((p) => placeStock(save, p, now).some((l) => l.kind === 'material' && l.id === 'wood'));
+    expect(market).toBeDefined();
     const sim = makeSim(save, now);
-    sim.location = sawmill!.position;
+    sim.location = market!.position;
     buyForgeMaterials(sim);
     expect(sim.save.materials.wood).toBe(2);
     expect(sim.save.gold).toBe(8);
     const broke = makeSim({ ...save, gold: 1 }, now);
-    broke.location = sawmill!.position;
+    broke.location = market!.position;
     buyForgeMaterials(broke);
     expect(broke.save.materials.wood).toBe(0);
     expect(broke.save.gold).toBe(1);

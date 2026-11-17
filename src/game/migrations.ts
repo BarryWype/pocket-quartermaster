@@ -2,6 +2,7 @@ import { affixById } from "@/content/affixes";
 import type { Rarity } from "@/content/gear";
 import { choiceOf, jobById, jobs } from "@/content/jobs";
 import { itemById, monsterPartById } from "@/content/lookup";
+import { objectives, type QuestBand } from "@/content/quests";
 import { shopRules } from "@/content/shops";
 import { recruitRules } from "@/content/roster";
 import { ELEMENTS, shardId, stoneId, type Element } from "./elements";
@@ -27,7 +28,8 @@ import { jobMaterials } from "./jobs/jobs";
 import type { Loot } from "./loot/types";
 import type { JobOutput, SaveData } from "./save";
 import type { ActiveThreat, Briefing, ExpeditionReport, GearDef, GearInstance, HeroState, MaterialStack } from "./types";
-import { sellGoodsAmount } from "./quests/unlocks";
+import { availableObjectives, sellGoodsAmount } from "./quests/unlocks";
+import { newQuest } from "./quests/arrival";
 import type { Quest } from "./quests/types";
 import { rolledSpecial } from "./team/specials";
 import { STARTING_ARMOUR } from "./crafting/recipeUnlocks";
@@ -1034,6 +1036,38 @@ export function toV59(save: SaveData): SaveData {
   };
 }
 
+/**
+ * Version 60: the six material shops leave the map (doc/design/supply-lines/
+ * replacements.md). Open "mine" quests are swapped for a fresh quest of the
+ * same band from the current pool, keeping arrival and expiry; quests whose
+ * target names a removed kind get their target expired, so the retarget
+ * points them at a live place; the removed kinds leave `seenPlaceKinds`.
+ */
+export function toV60(save: SaveData, now: number): SaveData {
+  const removed = new Set(["sawmill", "quarry", "copperMine", "ironMine", "coalPit", "huntingLodge"]);
+  let changed = false;
+  const list = save.quests.list.map((quest): Quest => {
+    if ((quest.objective as string) === "mine" && quest.doneAt === null) {
+      changed = true;
+      const rng = createRng(`quest|${save.playerSeed}|v60|${quest.id}`);
+      const band = quest.band as QuestBand;
+      const available = availableObjectives(save, band);
+      const objective = rng.weighted(available, (o) => objectives[o].weight);
+      const fresh = newQuest(quest.id, band, objective, save, rng, quest.arrivedAt);
+      return { ...fresh, arrivedAt: quest.arrivedAt, expiresAt: quest.expiresAt };
+    }
+    if (quest.target && removed.has(quest.target.kind as string)) {
+      changed = true;
+      return { ...quest, target: { ...quest.target, expiresAt: 0 } };
+    }
+    return quest;
+  });
+  const seenPlaceKinds = save.seenPlaceKinds.filter((kind) => !removed.has(kind as string));
+  if (seenPlaceKinds.length !== save.seenPlaceKinds.length) changed = true;
+  if (!changed) return save;
+  return { ...save, quests: { ...save.quests, list }, seenPlaceKinds };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -1070,5 +1104,6 @@ export function migrateSave(
   if (fromVersion < 57) next = toV57(next);
   if (fromVersion < 58) next = toV58(next);
   if (fromVersion < 59) next = toV59(next);
+  if (fromVersion < 60) next = toV60(next, now);
   return next;
 }

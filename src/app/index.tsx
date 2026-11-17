@@ -42,7 +42,7 @@ import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
 import { tutorialRules } from '@/content/tutorial';
 import { walkableRules } from '@/content/walkable';
-import { freshGathersLeft, pickaxeTier, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
+import { freshGathersLeft, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { cellAt } from '@/game/discovery/cells';
 import { requiredPickaxeTier } from '@/game/gathering/lockedNodes';
 import { ambienceConfig, decorationMode, inSpan, type DecorationMode } from '@/game/generation/ambience';
@@ -59,7 +59,7 @@ import { patrolPositionAt, patrolsAround, pruneByWindow, type PatrolSpawn } from
 import { pocketModeAvailable, pocketTracking } from '@/game/patrols/pocketMode';
 import { activeLairs, isFightPlace } from '@/game/places/fights';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { isPlaceVisible, placeGroupOf, placesWithin, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
+import { isPlaceVisible, placeGroupOf, placesWithin, type PlaceSpawn } from '@/game/places/generate';
 import { keepPlace, placePlacement } from '@/game/places/placement';
 import { ruinReplacements } from '@/game/places/ruins';
 import { mapTileAt, mapTileKey } from '@/game/generation/walkable';
@@ -368,7 +368,6 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [placedSites, now, save.usedPlaces, save.supply.buildings, sight, position?.latitude, position?.longitude],
   );
-  const playerPickaxe = pickaxeTier(save);
   const placesInSight = useMemo(
     () =>
       recordTiming('map: placesInSight', () =>
@@ -376,13 +375,12 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           (place) =>
             position !== null &&
             isPlaceVisible(place, position, now, sight) &&
-            !(place.id in save.usedPlaces) &&
-            showsForPlayer(place, playerPickaxe),
+            !(place.id in save.usedPlaces),
         ),
       ),
     // Keyed by the coordinates, not the object: GPS fixes would recompute every list each second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placedPlaces, debugPlaces, position?.latitude, position?.longitude, now, save, playerPickaxe, sight],
+    [placedPlaces, debugPlaces, position?.latitude, position?.longitude, now, save, sight],
   );
   // This player's tipped secret places: shown at any distance until they move on.
   const tippedSecrets = useSecretPlaces(save, now);

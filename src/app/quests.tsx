@@ -76,8 +76,6 @@ function objectiveText(quest: Quest) {
       return t('quests.objective.walk', { distance: formatDistance(quest.amount) });
     case 'deliver':
       return t('quests.objective.deliver', { count: quest.amount, item: tr(itemById[quest.itemId ?? '']?.name ?? ''), place });
-    case 'mine':
-      return t('quests.objective.mine', { count: quest.amount, place });
     case 'sellGoods':
       return t('quests.objective.sellGoods', { gold: quest.amount });
     case 'fightEvent':

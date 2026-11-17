@@ -7,6 +7,9 @@ import { monsterParts } from './loot/monsterParts';
 /** Each tier's main material, tier 1 first. */
 export const tierMaterials = ['wood', 'stone', 'copper', 'iron', 'steel'];
 
+/** The ore of each dungeon tier, tier 1 first: what the smithy's order step pays. */
+export const tierOres = ['stone', 'copper', 'iron', 'coal', 'coal'];
+
 /** Each element's shard icon. */
 const SHARD_ICONS: Record<Element, MaterialDef['icon']> = {
   fire: require('../../assets/icons/rpg/gem-red.png'),

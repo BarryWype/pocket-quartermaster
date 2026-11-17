@@ -65,7 +65,6 @@ describe('every shop price is finite and positive at every tier', () => {
       'library',
       'market',
       'tavern',
-      'huntingLodge',
       'apothecary',
     ] as PlaceSpawn['kind'][];
     for (const kind of kinds) {
@@ -104,7 +103,7 @@ describe('every shop price is finite and positive at every tier', () => {
     }
     for (const [id, part] of Object.entries(monsterPartById)) {
       if (!part) continue;
-      for (const kind of ['huntingLodge', 'apothecary'] as const) {
+      for (const kind of ['apothecary', 'market'] as const) {
         const price = materialSellPrice(id, kind);
         if (price !== 0) finite(price, `${kind} price of monster part ${id}`);
       }

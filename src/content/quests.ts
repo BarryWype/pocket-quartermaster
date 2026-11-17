@@ -6,7 +6,7 @@ export type QuestObjective =
   | 'chapel' | 'library' | 'ruins' | 'dock'        // Visit
   | 'fightEvent' | 'patrols' | 'lair'              // Fight
   | 'deliver'                                      // Deliver
-  | 'mine' | 'gatherOnWay'                         // Gather
+  | 'gatherOnWay'                                  // Gather
   | 'sellGoods'                                    // Trade
   | 'walk';                                        // Walk
 
@@ -30,7 +30,6 @@ export const questRules = {
   amounts: {
     patrols: { short: 1, medium: 2, long: 3 },
     gatherOnWay: { short: 4, medium: 8, long: 15 },
-    mine: { short: 3, medium: 5, long: 8 },
     deliver: { short: 1, medium: 2, long: 3 },
     walk: { short: 500, medium: 1000, long: 2000 },
   } as Partial<Record<QuestObjective, Record<QuestBand, number>>>,
@@ -66,7 +65,7 @@ export const objectives: Record<QuestObjective, ObjectiveDef> = {
   visit: {
     kind: 'visit',
     emoji: '📍',
-    places: ['sawmill', 'quarry', 'copperMine', 'ironMine', 'coalPit', 'huntingLodge', 'smithy', 'apothecary', 'chapel', 'market'],
+    places: ['smithy', 'apothecary', 'chapel', 'market'],
     weight: 0,
     bands: ['short'],
   },
@@ -83,7 +82,6 @@ export const objectives: Record<QuestObjective, ObjectiveDef> = {
   patrols: { kind: 'fight', emoji: '🛡️', weight: 1 },
   lair: { kind: 'fight', emoji: '🐉', places: ['monsterLair'], weight: 1, bands: ['long'] },
   deliver: { kind: 'deliver', emoji: '📦', weight: 1 },
-  mine: { kind: 'gather', emoji: '⛏️', weight: 1 },
   gatherOnWay: { kind: 'gather', emoji: '🌿', weight: 1 },
   sellGoods: { kind: 'trade', emoji: '💰', weight: 1 },
   walk: { kind: 'walk', emoji: '🥾', weight: 1 },

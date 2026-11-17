@@ -1,7 +1,7 @@
 import { placeGroups } from '@/content/places';
 
 import { tileAt } from '../generation/tiles';
-import { generateTilePlaces, isPlaceVisible, mineTier, placeGroupOf, showsForPlayer } from './generate';
+import { generateTilePlaces, isPlaceVisible, placeGroupOf } from './generate';
 
 const HOUR_MS = 3_600_000;
 const wellington = { latitude: -41.2865, longitude: 174.7762 };
@@ -52,32 +52,6 @@ describe('generateTilePlaces', () => {
         expect(spawn.expiresAt).toBeGreaterThan(now);
       }
     }
-  });
-});
-
-describe('mine gating', () => {
-  const spawnOf = (kind: 'quarry' | 'coalPit', roll: number) =>
-    ({ id: 'x', kind, group: kind, tile: 't', position: wellington, startsAt: 0, expiresAt: 1, roll }) as const;
-
-  it('treats ore places as mine tiers', () => {
-    expect(mineTier('quarry')).toBe(1);
-    expect(mineTier('coalPit')).toBe(4);
-    expect(mineTier('market')).toBeNull();
-  });
-
-  it('hides locked mines for rolls at or above the locked share, and always shows quarries at tier 1', () => {
-    expect(showsForPlayer(spawnOf('coalPit', 0.49), 1)).toBe(true);
-    expect(showsForPlayer(spawnOf('coalPit', 0.5), 1)).toBe(false);
-    expect(showsForPlayer(spawnOf('coalPit', 0.1), 4)).toBe(true);
-    expect(showsForPlayer(spawnOf('quarry', 0.99), 1)).toBe(true);
-  });
-
-  it('shows about half the coal pits to a tier-1 player over many tiles', () => {
-    const tiles = Array.from({ length: 200 }, (_, i) => tileAt({ latitude: -41 + i * 0.06, longitude: 174 + i * 0.06 }, 5));
-    const pits = tiles.flatMap((tile) => generateTilePlaces(placeGroupOf('coalPit'), tile, now));
-    const shown = pits.filter((s) => showsForPlayer(s, 1)).length / pits.length;
-    expect(pits.length).toBeGreaterThan(50);
-    expect(Math.abs(shown - 0.5)).toBeLessThan(0.1);
   });
 });
 

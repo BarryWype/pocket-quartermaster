@@ -10,12 +10,6 @@
  */
 export type PlaceKind =
   | 'tavern'
-  | 'sawmill'
-  | 'quarry'
-  | 'copperMine'
-  | 'ironMine'
-  | 'coalPit'
-  | 'huntingLodge'
   | 'smithy'
   | 'apothecary'
   | 'chapel'
@@ -65,12 +59,6 @@ const single = (kind: PlaceKind, densityPerKm2: number, precision = 5): PlaceGro
 
 export const placeGroups: PlaceGroup[] = [
   single('tavern', 0.7),
-  single('sawmill', 0.25),
-  single('quarry', 0.25),
-  single('copperMine', 0.25),
-  single('ironMine', 0.25),
-  single('coalPit', 0.25),
-  single('huntingLodge', 0.25),
   single('smithy', 0.25),
   single('apothecary', 0.25),
   single('chapel', 0.25),
@@ -104,20 +92,11 @@ export const placeRules = {
   changeHourLocal: 4,
   /** Snapped to walkable places with coarse map tiles, like Sanctums. */
   placement: { mapZoom: 12, maxSnapMeters: 150 },
-  /** Ore places double as mine tiers; a mine above the player's pickaxe tier shows less often. */
-  mineTiers: { quarry: 1, copperMine: 2, ironMine: 3, coalPit: 4 } satisfies Partial<Record<PlaceKind, number>>,
-  lockedMineShare: 0.5,
 };
 
 /** What players see of each kind; names and lines go through `tr` for French. */
 export const placeInfo: Record<PlaceKind, { name: string; emoji: string; description: string }> = {
   tavern: { name: 'Tavern', emoji: '🍺', description: 'Recruits and emergency supply.' },
-  sawmill: { name: 'Sawmill', emoji: '🪚', description: 'Sells a little wood.' },
-  quarry: { name: 'Quarry', emoji: '🪨', description: 'Sells a little stone.' },
-  copperMine: { name: 'Copper mine', emoji: '🟠', description: 'Sells a little copper ore.' },
-  ironMine: { name: 'Iron mine', emoji: '⛓️', description: 'Sells a little iron ore.' },
-  coalPit: { name: 'Coal pit', emoji: '⚫', description: 'Sells a little coal.' },
-  huntingLodge: { name: 'Hunting lodge', emoji: '🏹', description: 'Sells a little hide, meat and bone.' },
   smithy: { name: 'Smithy', emoji: '⚒️', description: 'Sells and buys gear, and one blueprint.' },
   apothecary: { name: 'Apothecary', emoji: '⚗️', description: 'Potions, salves and herbs; heals heroes for gold.' },
   chapel: { name: 'Chapel', emoji: '⛪', description: 'Free care once per visit, blessings for holy symbols and the next expedition.' },

@@ -15,7 +15,6 @@ export type QuestEvent =
   | { kind: 'placeUsed'; placeId: string } // chapel used, library opened, ruin dug, catch, fight/lair won
   | { kind: 'patrolWon' }
   | { kind: 'gathered'; materialId: string; amount: number }
-  | { kind: 'bought'; placeId: string; amount: number } // units bought at a mine, sawmill or lodge
   | { kind: 'sold'; gold: number } // goods sold anywhere: materials, gear
   | { kind: 'arrived'; placeId: string }; // reached a 'mark'
 
@@ -80,9 +79,6 @@ export function questEvent(save: SaveData, event: QuestEvent, at: number): SaveD
         ) {
           progress += event.amount;
         }
-        break;
-      case 'bought':
-        if (atTarget && quest.objective === 'mine') progress += event.amount;
         break;
       case 'sold':
         if (quest.objective === 'sellGoods') progress += event.gold;

@@ -40,7 +40,7 @@ export const shopRules = {
   /** Share of the unit price the market pays for a material. */
   materialSellShare: 0.4,
   /** Places that buy monster parts, at the part's own price. */
-  partBuyers: ['huntingLodge', 'apothecary'] as PlaceKind[],
+  partBuyers: ['apothecary', 'market'] as PlaceKind[],
   /** Base price of a recipe, by its tier. */
   recipePrice: [30, 60, 120, 240, 480],
   smithy: { gearLines: [2, 3] as [min: number, max: number], rareChance: 0.2 },
@@ -56,16 +56,6 @@ export const shopRules = {
 export type StockDef = { kind: 'material' | 'item'; id?: string; amount: [min: number, max: number]; pool?: string[] };
 
 export const shopStock: Partial<Record<PlaceKind, StockDef[]>> = {
-  sawmill: [{ kind: 'material', id: 'wood', amount: [5, 10] }],
-  quarry: [{ kind: 'material', id: 'stone', amount: [5, 10] }],
-  copperMine: [{ kind: 'material', id: 'copper', amount: [5, 10] }],
-  ironMine: [{ kind: 'material', id: 'iron', amount: [5, 10] }],
-  coalPit: [{ kind: 'material', id: 'coal', amount: [5, 10] }],
-  huntingLodge: [
-    { kind: 'material', id: 'hide', amount: [2, 4] },
-    { kind: 'material', id: 'meat', amount: [2, 4] },
-    { kind: 'material', id: 'bone', amount: [2, 4] },
-  ],
   apothecary: [
     { kind: 'item', id: 'healingPotion', amount: [2, 4] },
     { kind: 'material', id: 'herb', amount: [3, 6] },

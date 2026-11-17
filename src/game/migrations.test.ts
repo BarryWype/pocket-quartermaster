@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57, toV58, toV59 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57, toV58, toV59, toV60 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -1473,5 +1473,69 @@ describe("toV59", () => {
 
   it("runs from migrateSave on a version 58 save", () => {
     expect(migrateSave(v58(), 58, 0).supply.firstChain).toEqual({ step: 0, doneAt: null });
+  });
+});
+
+describe("toV60", () => {
+  /** A version 59 save: its quests and seen kinds may still name the removed shops. */
+  const v59 = (overrides: Partial<SaveData> = {}): SaveData => ({ ...createInitialSave(), ...overrides });
+
+  /** A version 59 quest: its objective and target may name things that no longer exist. */
+  const oldQuest = (id: string, overrides: Record<string, unknown> = {}): Quest =>
+    ({
+      id,
+      objective: "mine",
+      band: "short",
+      arrivedAt: 100,
+      expiresAt: 2 * DAY,
+      acceptedAt: 200,
+      amount: 3,
+      progress: 0,
+      target: null,
+      doneAt: null,
+      seen: true,
+      ...overrides,
+    }) as unknown as Quest;
+
+  it("swaps an open mine quest for a fresh quest of the same band, keeping arrival and expiry", () => {
+    const save = v59({ quests: { ...createInitialSave().quests, list: [oldQuest("q1")] } });
+    const next = toV60(save, 0);
+    const quest = next.quests.list[0];
+    expect(quest.objective).not.toBe("mine");
+    expect(quest.band).toBe("short");
+    expect(quest.arrivedAt).toBe(100);
+    expect(quest.expiresAt).toBe(2 * DAY);
+    expect(quest.progress).toBe(0);
+    expect(quest.doneAt).toBeNull();
+    expect(quest.amount).toBe(questRules.amounts[quest.objective as keyof typeof questRules.amounts]?.short ?? 1);
+  });
+
+  it("leaves a done mine quest alone", () => {
+    const done = oldQuest("q1", { doneAt: 50 });
+    const save = v59({ quests: { ...createInitialSave().quests, list: [done] } });
+    expect(toV60(save, 0).quests.list[0]).toBe(done);
+  });
+
+  it("expires the target of a quest pointing at a removed kind", () => {
+    const targeted = oldQuest("q1", { objective: "chapel", target: { placeId: "place:sawmill:t:0:1", kind: "sawmill", position: origin, from: origin, expiresAt: 5 * DAY } });
+    const save = v59({ quests: { ...createInitialSave().quests, list: [targeted] } });
+    expect(toV60(save, 0).quests.list[0].target?.expiresAt).toBe(0);
+  });
+
+  it("drops the removed kinds from seenPlaceKinds", () => {
+    const save = v59({ seenPlaceKinds: ["sawmill", "market", "huntingLodge", "chapel"] as SaveData["seenPlaceKinds"] });
+    expect(toV60(save, 0).seenPlaceKinds).toEqual(["market", "chapel"]);
+  });
+
+  it("returns the same save when nothing changes", () => {
+    const save = createInitialSave();
+    expect(toV60(save, 0)).toBe(save);
+  });
+
+  it("runs from migrateSave on a version 59 save", () => {
+    const save = v59({ quests: { ...createInitialSave().quests, list: [oldQuest("q1")] }, seenPlaceKinds: ["sawmill"] as unknown as SaveData["seenPlaceKinds"] });
+    const next = migrateSave(save, 59, 0);
+    expect(next.quests.list[0].objective).not.toBe("mine");
+    expect(next.seenPlaceKinds).toEqual([]);
   });
 });

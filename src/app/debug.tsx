@@ -601,7 +601,7 @@ function SupplyDebug() {
 export default function DebugScreen() {
   useLanguage();
   const debug = useDebugStore();
-  const [placeKind, setPlaceKind] = useState<PlaceKind>('sawmill');
+  const [placeKind, setPlaceKind] = useState<PlaceKind>('smithy');
   const [nearest, setNearest] = useState('');
   const game = useGameStore();
   const grantItem = (itemId: string) =>

@@ -2,13 +2,12 @@ import { startingHeroes } from '@/content/heroes';
 import { placeGroups } from '@/content/places';
 import { patrolRules } from '@/content/patrols';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { pickaxeTier } from '@/game/gathering/gathering';
 import { trackedRange } from '@/game/gathering/walkEffects';
 import { generateSpawnsAround } from '@/game/generation/spawns';
 import type { LatLng } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
 import { isFightPlace, placeFightBriefing, placeFightOdds } from '@/game/places/fights';
-import { isPlaceVisible, placesAround, showsForPlayer, type PlaceSpawn } from '@/game/places/generate';
+import { isPlaceVisible, placesAround, type PlaceSpawn } from '@/game/places/generate';
 import { sanctumOdds } from '@/game/sanctums/sanctums';
 import { sanctums } from '@/content/sanctums';
 import { isPatrolKind, patrolsAround, type PatrolSpawn } from '@/game/patrols/generate';
@@ -72,7 +71,7 @@ describe('map and panel timings (logged, not asserted)', () => {
     );
     const places = perf('map: placesAround', () => placesAround(POSITION, MINUTE, shownGroups));
     const inSight = perf('map: placesInSight', () =>
-      places.filter((place) => isPlaceVisible(place, POSITION, NOW) && !(place.id in save.usedPlaces) && showsForPlayer(place, pickaxeTier(save))),
+      places.filter((place) => isPlaceVisible(place, POSITION, NOW) && !(place.id in save.usedPlaces)),
     );
     const taverns = perf('map: generateTavernsAround', () => generateTavernsAround(POSITION, MINUTE));
     const patrols = perf('map: patrolsAround', () => patrolsAround(POSITION, MINUTE, 1, patrolRules));

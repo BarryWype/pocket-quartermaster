@@ -2,13 +2,12 @@ import type { PlaceKind } from '@/content/places';
 import { objectives, questRules, type QuestBand } from '@/content/quests';
 
 import { distanceMeters, offsetPosition } from '../generation/geo';
-import { pickaxeTier } from '../gathering/gathering';
 import { createRng, type Rng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
-import { isLockedMine, type PlaceSpawn } from '../places/generate';
+import type { PlaceSpawn } from '../places/generate';
 import { isPlaceRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
-import { availableObjectives, deliverItems, mineKinds, objectiveAmount, objectiveNeedsPlace, sellGoodsAmount } from './unlocks';
+import { availableObjectives, deliverItems, objectiveAmount, objectiveNeedsPlace, sellGoodsAmount } from './unlocks';
 import type { Quest, QuestTarget } from './types';
 
 type QuestObjectiveOrMark = Quest['objective'];
@@ -18,16 +17,14 @@ export function needsPlace(quest: Quest): boolean {
   return objectiveNeedsPlace(quest.objective);
 }
 
-/** The place kinds this quest's target can be; never a mine above the player's pickaxe. */
+/** The place kinds this quest's target can be. */
 export function targetKinds(save: SaveData, quest: Quest): PlaceKind[] {
   if (quest.objective === 'mark') return [];
   if (quest.objective === 'deliver') {
     const place = deliverItems(save).find((item) => item.itemId === quest.itemId)?.place;
     return place ? [place] : [];
   }
-  if (quest.objective === 'mine') return mineKinds(save);
-  const pickaxe = pickaxeTier(save);
-  return (objectives[quest.objective].places ?? []).filter((kind) => !isLockedMine(kind, pickaxe));
+  return objectives[quest.objective].places ?? [];
 }
 
 const bandOf = (quest: Quest): QuestBand => quest.band as QuestBand;

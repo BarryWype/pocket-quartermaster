@@ -152,7 +152,7 @@ describe('patrol alerts', () => {
 
 describe('monster lairs in the background', () => {
   it('takes defeated lairs from the save', () => {
-    const save = { ...tierTeam(), usedPlaces: { 'place:monsterLair:r3gx2:0:7': at + MINUTE, 'place:sawmill:r3gx2:0:7': at + MINUTE } };
+    const save = { ...tierTeam(), usedPlaces: { 'place:monsterLair:r3gx2:0:7': at + MINUTE, 'place:market:r3gx2:0:7': at + MINUTE } };
     expect(state(save).defeatedLairs).toEqual({ 'place:monsterLair:r3gx2:0:7': at + MINUTE });
   });
 

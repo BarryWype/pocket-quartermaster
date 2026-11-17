@@ -52,10 +52,10 @@ const withGold = (gold: number, extra: Partial<SaveData> = {}): SaveData => ({
 describe('placeStock', () => {
   it('is deterministic for the same spawn, and rotates for a new place id', () => {
     const save = withGold(100);
-    const spawn = spawnOf('sawmill');
+    const spawn = spawnOf('apothecary');
     expect(placeStock(save, spawn, now)).toEqual(placeStock(save, spawn, now));
-    const fresh = placeStock(save, spawnOf('sawmill', '0:2'), now);
-    expect(fresh[0].key).toBe('material:wood');
+    const fresh = placeStock(save, spawnOf('apothecary', '0:2'), now);
+    expect(fresh[0].key).toBe('item:healingPotion');
   });
 
   it('takes a Haggler helmet\'s share off every price, counted once at its best', () => {
@@ -64,22 +64,21 @@ describe('placeStock', () => {
       const gear = values.map((value, i) => ({ uid: `h${i}`, itemId: 'hood1', rarity: 'uncommon' as const, roll: 8, affixes: [{ id: 'haggler', value }], rerolls: 0 }));
       return { ...save, gear, heroes: save.heroes.map((hero, i) => (i < values.length ? { ...hero, equipment: { ...hero.equipment, helmet: `h${i}` } } : hero)) };
     };
-    const price = (save: SaveData) => placeStock(save, spawnOf('sawmill'), now)[0].price;
+    const price = (save: SaveData) => placeStock(save, spawnOf('apothecary'), now)[0].price;
     const plain = price(withGold(100));
     expect(price(haggling([10]))).toBe(Math.max(1, Math.round(plain * 0.9)));
     expect(price(haggling([10, 5]))).toBe(Math.max(1, Math.round(plain * 0.9)));
-    const line = placeStock(haggling([10]), spawnOf('sawmill'), now)[0];
-    const bought = buy(haggling([10]), spawnOf('sawmill'), line.key, 1, position, now);
+    const line = placeStock(haggling([10]), spawnOf('apothecary'), now)[0];
+    const bought = buy(haggling([10]), spawnOf('apothecary'), line.key, 1, position, now);
     expect(bought.gold).toBe(100 - line.price);
   });
 
-  it('stocks the sawmill with wood at the config price', () => {
-    const line = placeStock(withGold(100), spawnOf('sawmill'), now)[0];
-    expect(line.kind).toBe('material');
-    expect(line.id).toBe('wood');
-    expect(line.amount).toBeGreaterThanOrEqual(5);
-    expect(line.amount).toBeLessThanOrEqual(10);
-    expect(line.price).toBe(materialPrices.wood);
+  it('stocks the apothecary with herbs at the config price', () => {
+    const line = placeStock(withGold(100), spawnOf('apothecary'), now).find((l) => l.kind === 'material')!;
+    expect(line.id).toBe('herb');
+    expect(line.amount).toBeGreaterThanOrEqual(3);
+    expect(line.amount).toBeLessThanOrEqual(6);
+    expect(line.price).toBe(materialPrices.herb);
   });
 
   it('sells only gear within the unlocked tier at the smithy, and only unknown recipes', () => {
@@ -117,38 +116,35 @@ describe('placeStock', () => {
 
 describe('buy', () => {
   it('deducts gold, adds the material and reduces the stock left', () => {
-    const spawn = spawnOf('sawmill');
+    const spawn = spawnOf('apothecary');
     const save = withGold(100);
-    const line = placeStock(save, spawn, now)[0];
+    const line = placeStock(save, spawn, now).find((l) => l.kind === 'material')!;
     const next = buy(save, spawn, line.key, 3, position, now);
-    expect(next.gold).toBe(100 - materialPrices.wood * 3);
-    expect(next.materials.wood).toBe(3);
+    expect(next.gold).toBe(100 - materialPrices.herb * 3);
+    expect(next.materials.herb).toBe(3);
     expect(stockLeft(next, spawn, line)).toBe(line.amount - 3);
     expect(next.placePurchases[spawn.id]).toEqual({ expiresAt: spawn.expiresAt, bought: { [line.key]: 3 } });
   });
 
   it('refuses the same problems the other place actions have', () => {
-    const spawn = spawnOf('sawmill');
+    const spawn = spawnOf('apothecary');
     const save = withGold(100);
-    const line = placeStock(save, spawn, now)[0];
+    const line = placeStock(save, spawn, now).find((l) => l.kind === 'material')!;
     expect(buyProblem(save, spawn, line.key, 1, far, now)).toBe('tooFar');
     expect(buyProblem(withGold(0), spawn, line.key, 1, position, now)).toBe('gold');
     expect(buyProblem(save, spawn, line.key, line.amount + 1, position, now)).toBe('soldOut');
     expect(buyProblem(save, spawn, 'material:none', 1, position, now)).toBe('gone');
-    // A mine above the pickaxe tier never opens its shop.
-    const mine = spawnOf('copperMine');
-    const copper = placeStock(save, mine, now)[0];
-    expect(buyProblem(save, mine, copper.key, 1, position, now)).toBe('locked');
   });
 
   it('marks the place used once the last unit is bought', () => {
-    const spawn = spawnOf('sawmill');
-    const save = withGold(100);
-    const line = placeStock(save, spawn, now)[0];
-    const next = buy(save, spawn, line.key, line.amount, position, now);
+    const spawn = spawnOf('apothecary');
+    const save = withGold(1000);
+    const lines = placeStock(save, spawn, now).filter((l) => l.kind !== 'gear');
+    let next = save;
+    for (const line of lines) next = buy(next, spawn, line.key, line.amount, position, now);
     expect(isSoldOut(next, spawn, now)).toBe(true);
     expect(next.usedPlaces[spawn.id]).toBe(spawn.expiresAt);
-    expect(buyProblem(next, spawn, line.key, 1, position, now)).toBe('gone');
+    expect(buyProblem(next, spawn, lines[0].key, 1, position, now)).toBe('gone');
   });
 
   it('teaches a bought recipe, and refuses a second buy of it', () => {
@@ -193,8 +189,11 @@ describe('buy', () => {
     const save = withGold(1000, { clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'] });
     const lines = placeStock(save, market, now);
     expect(lines[lines.length - 1]).toEqual({ key: 'item:decoyHoard', kind: 'item', id: 'decoyHoard', amount: 1, price: 300 });
+    // The Ogre Chieftain's strong ale is sold at the market while his dungeon is open and he stands.
+    expect(lines.map((l) => l.id)).toContain('strongAle');
     // The normal market lines stay exactly what they were before the unlock.
-    expect(lines.slice(0, -1)).toEqual(placeStock(withGold(1000), market, now));
+    const normal = placeStock(withGold(1000), market, now);
+    expect(lines.slice(0, normal.length)).toEqual(normal);
   });
 
   it('leaves the chapel empty until the lich’s tier opens, and keeps it usable', () => {
@@ -224,51 +223,47 @@ describe('work tool stock lines', () => {
     clearedDungeons: ['banditStockade', 'ogreQuarry', 'drownedCrypt', 'giantsHall'].slice(0, tier - 1),
   });
 
-  it('stocks the sawmill with a hatchet at the player’s tier, after its normal lines', () => {
+  it('stocks the apothecary with a sickle at the player’s tier, after its normal lines', () => {
     const save = withGold(1000);
-    const lines = placeStock(save, spawnOf('sawmill'), now);
-    expect(lines[0]).toMatchObject({ key: 'material:wood', kind: 'material', id: 'wood', price: materialPrices.wood });
+    const lines = placeStock(save, spawnOf('apothecary'), now);
+    expect(lines[0]).toMatchObject({ key: 'item:healingPotion', kind: 'item', id: 'healingPotion' });
     const tool = lines.find((l) => l.kind === 'gear');
     expect(tool).toEqual({
-      key: 'gear:hatchet1',
+      key: 'gear:sickle1',
       kind: 'gear',
-      id: 'hatchet1',
+      id: 'sickle1',
       amount: 1,
       price: workToolRules.price[0],
-      gear: expect.objectContaining({ itemId: 'hatchet1', rarity: 'common', affixes: [] }),
+      gear: expect.objectContaining({ itemId: 'sickle1', rarity: 'common', affixes: [] }),
     });
-    // The tool line is the only addition: the other sawmill lines are untouched.
-    expect(lines.filter((l) => l.kind !== 'gear')).toEqual([lines[0]]);
+    // The tool line is the only addition: the apothecary's normal lines are untouched.
+    expect(lines.filter((l) => l.kind !== 'gear')).toEqual(lines.slice(0, 2));
     // A new tier restocks the tool under a new key.
-    const tier2 = placeStock(atTier(2), spawnOf('sawmill'), now).find((l) => l.kind === 'gear');
-    expect(tier2).toMatchObject({ key: 'gear:hatchet2', id: 'hatchet2', price: workToolRules.price[1] });
+    const tier2 = placeStock(atTier(2), spawnOf('apothecary'), now).find((l) => l.kind === 'gear');
+    expect(tier2).toMatchObject({ key: 'gear:sickle2', id: 'sickle2', price: workToolRules.price[1] });
   });
 
-  it('stocks the mining pick at a mine only from tier 2, when the miner station opens', () => {
-    expect(placeStock(withGold(1000), spawnOf('quarry'), now).some((l) => l.id.startsWith('miningPick'))).toBe(false);
-    const pick = placeStock(atTier(2), spawnOf('quarry'), now).find((l) => l.kind === 'gear');
-    expect(pick).toMatchObject({ key: 'gear:miningPick2', id: 'miningPick2', amount: 1, price: workToolRules.price[1] });
-    expect(placeStock(atTier(5), spawnOf('coalPit'), now).find((l) => l.kind === 'gear')).toMatchObject({ key: 'gear:tongs5', id: 'tongs5' });
-  });
-
-  it('never stocks a work tool at a market or the smithy, or anywhere the job is closed', () => {
-    for (const kind of ['market', 'smithy', 'tavern', 'library'] as const) {
+  it('stocks no tool whose shops are gone, and only the sickle at the apothecary', () => {
+    for (const kind of ['market', 'smithy', 'tavern', 'library', 'chapel'] as const) {
       for (let i = 0; i < 20; i++) {
         expect(placeStock(atTier(5), spawnOf(kind, `${i}:1`), now).some((l) => l.kind === 'gear' && (itemById[l.id] as GearDef).workTool)).toBe(false);
       }
     }
+    for (let i = 0; i < 20; i++) {
+      expect(placeStock(atTier(5), spawnOf('apothecary', `${i}:1`), now).filter((l) => l.kind === 'gear').map((l) => l.id)).toEqual(['sickle5']);
+    }
     // The charcoal burner opens at tier 5: no tongs anywhere before that.
-    expect(placeStock(atTier(4), spawnOf('coalPit'), now).some((l) => l.id.startsWith('tongs'))).toBe(false);
+    expect(placeStock(atTier(4), spawnOf('apothecary'), now).some((l) => l.id.startsWith('tongs'))).toBe(false);
   });
 
   it('sells a work tool through the gear buy path', () => {
-    const spawn = spawnOf('sawmill');
+    const spawn = spawnOf('apothecary');
     const save = withGold(100);
-    const next = buy(save, spawn, 'gear:hatchet1', 1, position, now);
+    const next = buy(save, spawn, 'gear:sickle1', 1, position, now);
     expect(next.gold).toBe(100 - workToolRules.price[0]);
     expect(next.gear).toHaveLength(1);
-    expect(next.gear[0]).toMatchObject({ itemId: 'hatchet1', rarity: 'common', affixes: [] });
-    expect(buyProblem(next, spawn, 'gear:hatchet1', 1, position, now)).toBe('soldOut');
+    expect(next.gear[0]).toMatchObject({ itemId: 'sickle1', rarity: 'common', affixes: [] });
+    expect(buyProblem(next, spawn, 'gear:sickle1', 1, position, now)).toBe('soldOut');
   });
 });
 
@@ -334,15 +329,15 @@ describe('selling', () => {
     expect(materialSellPrice('steel')).toBe(0);
     expect(sellMaterialProblem(save, market, 'steel', 1, position, now)).toBe('unsellable');
     expect(sellMaterialProblem(save, market, 'wood', 11, position, now)).toBe('notEnough');
-    expect(sellMaterialProblem(save, spawnOf('sawmill'), 'wood', 1, position, now)).toBe('notMarket');
-    // The hunting lodge and apothecary buy monster parts only, at the part's price.
+    expect(sellMaterialProblem(save, spawnOf('tavern'), 'wood', 1, position, now)).toBe('notMarket');
+    // The apothecary and the market buy monster parts, at the part's price.
     const parts = { ...save, materials: { ...save.materials, goblinEar: 2 } };
-    for (const kind of ['huntingLodge', 'apothecary'] as const) {
+    for (const kind of ['apothecary', 'market'] as const) {
       expect(materialSellPrice('goblinEar', kind)).toBe(monsterPartById.goblinEar.sellPrice);
-      expect(sellMaterialProblem(parts, spawnOf(kind), 'wood', 1, position, now)).toBe('unsellable');
       expect(sellMaterial(parts, spawnOf(kind), 'goblinEar', 2, position, now).gold).toBe(parts.gold + monsterPartById.goblinEar.sellPrice * 2);
     }
-    expect(materialSellPrice('goblinEar')).toBe(0);
+    expect(sellMaterialProblem(parts, spawnOf('apothecary'), 'wood', 1, position, now)).toBe('unsellable');
+    expect(materialSellPrice('goblinEar')).toBe(monsterPartById.goblinEar.sellPrice);
 
     const next = sellMaterial(save, market, 'wood', 4, position, now);
     expect(next.gold).toBe(materialSellPrice('wood') * 4);

@@ -3,7 +3,7 @@ import { objectives, questRules, type QuestBand, type QuestObjective } from '@/c
 import { createInitialSave, type SaveData } from '../save';
 import { tierBoss } from '../guild/guild';
 import { activeCount, newQuest, pruneQuests, receiveQuests, rerollProblem, rerollQuest } from './arrival';
-import { availableObjectives, deliverItems, mineKinds } from './unlocks';
+import { availableObjectives, deliverItems } from './unlocks';
 import { createRng } from '../generation/rng';
 import type { Quest } from './types';
 
@@ -109,7 +109,7 @@ describe('quest arrivals', () => {
   it('picks a kind not already active while other kinds are unlocked', () => {
     const save = opened();
     save.revealAll = true;
-    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge', 'monsterLair', 'banditCamp'];
+    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'smithy', 'market', 'monsterLair', 'banditCamp'];
     // Visit and Fight are already active: the day's new quests come from the other kinds.
     save.quests.list = [{ ...regular('a'), objective: 'chapel' }, { ...regular('b'), objective: 'patrols' }];
     save.quests.lastArrivalDay = 9;
@@ -126,9 +126,9 @@ describe('quest arrivals', () => {
   it('never picks a second Walk quest, even when every unlocked kind is taken', () => {
     const save = opened();
     save.revealAll = true;
-    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge', 'monsterLair', 'banditCamp'];
+    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'smithy', 'market', 'monsterLair', 'banditCamp'];
     // One active quest of every unlocked kind, Walk included (cap raised so the day's arrivals still come).
-    const taken: QuestObjective[] = ['chapel', 'patrols', 'deliver', 'mine', 'walk'];
+    const taken: QuestObjective[] = ['chapel', 'patrols', 'deliver', 'gatherOnWay', 'walk'];
     save.quests.list = taken.map((objective, i) => ({ ...regular(`q${i}`), objective }));
     save.quests.lastArrivalDay = 9;
     save.guild = { questCap: 3 };
@@ -261,19 +261,6 @@ describe('available objectives', () => {
     expect(availableObjectives(save, 'short')).toContain('deliver');
   });
 
-  it('offers the mine kinds at the pickaxe tier', () => {
-    const save = opened();
-    expect(mineKinds(save)).toEqual(['sawmill', 'huntingLodge']); // no pickaxe: no ore
-    save.tools = ['stonePickaxe']; // tier 2: copper
-    expect(mineKinds(save)).toEqual(['sawmill', 'huntingLodge', 'copperMine']);
-    save.seenPlaceKinds = ['sawmill'];
-    expect(availableObjectives(save, 'short')).toContain('mine');
-    save.seenPlaceKinds = ['copperMine'];
-    expect(availableObjectives(save, 'short')).toContain('mine');
-    save.seenPlaceKinds = ['ironMine'];
-    expect(availableObjectives(save, 'short')).not.toContain('mine');
-  });
-
   it('asks sell goods for the player tier', () => {
     const save = opened();
     expect(newQuest('q', 'short', 'sellGoods', save, createRng('seed'), 0).amount).toBe(questRules.sellGoodsGold[0]);
@@ -282,7 +269,7 @@ describe('available objectives', () => {
   it('keeps at most one Trade quest active while other kinds are free', () => {
     const save = opened();
     save.revealAll = true;
-    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'sawmill', 'huntingLodge'];
+    save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'smithy'];
     save.quests.list = [{ ...regular('a'), objective: 'sellGoods' }];
     save.quests.lastArrivalDay = 9;
     const next = receiveQuests(save, 10 * DAY);

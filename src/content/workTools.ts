@@ -29,17 +29,17 @@ export type WorkToolDef = {
 };
 
 export const workTools: WorkToolDef[] = [
-  { kind: 'hatchet', job: 'woodcutter', places: ['sawmill'], emoji: '🪓', icon: require('../../assets/icons/rpg/tool-hatchet.png') },
+  { kind: 'hatchet', job: 'woodcutter', places: [], emoji: '🪓', icon: require('../../assets/icons/rpg/tool-hatchet.png') },
   { kind: 'sickle', job: 'forager', places: ['apothecary'], emoji: '🌾', icon: require('../../assets/icons/rpg/dual-sickles.png') },
-  { kind: 'snare', job: 'trapper', places: ['huntingLodge'], emoji: '🪤', icon: require('../../assets/icons/relics/rope-coil.png') },
+  { kind: 'snare', job: 'trapper', places: [], emoji: '🪤', icon: require('../../assets/icons/relics/rope-coil.png') },
   {
     kind: 'miningPick',
     job: 'miner',
-    places: ['quarry', 'copperMine', 'ironMine'],
+    places: [],
     emoji: '⛏️',
     icon: require('../../assets/icons/rpg/tool-pickaxe.png'),
   },
-  { kind: 'tongs', job: 'charcoalBurner', places: ['coalPit'], emoji: '🥢', icon: require('../../assets/icons/rpg/tool-hammer.png') },
+  { kind: 'tongs', job: 'charcoalBurner', places: [], emoji: '🥢', icon: require('../../assets/icons/rpg/tool-hammer.png') },
 ];
 
 export const workToolByKind: Record<WorkToolKind, WorkToolDef> = Object.fromEntries(workTools.map((tool) => [tool.kind, tool])) as Record<

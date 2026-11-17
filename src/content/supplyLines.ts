@@ -58,6 +58,8 @@ export const supplyRules = {
       potions: 2,
       /** The tavern's 50% step: this many of one cookable meal. */
       meals: 2,
+      /** The tavern's 50% step pays this many strong ale instead of the meals while the Ogre Chieftain's dungeon is open and he stands. */
+      strongAle: 1,
     },
     /** The 100% headline pool per kind; a market draws from all three. */
     headlines: {

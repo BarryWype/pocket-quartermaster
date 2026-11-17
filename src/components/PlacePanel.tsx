@@ -13,11 +13,10 @@ import { serviceRules } from '@/content/services';
 import { weaknessByItem } from '@/content/weaknesses';
 import { wornBy } from '@/game/forging/salvage';
 import { gearIconOf } from '@/game/gear/gearIcon';
-import { pickaxeTier } from '@/game/gathering/gathering';
 import { distanceMeters } from '@/game/generation/geo';
 import type { LatLng } from '@/game/generation/types';
 import { fishProblem } from '@/game/places/dock';
-import { isLockedMine, type PlaceSpawn } from '@/game/places/generate';
+import { type PlaceSpawn } from '@/game/places/generate';
 import { isNetworkKind } from '@/game/supply/discovery';
 import { useSupplyOn } from '@/hooks/useSupply';
 import { heistLevel, heistOdds, heistProblem } from '@/game/places/heists';
@@ -66,12 +65,6 @@ import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroe
 
 /** Kinds this sheet knows how to open; other kinds stay off the map until their rules exist. */
 export const PANEL_KINDS: PlaceKind[] = [
-  'sawmill',
-  'quarry',
-  'copperMine',
-  'ironMine',
-  'coalPit',
-  'huntingLodge',
   'smithy',
   'apothecary',
   'chapel',
@@ -117,7 +110,6 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   const info = placeInfo[place.kind];
   const distance = distanceMeters(player, place.position);
   const far = distance > placeRules.interactionMeters;
-  const locked = isLockedMine(place.kind, pickaxeTier(save));
   const stock = placeStock(save, place, now);
   const sells = place.kind === 'smithy' || buysMaterials(place.kind);
   const homeHeroes = save.heroes.filter((hero) => !isAway(save, hero.id));
@@ -259,7 +251,6 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
             </Text>
             <Price amount={save.gold} textStyle={styles.muted} />
           </View>
-          {locked && <Text style={styles.problem}>{t('places.lockedMine')}</Text>}
 
           {sells && (
             <View style={styles.tabs}>

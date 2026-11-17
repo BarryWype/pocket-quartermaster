@@ -14,7 +14,7 @@
 - A place or event can carry 1 threat or 1 opportunity from the threat catalogue (`doc/design/threats/`).
 - Shops sell small stocks (5-10 of a material).
 - 4 key fragments make a mysterious key, which opens secret places and the Sealed vault.
-- **Secret places**: a tip places a marker on the map; the place stays until it resets; entering uses up a mysterious key. Two tip sources each, never a place that sells a boss weakness item (tavern, hunting lodge, chapel, apothecary, market). Daily quests can become a third source later.
+- **Secret places**: a tip places a marker on the map; the place stays until it resets; entering uses up a mysterious key. Two tip sources each, never a place that sells a boss weakness item (tavern, chapel, apothecary, market). Daily quests can become a third source later.
 
 | Secret place | Tip sources | Gives |
 | --- | --- | --- |

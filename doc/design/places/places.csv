@@ -1,21 +1,15 @@
 Kind,Name,What it does,Lifetime,Note
-Place,Tavern,"Recruit heroes (with the roll), emergency supply. Frequent. No contracts, no tips",72 h,
-Place,Sanctum,Elemental challenges with a Sigil; shards and stones (unchanged),72 h,
-Place,Sawmill,Buy wood (small stock); pitch for the troll's weakness,72 h or sold out,
-Place,Quarry,Buy stone (small stock); locked above the player's tier,72 h or sold out,"Mine mechanic, own spawn frequency"
-Place,Copper mine,Buy copper (small stock); locked above the player's tier,72 h or sold out,"Mine mechanic, own spawn frequency"
-Place,Iron mine,Buy iron (small stock); locked above the player's tier,72 h or sold out,"Mine mechanic, own spawn frequency"
-Place,Coal pit,Buy coal (small stock); locked above the player's tier,72 h or sold out,"Mine mechanic, own spawn frequency"
-Place,Hunting lodge,"Buy a little hide, meat and bone",72 h or sold out,
-Place,Smithy,Buy and sell gear; one blueprint for sale per rotation; iron horseshoe (boss weakness),72 h,
-Place,Apothecary,"Potions, salves, herbs; heal a hero fully or remove exhaustion for gold; sleeping draught (boss weakness)",72 h,
-Place,Chapel,Free once per visit: heal a hero fully or remove exhaustion; bless holy symbols (+3 Faith); blessing for the next expedition (+5% party damage); font water (boss weakness); sells no holy symbols,72 h,
-Place,Market,"Rotating stock, sell surplus, sometimes components; decoy hoard (boss weakness)",72 h,
-Place,Thieves' guild,"Small heists: one hero, 15-30 min, Finesse threat; success pays gold or an item and sometimes the black market tip",72 h,
-Place,Monster lair,"More patrols around it while active; the lair is a big fight (elite, 2-3 heroes) with a large reward; sometimes the underwater dungeon tip (a drowned captain's log)","Until defeated, max 72 h",
-Place,Ruins,One dig per ruin: the dug ruin disappears and a new one spawns elsewhere 24 h later; other ruins stay diggable. Each dig gives materials and ~25% key fragment; 5 digs in total give a relic,72 h,
-Place,Library,"Train a hero (XP for gold), scrolls, some blueprints; sometimes sells the hidden den tip (an old ledger)",72 h,
-Place,Fishing dock,Fish (new kitchen ingredient); sometimes the tip for the underwater dungeon,72 h,
+Place,Tavern,"Recruit heroes (with the roll), emergency supply. Frequent. No contracts, no tips",Six days,
+Place,Sanctum,Elemental challenges with a Sigil; shards and stones (unchanged),Six days,
+Place,Smithy,Buy and sell gear; one blueprint for sale per rotation; iron horseshoe (boss weakness),Six days,
+Place,Apothecary,"Potions, salves, herbs; heal a hero fully or remove exhaustion for gold; sleeping draught (boss weakness)",Six days,
+Place,Chapel,Free once per visit: heal a hero fully or remove exhaustion; bless holy symbols (+3 Faith); blessing for the next expedition (+5% party damage); font water (boss weakness); sells no holy symbols,Six days,
+Place,Market,"Rotating stock, sell surplus, sometimes components; decoy hoard (boss weakness)",Six days,
+Place,Thieves' guild,"Small heists: one hero, 15-30 min, Finesse threat; success pays gold or an item and sometimes the black market tip",Six days,
+Place,Monster lair,"More patrols around it while active; the lair is a big fight (elite, 2-3 heroes) with a large reward; sometimes the underwater dungeon tip (a drowned captain's log)","Until defeated, max six days",
+Place,Ruins,One dig per ruin: the dug ruin disappears and a new one spawns elsewhere 24 h later; other ruins stay diggable. Each dig gives materials and ~25% key fragment; 5 digs in total give a relic,Six days,
+Place,Library,"Train a hero (XP for gold), scrolls, some blueprints; sometimes sells the hidden den tip (an old ledger)",Six days,
+Place,Fishing dock,Fish (new kitchen ingredient); sometimes the tip for the underwater dungeon,Six days,
 Event,Village fair,"At the market on weekends: contests, special stock, unusual recruits, strong ale (boss weakness)",Weekly (weekends),Absorbs the circus. Left out for now
 Event,Treasure spot,One-off reward from a treasure map or a traveller,Unchanged,
 Fight event,Bandit camp,"Threat: Thieves. Loot: gold, stolen items; sometimes the black market tip (a fence's note)","Until won, max 24 h",

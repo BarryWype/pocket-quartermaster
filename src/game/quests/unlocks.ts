@@ -1,8 +1,7 @@
-import { placeRules, type PlaceKind } from '@/content/places';
+import type { PlaceKind } from '@/content/places';
 import { deliverPlaces, objectives, questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 import { itemById, recipeById } from '@/content/lookup';
 
-import { pickaxeTier } from '../gathering/gathering';
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { isPlaceRevealed, isRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
@@ -31,14 +30,6 @@ export function deliverItems(save: SaveData): DeliverItem[] {
   return items;
 }
 
-/** The mine places at the player's pickaxe tier: wood and hide, plus the ore they can mine. */
-export function mineKinds(save: SaveData): PlaceKind[] {
-  const tier = Math.min(pickaxeTier(save), 4);
-  const tiers = placeRules.mineTiers as Partial<Record<PlaceKind, number>>;
-  const ore = (Object.keys(tiers) as PlaceKind[]).find((kind) => tiers[kind] === tier);
-  return ore ? ['sawmill', 'huntingLodge', ore] : ['sawmill', 'huntingLodge'];
-}
-
 /** The objectives this player can roll in this band (objectives.csv, "Unlocked from"). */
 export function availableObjectives(save: SaveData, band: QuestBand): QuestObjective[] {
   const all: QuestObjective[] = [
@@ -50,7 +41,6 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
     'fightEvent',
     'patrols',
     'deliver',
-    'mine',
     'sellGoods',
     'gatherOnWay',
     'walk',
@@ -72,8 +62,6 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
         return isRevealed(save, 'patrols');
       case 'deliver':
         return deliverItems(save).some((item) => seenKind(item.place));
-      case 'mine':
-        return mineKinds(save).some(seenKind);
       case 'sellGoods':
         return seenKind('market');
       default:
@@ -85,7 +73,7 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
 /** Objectives that need a place on the map to point at. */
 export function objectiveNeedsPlace(objective: QuestObjective | 'mark'): boolean {
   if (objective === 'mark') return true;
-  if (objective === 'deliver' || objective === 'mine') return true;
+  if (objective === 'deliver') return true;
   return objectives[objective].places !== undefined;
 }
 

@@ -13,7 +13,7 @@ export type BossWeakness = { bossId: string; itemId: string; place: PlaceKind; p
  */
 export const bossWeaknesses: BossWeakness[] = [
   { bossId: 'banditCaptain', itemId: 'wantedPoster', place: 'tavern', price: 15, effect: { hpCut: 0.25 } },
-  { bossId: 'ogreChieftain', itemId: 'strongAle', place: 'huntingLodge', price: 30, effect: { damageCut: 0.3 } },
+  { bossId: 'ogreChieftain', itemId: 'strongAle', place: 'market', price: 30, effect: { damageCut: 0.3 } },
   { bossId: 'lichOfTheDeep', itemId: 'fontWater', place: 'chapel', price: 60, effect: { hpCut: 0.25, noEnrage: true } },
   { bossId: 'giantKing', itemId: 'sleepingDraught', place: 'apothecary', price: 120, effect: { freeRounds: 2 } },
   { bossId: 'elderDragon', itemId: 'decoyHoard', place: 'market', price: 300, effect: { noSweep: true } },

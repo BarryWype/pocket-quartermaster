@@ -23,7 +23,6 @@ import { affinityOf } from '../team/team';
 import type { GearDef, GearInstance, Rarity, RecipeDef } from '../types';
 import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from './generate';
-import { isLockedMine } from './generate';
 import { questEvent } from '../quests/progress';
 
 export type StockLine = {
@@ -197,7 +196,7 @@ export function isSoldOut(save: SaveData, spawn: PlaceSpawn, now: number) {
   return lines.every((line) => line.amount - (counts[line.key] ?? 0) <= 0);
 }
 
-export type BuyProblem = 'gone' | 'tooFar' | 'locked' | 'soldOut' | 'gold' | 'known';
+export type BuyProblem = 'gone' | 'tooFar' | 'soldOut' | 'gold' | 'known';
 
 export function buyProblem(
   save: SaveData,
@@ -213,7 +212,6 @@ export function buyProblem(
   const line = placeStock(save, spawn, now).find((l) => l.key === lineKey);
   if (!line) return 'gone';
   if (distanceMeters(player, spawn.position) > placeRules.interactionMeters) return 'tooFar';
-  if (isLockedMine(spawn.kind, pickaxeTier(save))) return 'locked';
   if (stockLeft(save, spawn, line) < count) return 'soldOut';
   if (save.gold < line.price * count) return 'gold';
   return null;
@@ -247,7 +245,6 @@ export function buy(save: SaveData, spawn: PlaceSpawn, lineKey: string, count: n
       [spawn.id]: { expiresAt: spawn.expiresAt, bought: { ...bought, [lineKey]: (bought[lineKey] ?? 0) + count } },
     },
   };
-  if (line.kind === 'material') next = questEvent(next, { kind: 'bought', placeId: spawn.id, amount: count }, now);
   if (isSoldOut(next, spawn, now)) next = { ...next, usedPlaces: { ...next.usedPlaces, [spawn.id]: spawn.expiresAt } };
   return next;
 }
@@ -285,11 +282,13 @@ export function sellGear(save: SaveData, spawn: PlaceSpawn, gearUid: string, pla
 }
 
 /**
- * What a place pays per material unit: the market a share of its price, the
- * hunting lodge and apothecary a monster part's price; 0 when it doesn't trade it.
+ * What a place pays per material unit: the market a share of its price and a
+ * monster part's own price, the other part buyers a part's price; 0 when it
+ * doesn't trade it.
  */
 export function materialSellPrice(materialId: string, kind: PlaceKind = 'market') {
-  if (shopRules.partBuyers.includes(kind)) return monsterPartById[materialId]?.sellPrice ?? 0;
+  const part = monsterPartById[materialId]?.sellPrice;
+  if (part !== undefined && shopRules.partBuyers.includes(kind)) return part;
   if (kind !== 'market') return 0;
   const price = materialPrices[materialId];
   return price === undefined ? 0 : Math.max(1, Math.floor(price * shopRules.materialSellShare));

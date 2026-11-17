@@ -35,7 +35,7 @@ Not all 14 place kinds at once. Each kind appears when its condition is met, wit
 | Shown | When |
 | --- | --- |
 | Resources, animals, dungeons, quests | End of the tutorial |
-| Common places (smithy, apothecary, sawmill, hunting lodge, mine of the tier, market, chapel) | End of the tutorial |
+| Common places (smithy, apothecary, market, chapel) | End of the tutorial |
 | Patrols | End of the tutorial |
 | Fight events | First patrol won |
 | Ruins, treasure spots, taverns | First quest completed |

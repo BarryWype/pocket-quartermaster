@@ -30,11 +30,11 @@ Billhook was considered and dropped (flasks cover the Alchemist; the crossbow co
 
 | Tool | Job | Sold only at |
 |---|---|---|
-| Hatchet | woodcutter | sawmill |
+| Hatchet | woodcutter | nowhere (its shops are gone; goes with the jobs in the next pass) |
 | Sickle | forager | apothecary |
-| Snare | trapper | hunting lodge |
-| Mining pick | miner | quarry, copper mine, iron mine |
-| Tongs | charcoal burner | coal pit |
+| Snare | trapper | nowhere (its shops are gone; goes with the jobs in the next pass) |
+| Mining pick | miner | nowhere (its shops are gone; goes with the jobs in the next pass) |
+| Tongs | charcoal burner | nowhere (its shops are gone; goes with the jobs in the next pass) |
 
 - A tool's own line: **+job output** on its job, and **scavenge**: +1 unit of its job's material(s) per won fight when the hero fights instead (weighted like the job). Tiers follow the player's highest tier; the bonus grows with tier. Durable, bought once per tier. Walk first: the simulator keeps tool output within the jobs' limits.
 - Not the player's own tools (the pickaxe the player owns for gathering): those stay as they are.

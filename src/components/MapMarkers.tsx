@@ -18,13 +18,12 @@ import { patrolTexts } from '@/content/patrols';
 import { placeFightRules } from '@/content/placeFights';
 import { isFightPlace } from '@/game/places/fights';
 import { rosterAffixBest } from '@/game/gear/affixes';
-import { isFleeing, pickaxeTier, withinCollectRange } from '@/game/gathering/gathering';
+import { isFleeing, withinCollectRange } from '@/game/gathering/gathering';
 import { readSpawn } from '@/game/gathering/lockedNodes';
 import { distanceMeters } from '@/game/generation/geo';
 import type { Bounds } from '@/game/generation/foliage';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import type { VisibleSpawn } from '@/game/generation/visibility';
-import { isLockedMine } from '@/game/places/generate';
 import { isNetworkKind } from '@/game/supply/discovery';
 import { isLastDay, timeLeftShare } from '@/game/supply/buildings';
 import { isPatrolKind, patrolPositionAt, type PatrolSpawn } from '@/game/patrols/generate';
@@ -175,7 +174,6 @@ function MapMarkersBase({
   );
   const culledTreasure = useCulled(placedTreasure, bounds, always);
 
-  const playerPickaxe = pickaxeTier(save);
   // Wanderer's widens the collect radius, for the marker's in-range border too.
   const tapRadius = gatheringConfig.collectRadiusMeters + rosterAffixBest(save, 'wanderers');
   const keyHeld = hasKey(save);
@@ -255,7 +253,7 @@ function MapMarkersBase({
           <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
             <TimedSanctumMarker
               emoji={placeInfo[place.kind].emoji}
-              locked={isLockedMine(place.kind, playerPickaxe)}
+              locked={false}
               label={tr(placeInfo[place.kind].name)}
               difficulty={difficulty}
               unvisited={supplyOn && isNetworkKind(place.kind) && !(place.id in save.supply.discovered)}

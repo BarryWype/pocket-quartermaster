@@ -6,7 +6,7 @@ import { marketPool, materialPrices, shopStock } from '@/content/shops';
 import { supplyRules } from '@/content/supplyLines';
 import { recipes } from '@/content/recipes';
 
-import { highestUnlockedTier } from '../dungeons/unlock';
+import { highestUnlockedTier, tierChain } from '../dungeons/unlock';
 import { offsetPosition } from '../generation/geo';
 import type { PlaceSpawn } from '../places/generate';
 import { createInitialSave, type SaveData } from '../save';
@@ -86,6 +86,16 @@ describe('order rewards', () => {
     expect(apothecary.steps[1].reward.consumables).toEqual([{ itemId: 'healingPotion', amount: supplyRules.orders.rewards.potions }]);
     expect(market.steps.map((s) => s.reward.gold)).toEqual(supplyRules.orders.rewards.gold.market);
     expect(market.steps[1].reward.consumables).toEqual([]);
+  });
+
+  it('pays a tavern’s middle step strong ale instead of the meals while the Ogre Chieftain stands', () => {
+    // The tier 1 boss and the tier 2 chain before him open his dungeon.
+    const open = ['banditStockade', ...tierChain(2).filter((d) => !d.isBoss).map((d) => d.id)];
+    const save = { ...createInitialSave(), clearedDungeons: open };
+    const order = makeOrder(save, spawnOf('tavern', 'p1'), now);
+    expect(order.steps[1].reward.consumables).toEqual([{ itemId: 'strongAle', amount: supplyRules.orders.rewards.strongAle }]);
+    const beaten = { ...save, clearedDungeons: [...open, 'ogreQuarry'] };
+    expect(makeOrder(beaten, spawnOf('tavern', 'p1'), now).steps[1].reward.consumables[0].amount).toBe(supplyRules.orders.rewards.meals);
   });
 
   it('scales the step gold with the tier', () => {

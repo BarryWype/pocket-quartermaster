@@ -1,12 +1,14 @@
 import { gearId, gearProfiles } from '@/content/equipment';
+import { dungeons } from '@/content/dungeons';
 import { itemById, recipeById } from '@/content/lookup';
+import { tierOres } from '@/content/materials';
 import { placeInfo, placeRules } from '@/content/places';
 import { recipes } from '@/content/recipes';
 import { materialPrices, shopRules } from '@/content/shops';
 import { networkGoods, ORDER_KINDS, supplyRules, type OrderKind } from '@/content/supplyLines';
 
 import { isKnown } from '../crafting/crafting';
-import { highestUnlockedTier } from '../dungeons/unlock';
+import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import { removeMaterials } from '../inventory';
@@ -80,12 +82,13 @@ const kitchenMeals = (list: typeof recipes) =>
       return item?.meal ? [item.id] : [];
     });
 
-/** The smithy's 50% step: the ore of the player's tier — stone at 1, copper 2, iron 3, coal at 4 and 5. */
-const tierOre = (tier: number) => {
-  const oreOf: Record<string, string> = { quarry: 'stone', copperMine: 'copper', ironMine: 'iron', coalPit: 'coal' };
-  const mines = Object.entries(placeRules.mineTiers) as [string, number][];
-  const [kind] = mines.filter(([, mineTier]) => mineTier <= tier).sort((a, b) => b[1] - a[1])[0] ?? mines[0];
-  return oreOf[kind];
+/** The smithy's 50% step: the ore of the player's tier (see content/materials.ts tierOres). */
+const tierOre = (tier: number) => tierOres[tier - 1];
+
+/** A tavern's 50% step pays strong ale instead of the meals while the Ogre Chieftain's dungeon is open and he stands. */
+const strongAleDue = (save: SaveData) => {
+  const dungeon = dungeons.find((d) => d.boss.id === 'ogreChieftain');
+  return !!dungeon && isDungeonUnlocked(save, dungeon) && !save.clearedDungeons.includes(dungeon.id);
 };
 
 /** A headline before it becomes loot: an item, or a gear type rolled at the player's tier. */
@@ -167,6 +170,9 @@ export function makeOrder(save: SaveData, place: PlaceSpawn, now: number): Order
       loot.dropped.push('materials');
     } else if (kind === 'apothecary') {
       loot.consumables.push({ itemId: bestBrewablePotion(save), amount: rules.rewards.potions });
+      loot.dropped.push('consumables');
+    } else if (kind === 'tavern' && strongAleDue(save)) {
+      loot.consumables.push({ itemId: 'strongAle', amount: rules.rewards.strongAle });
       loot.dropped.push('consumables');
     } else {
       const meals = cookableMeals(save);

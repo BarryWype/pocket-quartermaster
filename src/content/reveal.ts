@@ -78,12 +78,6 @@ export const REVEAL_KINDS: RevealKind[] = Object.keys(revealRules) as RevealKind
 /** The reveal kind each place kind belongs to. */
 export const placeRevealKinds: Record<PlaceKind, RevealKind> = {
   tavern: 'taverns',
-  sawmill: 'commonPlaces',
-  quarry: 'commonPlaces',
-  copperMine: 'commonPlaces',
-  ironMine: 'commonPlaces',
-  coalPit: 'commonPlaces',
-  huntingLodge: 'commonPlaces',
   smithy: 'commonPlaces',
   apothecary: 'commonPlaces',
   chapel: 'commonPlaces',

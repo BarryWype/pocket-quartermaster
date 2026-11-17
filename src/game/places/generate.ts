@@ -17,7 +17,7 @@ export type PlaceSpawn = {
   position: LatLng;
   startsAt: number;
   expiresAt: number;
-  /** In [0, 1): decides which locked mines show. */
+  /** In [0, 1): a spare roll, kept so spawn ids stay stable. */
   roll: number;
 };
 
@@ -99,21 +99,5 @@ export function isPlaceVisible(spawn: PlaceSpawn, player: LatLng, now: number, m
     spawn.startsAt <= now &&
     distanceMeters(player, spawn.position) <= placeGroupOf(spawn.kind).visibilityMeters * multiplier
   );
-}
-
-/** The ore tier a mine place doubles as, or null for non-mines. */
-export function mineTier(kind: PlaceKind): number | null {
-  const tiers = placeRules.mineTiers as Partial<Record<PlaceKind, number>>;
-  return tiers[kind] ?? null;
-}
-
-export function isLockedMine(kind: PlaceKind, pickaxeTier: number): boolean {
-  const tier = mineTier(kind);
-  return tier !== null && tier > pickaxeTier;
-}
-
-/** Mines above the player's pickaxe tier only show for a share of their rolls. */
-export function showsForPlayer(spawn: PlaceSpawn, pickaxeTier: number, lockedShare = placeRules.lockedMineShare): boolean {
-  return !(isLockedMine(spawn.kind, pickaxeTier) && spawn.roll >= lockedShare);
 }
 

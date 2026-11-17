@@ -106,16 +106,6 @@ describe('quest progress', () => {
     expect(feed(early, { kind: 'gathered', materialId: 'mushroom', amount: 4 }).quests.list[0].progress).toBe(0);
   });
 
-  it('adds mine units bought at the target', () => {
-    const save = withQuest(opened(), quest('mine', 'short', { target: target('mine-1', 'copperMine') }));
-    const elsewhere = feed(save, { kind: 'bought', placeId: 'mine-2', amount: 3 });
-    expect(elsewhere.quests.list[0].progress).toBe(0);
-    const partial = feed(save, { kind: 'bought', placeId: 'mine-1', amount: 2 });
-    expect(partial.quests.list[0].progress).toBe(2);
-    const done = feed(partial, { kind: 'bought', placeId: 'mine-1', amount: 1 });
-    expect(done.quests.list[0].doneAt).toBe(at);
-  });
-
   it('counts gold sold anywhere for sell goods, from arrival and before being shown', () => {
     const save = withQuest(opened(), quest('sellGoods', 'short', { amount: 100, acceptedAt: null, seen: false }));
     const part = feed(save, { kind: 'sold', gold: 60 });

@@ -2,8 +2,7 @@ import type { PlaceKind } from '@/content/places';
 
 import { distanceMeters, offsetPosition } from '../generation/geo';
 import type { LatLng } from '../generation/types';
-import { pickaxeTier } from '../gathering/gathering';
-import { isLockedMine, type PlaceSpawn } from '../places/generate';
+import { type PlaceSpawn } from '../places/generate';
 import { createInitialSave, type SaveData } from '../save';
 import { objectiveAmount } from './unlocks';
 import { acceptQuests, compassDirection, nearestInBand, needsPlace, retargetQuests, targetDistance, targetKinds } from './targets';
@@ -154,13 +153,8 @@ describe('quest targets', () => {
 });
 
 describe('targetKinds', () => {
-  it('never points at a mine above the pickaxe', () => {
+  it('points a visit quest only at the kinds the objective lists', () => {
     const save = { ...opened(), tools: [] };
-    const kinds = targetKinds(save, quest('visit'));
-    expect(kinds).toContain('sawmill');
-    for (const mine of ['quarry', 'copperMine', 'ironMine', 'coalPit'] as PlaceKind[]) {
-      expect(kinds.includes(mine)).toBe(!isLockedMine(mine, pickaxeTier(save)));
-    }
-    expect(targetKinds({ ...save, tools: ['stonePickaxe'] }, quest('visit'))).toContain('copperMine');
+    expect(targetKinds(save, quest('visit'))).toEqual(['smithy', 'apothecary', 'chapel', 'market']);
   });
 });
