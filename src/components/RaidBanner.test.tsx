@@ -25,6 +25,7 @@ const raided = (landsIn: number, extra: Partial<Raid> = {}): SaveData => {
     ...base,
     supply: {
       ...emptySupply(now),
+      debugUnlocked: true,
       hall: { cell: cellAt(origin), moves: [] },
       buildings: [
         {

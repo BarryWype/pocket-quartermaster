@@ -8,6 +8,7 @@ import { newHero, xpRules } from '@/content/heroes';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
+import { supplyRules } from '@/content/supplyLines';
 import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, learnTier, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { unlockAllPartRecipes } from '@/game/crafting/partRecipes';
 import { applyStone } from '@/game/crafting/infusion';
@@ -80,6 +81,8 @@ import { distanceMeters } from '@/game/generation/geo';
 import { placeHall as placeHallInSave } from '@/game/supply/hall';
 import { discoverAlong, discoverAt, discoveryNote, networkPlacesAround } from '@/game/supply/discovery';
 import { claimStep, deliverFromBag, isOrderKind, makeOrder } from '@/game/supply/orders';
+import { advanceFirstChain } from '@/game/supply/firstChain';
+import { supplyActive } from '@/game/supply/unlock';
 import { collectBuilding as collectBuildingInSave, postHero as postHeroInSave, recallPosted as recallPostedInSave } from '@/game/supply/postings';
 import { build as buildInSave } from '@/game/supply/buildings';
 import { checkPersonalSite as checkPersonalSiteInSave } from '@/game/supply/sites';
@@ -146,6 +149,8 @@ type GameState = {
   debugExpireSite: (site: PlaceSpawn) => void;
   /** Debug: marks every live network place and site within 1.2 km of the position discovered. */
   debugDiscoverAround: (position: LatLng) => void;
+  /** Debug: unlocks the supply network on this save whatever the tier (see supply/unlock.ts). */
+  debugUnlockNetwork: () => void;
   /** Supply lines: sets the cart's route and its street path (straight when omitted); while a loop runs both apply at the next departure. */
   setRoute: (route: RoutePoint[], path?: StreetPath) => void;
   /** Supply lines: sets the cart's crew, which can only change while the cart is parked. */
@@ -374,7 +379,7 @@ export const useGameStore = create<GameState>()(
         const { save, summary } = processWalkPath(anchored, fixes, options);
         let walked = refreshWalks(save, Date.now());
         // Supply lines: the walk discovers the network places it passed. The switch is read here, so autoGather stays store-free.
-        if (useSettingsStore.getState().supplyLines) {
+        if (supplyActive(before, useSettingsStore.getState().supplyLines)) {
           const fresh = fixes.filter((fix) => fix.timestamp > before.autoGather.processedUntil);
           const { save: discovered, found } = discoverAlong(walked, fresh, options.tiles ?? {});
           if (found.length > 0) {
@@ -472,6 +477,8 @@ export const useGameStore = create<GameState>()(
         }
         set({ save: next });
       },
+      debugUnlockNetwork: () =>
+        set(({ save }) => ({ save: { ...save, supply: { ...save.supply, debugUnlocked: true } } })),
       setRoute: (route, path) => set({ save: setRouteInSave(get().save, route, path ?? null, Date.now()) }),
       setCrew: (driver, escorts) => set({ save: setCrewInSave(get().save, driver, escorts, Date.now()) }),
       startCart: () => set({ save: startCartInSave(get().save, Date.now()) }),
@@ -885,7 +892,7 @@ export const useGameStore = create<GameState>()(
     }),
     {
       name: 'pocket-quartermaster-save',
-      version: 58,
+      version: 59,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ save: state.save }),
       // Saves from version 30 on are kept: every later version bump adds a migration step here (see AGENTS.md, Saves).
@@ -907,4 +914,15 @@ export const useGameStore = create<GameState>()(
 useGameStore.subscribe(({ save }) => {
   const next = queueTips(save, dueTips(save));
   if (next !== save) useGameStore.setState({ save: next });
+});
+
+// The first chain advances with the save while the network runs; finishing pays its reward once and notes it on the map.
+useGameStore.subscribe(({ save }) => {
+  if (!supplyActive(save, useSettingsStore.getState().supplyLines)) return;
+  const next = advanceFirstChain(save, Date.now());
+  if (next.save === save) return;
+  useGameStore.setState({ save: next.save });
+  if (next.finished) {
+    useWorldStore.getState().set({ supplyMessage: { text: t('supply.firstChain.done', { gold: supplyRules.firstChain.rewardGold }), at: Date.now() } });
+  }
 });

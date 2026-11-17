@@ -402,7 +402,7 @@ function jobsTable(s: ProfileSummary) {
   return table(['Tier', 'Wood walked/day', 'Wood spent/day', 'Woodcutter/day', `Woodcutter share (target ${range(targets.woodcutterShare, pct)})`], rows);
 }
 
-/** The supply lines on a `--supply-lines` run: the cart's deliveries against walking, ambushes and raids, and hero time. */
+/** The supply lines on a `--supply-lines` run: the buildings' output, the cart's deliveries against walking, the orders served, ambushes and raids, and hero time. */
 function supplyTable(s: ProfileSummary) {
   const supply = s.supply!;
   const outcomes = (o: Record<'won' | 'lost' | 'unguarded', { median: number | null }>) =>
@@ -411,9 +411,18 @@ function supplyTable(s: ProfileSummary) {
   return table(
     ['Measure', 'Median over seeds'],
     [
-      ['Delivered by the cart / day (units)', n(supply.deliveredPerDay.median, 1)],
+      ['Goods made by buildings / day (units)', n(supply.madePerDay.median, 1)],
+      ['Delivered home by the cart / day (units)', n(supply.deliveredPerDay.median, 1)],
       ['Walked / day (wood, meat, hide, bone)', n(supply.walkedPerDay.median, 1)],
       ['Cart against walking', pct(share)],
+      ['Delivered to places by the cart / day (units)', n(supply.toPlacesByCartPerDay.median, 1)],
+      ['Delivered to places by hand / day (units)', n(supply.toPlacesByHandPerDay.median, 1)],
+      ['Gold from orders / day (deliveries and steps)', n(supply.orderGoldPerDay.median, 1)],
+      ['Order steps claimed / day', n(supply.stepsClaimedPerDay.median, 2)],
+      ['Order headlines claimed / day', n(supply.headlinesClaimedPerDay.median, 2)],
+      ['Orders completed (share of those served)', pct(supply.ordersCompletedShare.median)],
+      ['Buildings lost to expiry with stock / day', n(supply.buildingsLostStockedPerDay.median, 2)],
+      ['Units lost with them / day', n(supply.unitsLostPerDay.median, 1)],
       ['Ambushes / week', outcomes(supply.ambushesPerWeek)],
       ['Raids / week', outcomes(supply.raidsPerWeek)],
       ['Hero-hours posted / day', n(supply.postedHoursPerDay.median, 1)],
@@ -736,7 +745,7 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
     out.push(
       '## Supply lines',
       '',
-      'Played with `--supply-lines` (doc/design/supply-lines/). The bot places the hall at home, founds a camp on the richest cell of each walk, defends an announced raid when its odds pass the profile threshold, and at the day’s last session sends the cart round every camp (one spare escort) and posts the heroes still home, recalling them the next morning. Deliveries go straight into the stock, outside the material flows above (the walking columns still mean walking), but the bot spends them like any material, so days per tier can move against a run without the flag.',
+      'Played with `--supply-lines` (doc/design/supply-lines/). The network opens at tier 2: the bot places the hall at home, discovers the network places and sites its walks pass (and detours to the nearest undiscovered site and order place within 400 m of a walk’s points), builds on the best discovered site in reach the kind serving the order it values most (a gear headline by rarity and fit first), and keeps twice a building’s cost in gold before spending. It serves the top orders up to its buildings: at the day’s last session the cart runs the planner’s route round the buildings and those places with one spare escort, and a walk that passes a discovered order place hands goods over from the bag. Reached order steps are claimed each session. Deliveries go straight into the stock, outside the material flows above (the walking columns still mean walking), but the bot spends them like any material, so days per tier can move against a run without the flag.',
       '',
     );
     for (const s of summaries) if (s.supply) out.push(`### ${s.profile}`, '', supplyTable(s), '');

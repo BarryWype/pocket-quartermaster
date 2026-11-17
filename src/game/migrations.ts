@@ -1015,6 +1015,25 @@ export function toV58(save: SaveData): SaveData {
   };
 }
 
+/**
+ * Version 59: the network's debug unlock and the first chain's progress (see
+ * supply/unlock.ts and supply/firstChain.ts). Both start closed and unstarted.
+ */
+export function toV59(save: SaveData): SaveData {
+  type OldSupply = Omit<SaveData["supply"], "debugUnlocked" | "firstChain"> &
+    Partial<Pick<SaveData["supply"], "debugUnlocked" | "firstChain">>;
+  const supply = save.supply as OldSupply;
+  if (supply.debugUnlocked !== undefined && supply.firstChain !== undefined) return save;
+  return {
+    ...save,
+    supply: {
+      ...supply,
+      debugUnlocked: supply.debugUnlocked ?? false,
+      firstChain: supply.firstChain ?? { step: 0, doneAt: null },
+    },
+  };
+}
+
 /** Applies the migration steps in order, from the save's own version on. */
 export function migrateSave(
   save: SaveData,
@@ -1050,5 +1069,6 @@ export function migrateSave(
   if (fromVersion < 56) next = toV56(next);
   if (fromVersion < 57) next = toV57(next);
   if (fromVersion < 58) next = toV58(next);
+  if (fromVersion < 59) next = toV59(next);
   return next;
 }

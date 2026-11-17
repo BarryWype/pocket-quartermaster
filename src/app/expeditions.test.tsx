@@ -31,8 +31,9 @@ describe('the Expeditions rail', () => {
   });
 
   it('has no Network tab while the switch is off, and one while it is on', () => {
+    const base = createInitialSave();
     act(() => {
-      useGameStore.setState({ save: createInitialSave() });
+      useGameStore.setState({ save: { ...base, supply: { ...base.supply, debugUnlocked: true } } });
     });
     useSettingsStore.setState({ supplyLines: false });
     expect(railOf().items.map((item) => item.key)).toEqual(['places', 'out', 'jobs']);

@@ -189,11 +189,24 @@ export type ProfileSummary = {
   supply: SupplySummary | null;
 };
 
-/** The supply lines over a run, per seed: what the cart brought in against walking, ambushes and raids, and hero time. */
+/** The supply lines over a run, per seed: what the buildings made and the cart brought in against walking, the orders served, ambushes and raids, and hero time. */
 export type SupplySummary = {
   /** Units the cart delivered per day, against the units of the same materials (wood, meat, hide, bone) walking gathered per day. */
   deliveredPerDay: Stat;
   walkedPerDay: Stat;
+  /** Units the buildings made per day, and units delivered to order places per day, by the cart and by hand. */
+  madePerDay: Stat;
+  toPlacesByCartPerDay: Stat;
+  toPlacesByHandPerDay: Stat;
+  /** Gold from orders per day (deliveries and steps), and the rewards claimed per day. */
+  orderGoldPerDay: Stat;
+  stepsClaimedPerDay: Stat;
+  headlinesClaimedPerDay: Stat;
+  /** Share of the served orders that reached 100% before the place left. */
+  ordersCompletedShare: Stat;
+  /** Buildings lost to expiry with stock still in them per day, and the units lost with them. */
+  buildingsLostStockedPerDay: Stat;
+  unitsLostPerDay: Stat;
   ambushesPerWeek: Record<'won' | 'lost' | 'unguarded', Stat>;
   raidsPerWeek: Record<'won' | 'lost' | 'unguarded', Stat>;
   /** Hero-hours per day posted at buildings, and on the cart's crew. */
@@ -217,6 +230,15 @@ export function supplySummary(logs: RunLog[]): SupplySummary | null {
   return {
     deliveredPerDay: perDay((log) => log.supply!.delivered),
     walkedPerDay: perDay((log) => sum(CAMP_MATERIALS.flatMap((material) => WALK_SOURCES.map((source) => log.gathered[material]?.[source] ?? 0)))),
+    madePerDay: perDay((log) => log.supply!.made),
+    toPlacesByCartPerDay: perDay((log) => log.supply!.toPlacesByCart),
+    toPlacesByHandPerDay: perDay((log) => log.supply!.toPlacesByHand),
+    orderGoldPerDay: perDay((log) => log.supply!.orderGold),
+    stepsClaimedPerDay: perDay((log) => log.supply!.stepsClaimed),
+    headlinesClaimedPerDay: perDay((log) => log.supply!.headlinesClaimed),
+    ordersCompletedShare: stat(played.map((log) => (log.supply!.ordersServed > 0 ? log.supply!.ordersCompleted / log.supply!.ordersServed : null))),
+    buildingsLostStockedPerDay: perDay((log) => log.supply!.buildingsLostStocked),
+    unitsLostPerDay: perDay((log) => log.supply!.unitsLost),
     ambushesPerWeek: outcomes((log) => log.supply!.ambushes),
     raidsPerWeek: outcomes((log) => log.supply!.raids),
     postedHoursPerDay: perDay((log) => log.supply!.postedHours),

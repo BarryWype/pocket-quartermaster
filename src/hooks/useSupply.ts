@@ -1,6 +1,10 @@
+import { networkUnlocked } from '@/game/supply/unlock';
+import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
-/** Whether the supply lines experiment is on: everything supply renders and works only while it is. */
+/** Whether the supply lines experiment runs: the switch is on and the network is unlocked on this save. */
 export function useSupplyOn(): boolean {
-  return useSettingsStore((s) => s.supplyLines);
+  const setting = useSettingsStore((s) => s.supplyLines);
+  const unlocked = useGameStore((s) => networkUnlocked(s.save));
+  return setting && unlocked;
 }

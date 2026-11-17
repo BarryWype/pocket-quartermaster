@@ -64,7 +64,7 @@ import {
   emptyLog,
 } from './bot';
 import { probe } from './probe';
-import { emptySupplySim, supplyEvening, supplyMorning } from './supply';
+import { emptySupplySim, supplyEvening, supplyMorning, supplyWalk } from './supply';
 import { applyStones, rerollGear } from './rules/gear';
 import { forgeIngredients, restoreRelics } from './rules/forge';
 import { craftCombatElixirs, craftOils, craftStatPotions, forgeLootTrinkets, readManuals, sellMaterials, sellParts } from './rules/inventory';
@@ -290,6 +290,7 @@ function session(sim: Sim, walking: boolean, firstWalk: boolean, firstSession: b
     const autoMinutes = minutes * sim.profile.autoShare;
     walk(sim, 'walk', sim.rates.perMinute[pickaxes], sim.rates.gathersPerMinute[pickaxes], minutes - autoMinutes);
     walk(sim, 'autoGather', sim.rates.autoPerMinute[pickaxes], sim.rates.autoGathersPerMinute[pickaxes], autoMinutes);
+    if (sim.supply) supplyWalk(sim, sim.supply);
   }
 
   // Collect. Heroes back from an expedition are collected first, so they are home for the walk's patrols.
@@ -494,6 +495,8 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     afterDay?.(sim.day, sim.save);
   }
   sim.log.knownRecipes = [...sim.save.knownRecipes];
-  sim.log.supply = sim.supply?.log ?? null;
+  sim.log.supply = sim.supply
+    ? { ...sim.supply.log, ordersServed: sim.supply.served.size, ordersCompleted: sim.supply.completed.size }
+    : null;
   return sim.log;
 }

@@ -29,7 +29,7 @@ const withOrder = (progress: number): SaveData => {
   const order = makeOrder(base, spawnOf('smithy', 's1'), noon);
   // A round total keeps the percentage exact, whatever the seeded size was.
   const filled: Order = { ...order, total: 100, delivered: { stone: Math.round(100 * progress) } };
-  return { ...base, supply: { ...emptySupply(noon), orders: { s1: filled } } };
+  return { ...base, supply: { ...emptySupply(noon), debugUnlocked: true, orders: { s1: filled } } };
 };
 
 describe('order notifications', () => {

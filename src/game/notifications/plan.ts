@@ -13,6 +13,7 @@ import { gathererFirstWoundAt } from '../jobs/gatherer';
 import { fullAt, jobWorker, tiredAt } from '../jobs/jobs';
 import type { SaveData } from '../save';
 import { orderPlaceName, orderProgress } from '../supply/orders';
+import { supplyActive } from '../supply/unlock';
 import { raidAnnouncedAt, raidLeadMs } from '../supply/raids';
 import { buildingNameKey } from '../supply/buildings';
 import { tavernNameOf } from '../taverns/taverns';
@@ -294,6 +295,7 @@ export function planNotifications(
 ): PlannedNotification[] {
   if (!settings.enabled) return [];
   const { categories } = settings;
+  const supplyOn = supplyActive(save, supplyLines);
   const planned = [
     ...expeditionNotifications(save, settings, rules),
     ...heistNotifications(save, settings, rules),
@@ -301,8 +303,8 @@ export function planNotifications(
     ...(categories.heroesRested ? restedNotification(save, now) : []),
     ...(categories.jobs ? jobNotifications(save, now) : []),
     ...(categories.dailyReset ? dailyResetNotification(now) : []),
-    ...(supplyLines && categories.raids ? raidNotifications(save) : []),
-    ...(supplyLines && categories.orders ? orderNotifications(save, now) : []),
+    ...(supplyOn && categories.raids ? raidNotifications(save) : []),
+    ...(supplyOn && categories.orders ? orderNotifications(save, now) : []),
   ];
   return planned
     .map((n) => (n.at === null ? n : { ...n, at: deliveryTime(n.at, n.category, settings) }))

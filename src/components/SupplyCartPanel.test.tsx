@@ -40,7 +40,7 @@ const withNetwork = (cart: Partial<SaveData['supply']['cart']> = {}): SaveData =
   const base = createInitialSave();
   return {
     ...base,
-    supply: { ...base.supply, hall: { cell: hallCell, moves: [] }, buildings: [building], cart: { ...base.supply.cart, ...cart } },
+    supply: { ...base.supply, debugUnlocked: true, hall: { cell: hallCell, moves: [] }, buildings: [building], cart: { ...base.supply.cart, ...cart } },
   };
 };
 

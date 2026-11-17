@@ -25,6 +25,8 @@ export function emptySupply(now: number): SupplyState {
     raidLog: [],
     discovered: {},
     orders: {},
+    debugUnlocked: false,
+    firstChain: { step: 0, doneAt: null },
     nextId: 1,
   };
 }

@@ -40,7 +40,7 @@ const saveWithOrder = (place: PlaceSpawn, change?: (order: Order) => Order, mate
   return {
     ...base,
     materials: { ...base.materials, ...materials },
-    supply: { ...base.supply, discovered: { [place.id]: place.expiresAt }, orders: { [place.id]: order } },
+    supply: { ...base.supply, debugUnlocked: true, discovered: { [place.id]: place.expiresAt }, orders: { [place.id]: order } },
   };
 };
 
@@ -143,6 +143,7 @@ describe('the Network tab’s Places section', () => {
           ...base,
           supply: {
             ...base.supply,
+            debugUnlocked: true,
             discovered: { [leavingSoon.id]: leavingSoon.expiresAt, [staying.id]: staying.expiresAt },
             orders: { [leavingSoon.id]: soon, [staying.id]: late },
           },

@@ -1,6 +1,6 @@
 # Supply lines (experimental)
 
-**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (steps 0–7 built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. The guided first chain, the rebuilt Network tab and the simulator come next.
+**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (prompt 1, steps 0–8, built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. A short page for new players is in `how-to-play.md`.
 
 The whole feature sits behind **Settings → Developer → "Supply lines (experimental)"**, off by default. With it off, nothing changes or shows, and the simulator's default run doesn't play it. Every number lives in `src/content/supplyLines.ts` (table below). The rules are pure functions in `src/game/supply/`, settled from timestamps when read; nothing runs on a timer except one timeout for the next cart or raid moment while the app is open.
 
@@ -8,12 +8,27 @@ Decided at the trial's step 0 (2026-11-13): danger counts live patrols (option A
 
 ## How it plays
 
-1. Turn the switch on.
+1. Turn the switch on; the network opens at tier 2. The Network tab's first chain leads the way.
 2. Tap the map (or your own marker) to open a cell's sheet, and place the **hall** there.
 3. **Walk** to sites and places to discover them.
 4. **Build** a farm, quarry or herb garden on a discovered site, standing on it. Locals work it slowly; **post a hero** for the full rate.
-5. **Plan the cart's route** around danger. Give it a **crew**, start it, and it carries the buildings' stock home loop after loop.
-6. **Raids** are announced against a building. Send defenders, empty it, or let it go.
+5. **Serve orders:** taverns, smithies, apothecaries and markets want what buildings make, and pay for it.
+6. **Plan the cart's route** through buildings and places along the streets. Give it a **crew**, start it, and it carries goods loop after loop.
+7. **Raids** are announced against a building. Send defenders, empty it, or let it go.
+
+## Unlock and the first chain
+
+- **Unlock:** with the switch on, the network opens at **tier 2** through the reveal (`network`, a tier reveal like rarer places and Sanctums), with its reveal card. Before that nothing of it shows or runs. `networkUnlocked` / `supplyActive` (`src/game/supply/unlock.ts`) gate every screen, hook and background read. Debug: "Unlock the network on this save".
+- **The first chain** (`src/game/supply/firstChain.ts`): place your hall; walk to a site; build a farm; walk to a tavern; set the cart's route (a building and a place); make your first delivery. One line is lit at a time on the Network tab, with one button that takes you there (your cell's sheet, or the map centred on the nearest site, the site to build on, the nearest tavern, the planner with your stops picked, the nearest order). Steps advance as soon as their condition holds, several at once if need be. At the end: 75 gold and a note on the map, once.
+
+## The Network tab
+
+Rebuilt after `mockups/NetworkTab.html`:
+
+- **What next:** the first chain's checklist until it's done, then one line and one button for the most useful next step. In order: answer a raid, place the hall, discover a site, build on a free site, find a place that wants what you make, set a route, give the cart a driver, post a hero, claim a reward. With nothing to do: "Your network runs on its own."
+- **The flow picture:** buildings (stock, FULL, ⏳) → the cart (load, destination) → places (order %, ✓, ⏳), three per column then "+n"; greyed when empty.
+- **Cards:** leaving soonest first, then buildings, places, the cart, the hall's moves left, and the route warning when a stop has left.
+- **Buttons centre the map** on a place or site rather than opening its sheet from the tab: the tab regenerates places without the map's snapping, so their sheet is opened from the marker.
 
 ## Places: the six-day rotation
 
@@ -175,7 +190,7 @@ Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
 
 ## First run
 
-- **One-line tips** queue the first time a building's sheet, the route planner and a raid banner appear. They also land in Field notes. The trial's three first-run cards are gone; the guided first chain replaces them later.
+- **One-line tips** queue the first time a building's sheet, the route planner and a raid banner appear. They also land in Field notes. The trial's three first-run cards are gone; the network's reveal card and the first chain replace them.
 
 ## Save
 
@@ -191,13 +206,20 @@ Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
 - **Version 56** turns camps into buildings (`toV56`): `supply.camps` becomes an empty `supply.buildings`, route points name buildings, a pending raid is dropped, `personalSite` is added, and the trial's trades become Herbalist and Farmer.
 - **Version 57** adds `save.supply.orders`, empty.
 - **Version 58** stores the street path with the route (`cart.path`, `nextPath`); the trial's waypoint cells became forced street points.
-- Renumber all seven whenever the branch is brought up to date with main.
+- **Version 59** adds `supply.debugUnlocked` and `supply.firstChain`.
+- Renumber all eight whenever the branch is brought up to date with main.
 - **Types** are in `src/game/supply/types.ts`. **The switch** is a setting, not save data.
 
 ## Simulator
 
-- **The flag:** `npm run sim -- --supply-lines` plays the supply lines with a minimal bot (`src/game/sim/supply.ts`) and adds a **Supply lines** section to the report. Without the flag nothing runs, so today's numbers don't move.
-- **The bot** places the hall at home and doesn't build yet (step 8), so the cart, postings and raids stay idle and the section reads zero.
+- **The flag:** `npm run sim -- --supply-lines` plays the network with a bot (`src/game/sim/supply.ts`) and adds a **Supply lines** section to the report. Without the flag nothing runs: the default run is unchanged (a test checks the summary has no supply section).
+- **The bot,** from tier 2 only:
+  - places the hall at home;
+  - discovers network places and sites along its walks, plus one detour per walk to the nearest undiscovered site and order place within 400 m;
+  - builds on the best discovered site within reach (stars, then nearness to the hall) the kind serving the order whose headline it values most (gear its heroes can use, then meals and potions), keeping twice the cost in gold;
+  - sets the route at the day's last session (its buildings, then the places it serves, in the suggested order; straight paths, since the sim has no map tiles) and starts the cart with one spare escort;
+  - hands goods over when a walk passes a place it serves, claims reached steps, defends raids and posts heroes as before.
+- **The section,** per day: goods made by buildings, delivered home, delivered to places (by cart and by hand); gold from orders; order rewards claimed; the share of served orders completed; buildings lost to expiry with stock in them; ambushes, raids and hero-hours as before.
 
 ## Config (`src/content/supplyLines.ts`)
 
@@ -265,6 +287,7 @@ Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
 - **Discover everything in view** (1.2 km): network places and sites.
 - **Age the network by two days:** buildings, the cart and raids replay two more days; map places follow the real clock.
 - On a site's sheet: **Build free** and **Expire this site now**; on a building's: **Expire now** and the raid button.
+- **Unlock the network on this save** (with why it's open: tier 2 or debug).
 - **Place the hall here**, **Show danger levels**.
 
 ## From the trial: what I'd build next

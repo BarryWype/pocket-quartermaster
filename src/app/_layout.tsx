@@ -14,6 +14,7 @@ import { Price } from '@/components/Price';
 import { ScreenHeader } from '@/components/ui';
 import { SecretToast } from '@/components/SecretToast';
 import { TipBar } from '@/components/TipBar';
+import { supplyActive } from '@/game/supply/unlock';
 import { useAutoGather } from '@/hooks/useAutoGather';
 import { useCartTick } from '@/hooks/useCartTick';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -69,7 +70,7 @@ function useUpkeep() {
       useGameStore.getState().resolvePatrolFights();
       useGameStore.getState().resolvePlaces();
       useGameStore.getState().train();
-      if (useSettingsStore.getState().supplyLines) useGameStore.getState().settleSupply();
+      if (supplyActive(useGameStore.getState().save, useSettingsStore.getState().supplyLines)) useGameStore.getState().settleSupply();
     };
     const unsubscribeHydration = useGameStore.persist.onFinishHydration(upkeep);
     if (useGameStore.persist.hasHydrated()) upkeep();

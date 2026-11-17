@@ -164,7 +164,7 @@ describe('dueTips', () => {
     guild.clearedDungeons = [guildRules.unlockedBy];
     guild.tips.seen = ['specials', 'dungeons', 'quests'];
     const owed = noteTips(guild, dueTips(guild));
-    expect(owed.tips.pending).toEqual(['guildHall', 'jobMiner']);
+    expect(owed.tips.pending).toEqual(['guildHall', 'network', 'jobMiner']);
   });
 
   it('queues the Miner tip once tier 2 opens, and not before', () => {

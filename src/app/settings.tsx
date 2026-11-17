@@ -16,6 +16,7 @@ import { sightRules } from '@/content/map';
 import { MOTION_LEVELS, type MotionLevel } from '@/content/motion';
 import { notificationCategories, notificationGroups } from '@/content/notifications';
 import type { NotificationCategory, NotificationGroup } from '@/game/notifications/types';
+import { supplyActive } from '@/game/supply/unlock';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useMotion } from '@/hooks/useMotion';
 import { syncPlan } from '@/hooks/useNotifications';
@@ -155,6 +156,7 @@ function SettingsContent() {
   const { phoneReduced } = useMotion();
   const autoToggle = useAutoGatherToggle();
   const walks = useGameStore((state) => state.save.autoGather.history);
+  const networkOn = useGameStore((state) => supplyActive(state.save, supplyLines));
   const tipsSeen = useGameStore((state) => state.save.tips.seen.length);
   const setAutoStop = (autoStopMinutes: number) => {
     setPocketMode({ autoStopMinutes });
@@ -331,7 +333,7 @@ function SettingsContent() {
             (category) =>
               notificationCategories[category].group === group &&
               !POCKET_CATEGORIES.includes(category) &&
-              (category !== 'raids' && category !== 'orders' || supplyLines),
+              (category !== 'raids' && category !== 'orders' || networkOn),
           );
           if (shown.length === 0) return null;
           return (

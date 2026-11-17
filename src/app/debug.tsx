@@ -37,6 +37,8 @@ import { offsetPosition } from '@/game/generation/geo';
 import { windowIndex, windowRange } from '@/game/generation/time';
 import { tileAt } from '@/game/generation/tiles';
 import { cellAt } from '@/game/discovery/cells';
+import { isRevealed } from '@/game/reveal/reveal';
+import { networkUnlocked } from '@/game/supply/unlock';
 import type { LatLng, TimeOfDay } from '@/game/generation/types';
 import { patrolNotifications } from '@/game/notifications/patrols';
 import { fill } from '@/game/notifications/plan';
@@ -518,7 +520,10 @@ function SupplyDebug() {
   const showDanger = useDebugStore((state) => state.showDanger);
   const debugSites = useDebugStore((state) => state.debugSites);
   const buildings = useGameStore((state) => state.save.supply.buildings);
+  const save = useGameStore((state) => state.save);
   const position = useDebugStore((state) => state.mockLocation) ?? useWorldStore.getState().player ?? FALLBACK_LOCATION;
+  // Why the network is unlocked on this save: the tier 2 reveal, the debug flag, or not yet.
+  const unlockState = isRevealed(save, 'network') ? 'tier 2 reached' : save.supply.debugUnlocked ? 'debug' : 'locked until tier 2';
 
   const placeHallHere = () => {
     try {
@@ -547,6 +552,10 @@ function SupplyDebug() {
   return (
     <>
       <Text style={styles.title}>Supply lines</Text>
+      <View style={styles.row}>
+        <Text>{`Network: ${networkUnlocked(save) ? 'unlocked' : 'locked'} (${unlockState})`}</Text>
+        <Button title="Unlock the network on this save" onPress={() => useGameStore.getState().debugUnlockNetwork()} />
+      </View>
       <View style={styles.row}>
         <Button title="Place the hall here" onPress={placeHallHere} />
       </View>

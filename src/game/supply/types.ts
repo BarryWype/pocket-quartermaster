@@ -28,6 +28,10 @@ export type SupplyState = {
   discovered: Record<string, number>;
   /** The orders of the discovered places: place id → its order, until the place leaves. */
   orders: Record<string, Order>;
+  /** Debug: the network unlocked on this save whatever the tier (see supply/unlock.ts). */
+  debugUnlocked: boolean;
+  /** The first chain's progress: the current step's index, 6 once all are done (see supply/firstChain.ts). */
+  firstChain: { step: number; doneAt: number | null };
   nextId: number;
 };
 

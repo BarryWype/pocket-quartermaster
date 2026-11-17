@@ -988,19 +988,27 @@ export function keepGatherer(sim: Sim) {
 
 const MINUTE = 60_000;
 
+/** The walk's points: home, then out along the day's bearing at the anchor's interval (the path the gatherer's anchor follows). */
+export function walkPoints(sim: Sim): { position: LatLng; at: number }[] {
+  const every = gathererRules.anchorEveryMinutes;
+  const bearing = (createRng(`gatherer|anchor|${sim.day}`).int(0, 359) * Math.PI) / 180;
+  const points = [{ position: sim.location, at: sim.now }];
+  for (let k = 1; k <= Math.floor(sim.profile.walkMinutes / every); k++) {
+    const meters = k * every * playerMetersPerMinute;
+    points.push({ position: offsetPosition(sim.location, Math.sin(bearing) * meters, Math.cos(bearing) * meters), at: sim.now + k * every * MINUTE });
+  }
+  return points;
+}
+
 /** Keeps the gatherer's anchor with the player: home while still, and around each walk's loop while walking. */
 export function moveGathererAnchor(sim: Sim, walking: boolean) {
   sim.save = addAnchor(sim.save, sim.location, sim.now);
   if (!walking) return;
   const every = gathererRules.anchorEveryMinutes;
-  const bearing = (createRng(`gatherer|anchor|${sim.day}`).int(0, 359) * Math.PI) / 180;
-  const points = Math.floor(sim.profile.walkMinutes / every);
-  for (let k = 1; k <= points; k++) {
-    const meters = k * every * playerMetersPerMinute;
-    sim.save = addAnchor(sim.save, offsetPosition(sim.location, Math.sin(bearing) * meters, Math.cos(bearing) * meters), sim.now + k * every * MINUTE);
-  }
+  const points = walkPoints(sim);
+  for (const { position, at } of points.slice(1)) sim.save = addAnchor(sim.save, position, at);
   // Back home: one anchor interval after the last point at the earliest, or the anchor rules would drop it.
-  sim.save = addAnchor(sim.save, sim.location, sim.now + Math.max(sim.profile.walkMinutes, (points + 1) * every) * MINUTE);
+  sim.save = addAnchor(sim.save, sim.location, sim.now + Math.max(sim.profile.walkMinutes, points.length * every) * MINUTE);
 }
 
 /** Recalls the given working heroes before a send; the output made so far and their settled energy are kept. */

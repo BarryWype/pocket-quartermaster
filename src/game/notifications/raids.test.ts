@@ -17,6 +17,7 @@ const raided = (): SaveData => {
     ...base,
     supply: {
       ...emptySupply(noon),
+      debugUnlocked: true,
       hall: { cell: cellAt(origin), moves: [] },
       buildings: [
         {

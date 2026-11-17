@@ -9,6 +9,7 @@ import { planNotifications } from '@/game/notifications/plan';
 import { deliveryTime } from '@/game/notifications/quietHours';
 import { stepAlerts } from '@/game/notifications/steps';
 import type { NotificationCategory } from '@/game/notifications/types';
+import { supplyActive } from '@/game/supply/unlock';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { navigate } from '@/services/navigation';
 import { deviceNotifications } from '@/services/notifications';
@@ -49,7 +50,7 @@ export function syncPlan() {
   const { notifications } = useSettingsStore.getState();
   const enabled = (category: NotificationCategory) => notifications.enabled && notifications.categories[category];
   const { supplyLines } = useSettingsStore.getState();
-  deviceNotifications.sync(planNotifications(save, notifications, Date.now(), notificationRules, supplyLines), enabled).catch(() => {});
+  deviceNotifications.sync(planNotifications(save, notifications, Date.now(), notificationRules, supplyActive(save, supplyLines)), enabled).catch(() => {});
 }
 
 /**

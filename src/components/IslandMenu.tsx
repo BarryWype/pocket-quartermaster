@@ -10,12 +10,12 @@ import { jobs } from '@/content/jobs';
 import { isJobFull, isTired } from '@/game/jobs/jobs';
 import { isRevealed } from '@/game/reveal/reveal';
 import { buildingsAtCap } from '@/game/supply/production';
+import { useSupplyOn } from '@/hooks/useSupply';
 import { currentHp, maxHp } from '@/game/team/health';
 import { tutorialTarget, type MenuTarget } from '@/game/tutorial/tutorial';
 import { navigate } from '@/services/navigation';
 import { t, type TextKey } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 import { fonts, ui } from '@/theme';
 
 import { Text } from './Text';
@@ -73,7 +73,7 @@ export function IslandMenu() {
     return jobs.filter((job) => isJobFull(save, job.id, now)).length + save.heroes.filter((hero) => isTired(save, hero, now)).length;
   });
   // Buildings whose stock is full, waiting on a collection.
-  const supplyOn = useSettingsStore((s) => s.supplyLines);
+  const supplyOn = useSupplyOn();
   const capNews = useGameStore(({ save }) => (supplyOn ? buildingsAtCap(save, Date.now()) : 0));
 
   const go = (href: Href) => {

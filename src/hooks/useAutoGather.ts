@@ -6,6 +6,7 @@ import { materialById } from '@/content/lookup';
 import { clearProcessed, shouldAutoStop, walkTileKeys, type WalkFix, type WalkSummary } from '@/game/gathering/autoGather';
 import { mapTileAt, mapTileKey } from '@/game/generation/walkable';
 import { placePlacement } from '@/game/places/placement';
+import { supplyActive } from '@/game/supply/unlock';
 import { jobOutputDetail, jobWorker } from '@/game/jobs/jobs';
 import { snapshotBackground } from '@/game/patrols/escort';
 import { clearsRefusal, locationPermissionState } from '@/game/patrols/pocketPermission';
@@ -96,7 +97,7 @@ async function processBuffer(away: boolean): Promise<WalkSummary | null> {
   const fresh = () => buffer.fixes.filter((f) => f.timestamp > useGameStore.getState().save.autoGather.processedUntil);
   let keys = walkTileKeys(useGameStore.getState().save, buffer.fixes);
   // Supply lines: the walk discovers the network places it passes, which are placed on the walkable ground of their own map tiles.
-  if (useSettingsStore.getState().supplyLines) {
+  if (supplyActive(useGameStore.getState().save, useSettingsStore.getState().supplyLines)) {
     keys = [...new Set([...keys, ...fresh().map((fix) => mapTileKey(mapTileAt(fix.position, placePlacement.mapZoom)))])];
   }
   const tiles = Object.fromEntries(await Promise.all(keys.map(async (key) => [key, await walkableTiles.load(key)] as const)));
@@ -152,7 +153,7 @@ export async function syncBackground() {
     const nearbyKinds = notifications.categories.nearbyPlaces ? notifications.nearbyKinds : [];
     return {
       ...snapshotBackground(save, patrolSettingsFrom(pocketMode, save, notifications.patrolAlertFor), now, current),
-      pocket: snapshotPocket(save, nearbyKinds, now, current?.pocket ?? null, useSettingsStore.getState().supplyLines),
+      pocket: snapshotPocket(save, nearbyKinds, now, current?.pocket ?? null, supplyActive(save, useSettingsStore.getState().supplyLines)),
     };
   });
 }

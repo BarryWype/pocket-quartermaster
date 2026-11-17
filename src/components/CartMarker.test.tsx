@@ -22,7 +22,7 @@ const origin = { latitude: -41.2865, longitude: 174.7762 };
 /** A save whose cart runs a loop: a hall, and a route through a cell 400 m away. */
 const running = (): SaveData => {
   const base = createInitialSave();
-  const save: SaveData = { ...base, supply: { ...base.supply, hall: { cell: cellAt(origin), moves: [] } } };
+  const save: SaveData = { ...base, supply: { ...base.supply, debugUnlocked: true, hall: { cell: cellAt(origin), moves: [] } } };
   const route = [{ via: offsetPosition(origin, 400, 0) }];
   return startLoop({ ...save, supply: { ...save.supply, cart: { ...save.supply.cart, route } } }, Date.now() - 60_000);
 };

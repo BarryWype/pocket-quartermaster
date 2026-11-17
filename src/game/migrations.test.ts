@@ -6,7 +6,7 @@ import { gearRules } from "@/content/gear";
 import { affixById } from "@/content/affixes";
 import { gearStats } from "./gear/stats";
 import { uniquePool } from "./gear/uniques";
-import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57, toV58 } from "./migrations";
+import { migrateSave, toV38, toV39, toV40, toV41, toV42, toV43, toV44, toV47, toV48, toV49, toV50, toV52, toV53, toV54, toV55, toV56, toV57, toV58, toV59 } from "./migrations";
 import { affixPool } from "./gear/affixes";
 import { emptyLoot } from "./loot/types";
 import type { Briefing, ExpeditionReport, GearDef, GearInstance } from "./types";
@@ -1442,5 +1442,36 @@ describe("toV58", () => {
 
   it("runs from migrateSave on a version 57 save", () => {
     expect(migrateSave(v57(), 57, 0).supply.cart.path).not.toBeNull();
+  });
+});
+
+describe("toV59", () => {
+  /** A version 58 save: its supply state has neither the debug unlock nor the first chain. */
+  const v58 = (): SaveData => {
+    const base = createInitialSave();
+    const supply = base.supply as Record<string, unknown>;
+    delete supply.debugUnlocked;
+    delete supply.firstChain;
+    return { ...base, supply: supply as unknown as SaveData["supply"] };
+  };
+
+  it("adds a locked network and an unstarted first chain", () => {
+    const next = toV59(v58());
+    expect(next.supply.debugUnlocked).toBe(false);
+    expect(next.supply.firstChain).toEqual({ step: 0, doneAt: null });
+  });
+
+  it("keeps a debug-unlocked save unlocked", () => {
+    const unlocked = { ...v58(), supply: { ...v58().supply, debugUnlocked: true } };
+    expect(toV59(unlocked).supply.debugUnlocked).toBe(true);
+  });
+
+  it("returns the same save when both fields are already there", () => {
+    const save = createInitialSave();
+    expect(toV59(save)).toBe(save);
+  });
+
+  it("runs from migrateSave on a version 58 save", () => {
+    expect(migrateSave(v58(), 58, 0).supply.firstChain).toEqual({ step: 0, doneAt: null });
   });
 });

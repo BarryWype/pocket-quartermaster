@@ -22,6 +22,9 @@ export const supplyRules = {
   /** The starting trio's fixed trades, so a new game and a migrated save agree. */
   startingTrades: { bram: 'herbalist', lyra: 'farmer', mira: 'teamster' } satisfies Record<string, TradeId>,
 
+  /** The first chain's one-time reward, paid when its six steps are done (see game/supply/firstChain.ts). */
+  firstChain: { rewardGold: 75 },
+
   /** The place kinds that hold orders; sites are built on. */
   discovery: { kinds: ['tavern', 'smithy', 'apothecary', 'market', 'site'] satisfies PlaceKind[] },
 

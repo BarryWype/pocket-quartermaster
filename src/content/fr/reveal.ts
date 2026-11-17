@@ -14,6 +14,8 @@ export const frTipTexts: typeof tipTexts = {
   guildHall: 'La Maison de guilde est ouverte : dépensez or et matériaux dans des améliorations durables.',
   rarePlaces: 'Des lieux plus rares : bibliothèques, guildes des voleurs, quais de pêche. Ils sont plus éloignés.',
   sanctums: 'Sanctuaires : des autels élémentaires. Dépensez un Sceau pour défier le gardien et gagner des éclats.',
+  network:
+    'Votre réseau de ravitaillement est ouvert : découvrez des chantiers et des lieux, bâtissez, et envoyez la charrette. L’onglet Réseau montre les premiers pas.',
   secrets: 'Un tuyau a marqué un lieu secret. Il vous faut une clé mystérieuse pour entrer.',
   relics: 'Reliques : restaurez-en une à la forge pour obtenir un objet à effet fixe.',
   trinkets: 'Bibelots : de l’équipement introuvable en boutique, aux statistiques rares comme Chance et Critique.',

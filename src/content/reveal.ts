@@ -15,6 +15,7 @@ export type RevealKind =
   | 'guildHall'
   | 'rarePlaces'
   | 'sanctums'
+  | 'network'
   | 'secrets';
 
 /** Item kinds that get a tip the first time one is held. */
@@ -67,6 +68,7 @@ export const revealRules: Record<RevealKind, RevealCondition> = {
   guildHall: { kind: 'guildOpen' },
   rarePlaces: { kind: 'tier', tier: 2 },
   sanctums: { kind: 'tier', tier: 2 },
+  network: { kind: 'tier', tier: 2 },
   secrets: { kind: 'secretTip' },
 };
 
@@ -105,7 +107,7 @@ export const placeRevealKinds: Record<PlaceKind, RevealKind> = {
 };
 
 /** Kinds that are not markers on the map; their tip comes when revealed. */
-export const offMapRevealKinds: RevealKind[] = ['dungeons', 'quests', 'guildHall'];
+export const offMapRevealKinds: RevealKind[] = ['dungeons', 'quests', 'guildHall', 'network'];
 
 /** One line per tip, shown the first time its kind applies. */
 export const tipTexts: Record<TipId, string> = {
@@ -122,6 +124,8 @@ export const tipTexts: Record<TipId, string> = {
   guildHall: 'The Guild Hall is open: spend gold and materials on lasting upgrades.',
   rarePlaces: 'Rarer places: libraries, thieves’ guilds, fishing docks. They’re further apart.',
   sanctums: 'Sanctums: elemental shrines. Spend a Sigil to challenge the guardian for shards.',
+  network:
+    'Your supply network is open: discover sites and places, build, and send the cart. The Network tab shows the first steps.',
   secrets: 'A tip marked a secret place. You need a mysterious key to enter.',
   relics: 'Relics: restore one at the forge to get an item with a fixed effect.',
   trinkets: 'Trinkets: loot-only gear with rare stats like Luck and Crit.',
