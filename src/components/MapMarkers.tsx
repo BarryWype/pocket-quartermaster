@@ -26,6 +26,7 @@ import type { LatLng, Spawn } from '@/game/generation/types';
 import type { VisibleSpawn } from '@/game/generation/visibility';
 import { isLockedMine } from '@/game/places/generate';
 import { isNetworkKind } from '@/game/supply/discovery';
+import { isLastDay, timeLeftShare } from '@/game/supply/buildings';
 import { isPatrolKind, patrolPositionAt, type PatrolSpawn } from '@/game/patrols/generate';
 import { fleesAt } from '@/game/patrols/visibility';
 import { isEntered } from '@/game/secrets/places';
@@ -114,6 +115,12 @@ type Props = {
 };
 
 const toLngLat = (position: LatLng): [number, number] => [position.longitude, position.latitude];
+
+/** The time ring's props for a temporary place, quantised so the markers stay memoised between the ring's steps. */
+const timeOf = (spawn: { startsAt: number; expiresAt: number }, now: number) => ({
+  timeLeft: timeLeftShare(spawn.startsAt, spawn.expiresAt, now),
+  lastDay: isLastDay(spawn.expiresAt, now),
+});
 
 /**
  * Every marker on the map, culled to the visible bounds plus a margin. Memo'd:
@@ -225,18 +232,25 @@ function MapMarkersBase({
           </Marker>
         );
       })}
-      {culledTaverns.map((tavern) => (
-        <Marker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={tapped(() => onOpenTavern(tavern))}>
-          <TimedSanctumMarker
-            emoji="🍺"
-            locked={!tavernsOpen}
-            label={tr(placeInfo.tavern.name)}
-            unvisited={supplyOn && !(tavern.id in save.supply.discovered)}
-          />
-        </Marker>
-      ))}
+      {culledTaverns.map((tavern) => {
+        const time = supplyOn ? timeOf(tavern, now) : undefined;
+        return (
+          <Marker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={tapped(() => onOpenTavern(tavern))}>
+            <TimedSanctumMarker
+              emoji="🍺"
+              locked={!tavernsOpen}
+              label={tr(placeInfo.tavern.name)}
+              unvisited={supplyOn && !(tavern.id in save.supply.discovered)}
+              timeLeft={time?.timeLeft}
+              lastDay={time?.lastDay}
+            />
+          </Marker>
+        );
+      })}
       {culledPlaces.map((place) => {
         const difficulty = isFightPlace(place.kind) ? placeFightRules.kinds[place.kind].difficulty : undefined;
+        // Fight events keep only their difficulty ring; the monster lair lasts six days like the rest.
+        const time = supplyOn && (!isFightPlace(place.kind) || place.kind === 'monsterLair') ? timeOf(place, now) : undefined;
         return (
           <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
             <TimedSanctumMarker
@@ -245,21 +259,28 @@ function MapMarkersBase({
               label={tr(placeInfo[place.kind].name)}
               difficulty={difficulty}
               unvisited={supplyOn && isNetworkKind(place.kind) && !(place.id in save.supply.discovered)}
+              timeLeft={time?.timeLeft}
+              lastDay={time?.lastDay}
               accessibilityLabel={difficulty ? markerLabel(tr(placeInfo[place.kind].name), difficulty, t('difficulty.fight')) : undefined}
             />
           </Marker>
         );
       })}
-      {culledSecrets.map((place) => (
-        <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
-          <TimedSanctumMarker
-            emoji={placeInfo[place.kind].emoji}
-            secret
-            locked={!keyHeld && !isEntered(save, place)}
-            label={tr(placeInfo[place.kind].name)}
-          />
-        </Marker>
-      ))}
+      {culledSecrets.map((place) => {
+        const time = supplyOn ? timeOf(place, now) : undefined;
+        return (
+          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
+            <TimedSanctumMarker
+              emoji={placeInfo[place.kind].emoji}
+              secret
+              locked={!keyHeld && !isEntered(save, place)}
+              label={tr(placeInfo[place.kind].name)}
+              timeLeft={time?.timeLeft}
+              lastDay={time?.lastDay}
+            />
+          </Marker>
+        );
+      })}
       {culledPatrols.map(({ spawn }) => {
         const seenAt = patrolsSeen[spawn.id];
         const fleesIn = seenAt !== undefined ? fleesAt(spawn, seenAt) : null;

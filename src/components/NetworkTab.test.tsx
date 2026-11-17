@@ -13,14 +13,14 @@ jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFoc
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 
-const buildingIn = (quality: 1 | 2 | 3): Building => ({
+const buildingIn = (quality: 1 | 2 | 3, daysLeft = 6): Building => ({
   id: 'b1',
   kind: 'farm',
   siteId: 's1',
   position: origin,
   quality,
-  builtAt: Date.now(),
-  expiresAt: Date.now() + 6 * 24 * 3_600_000,
+  builtAt: Date.now() - (6 - daysLeft) * 24 * 3_600_000,
+  expiresAt: Date.now() + daysLeft * 24 * 3_600_000,
   heroId: null,
   postedAt: null,
   stock: {},
@@ -73,5 +73,22 @@ describe('the Network tab', () => {
       renderer!.root.findByProps({ accessibilityLabel: 'Farm' }).props.onPress();
     });
     expect(renderer!.root.findAll((node) => node.props.accessibilityLabel === 'Post a hero').length).toBeGreaterThan(0);
+  });
+
+  it('heads a last-day building with the Leaving soonest section, and does not repeat it below', () => {
+    useSettingsStore.setState({ supplyLines: true });
+    const save: SaveData = { ...createInitialSave(), supply: { ...createInitialSave().supply, buildings: [buildingIn(1, 0.5)] } };
+    act(() => {
+      useGameStore.setState({ save });
+      useWorldStore.setState({ player: origin });
+    });
+    act(() => {
+      renderer = create(<NetworkTab />);
+    });
+    const tab = text(renderer!);
+    expect(tab).toContain('Leaving soonest');
+    expect(tab).toContain('LAST DAY');
+    // The card appears once: in the section, not again in the buildings list.
+    expect(tab.split('Leaves in').length - 1).toBe(1);
   });
 });

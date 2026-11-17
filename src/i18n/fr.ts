@@ -1213,6 +1213,9 @@ export const fr: Dictionary = {
     },
     leavesIn: 'Part dans {time}',
     lastDay: 'DERNIER JOUR',
+    time: {
+      lastDayLabel: 'dernier jour',
+    },
     site: {
       label: 'Chantier',
       emptyTitle: 'Chantier vide',
@@ -1247,6 +1250,7 @@ export const fr: Dictionary = {
       hallDistance: 'à {distance}',
       noHall: 'Pas encore de hall : touchez une case sur la carte pour le placer.',
       empty: 'Bâtissez sur un chantier découvert.',
+      leavingSoonest: 'Partent bientôt',
       collectAtBuilding: 'Récolter au bâtiment',
     },
   },

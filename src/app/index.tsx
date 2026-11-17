@@ -813,7 +813,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         <MapRanges circles={ranges} />
         {supplyOn && <SupplyLayers bounds={bounds} position={position} />}
         {supplyOn && <SupplyRoute />}
-        {supplyOn && <SupplyMarkers sites={sitesInSight} />}
+        {supplyOn && <SupplyMarkers sites={sitesInSight} now={now} />}
         {supplyOn && <CartMarker />}
         <MapMarkers
           save={save}

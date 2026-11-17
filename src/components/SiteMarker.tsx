@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Text';
+import { TimeRing } from '@/components/ui';
 import { siteQuality } from '@/game/supply/sites';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { t } from '@/i18n';
@@ -9,28 +10,40 @@ import { colors, ui } from '@/theme';
 /** The rotated square's side: the same footprint as the places' diamonds. */
 const SIDE = 31;
 
-type Props = { site: PlaceSpawn; discovered: Record<string, number> };
+type Props = { site: PlaceSpawn; discovered: Record<string, number>; timeLeft?: number; lastDay?: boolean };
 
 /**
  * A site on the map: a dashed brass diamond with an empty sign, so it never
  * looks like a place to visit for goods. Stars in the label once discovered;
  * footprints until then.
  */
-export function SiteMarker({ site, discovered }: Props) {
+export function SiteMarker({ site, discovered, timeLeft, lastDay }: Props) {
   const isDiscovered = site.id in discovered;
   const quality = siteQuality(site);
   const stars = `${'★'.repeat(quality)}${'☆'.repeat(3 - quality)}`;
-  const spoken = discovered
-    ? `${t('supply.site.label')}, ${quality === 1 ? t('supply.site.oneStar') : t('supply.site.starsLabel', { count: quality })}`
-    : `${t('supply.site.label')}, ${t('supply.discover.notVisitedLabel')}`;
+  const spoken = [
+    ...(isDiscovered
+      ? [t('supply.site.label'), quality === 1 ? t('supply.site.oneStar') : t('supply.site.starsLabel', { count: quality })]
+      : [t('supply.site.label'), t('supply.discover.notVisitedLabel')]),
+    ...(lastDay ? [t('supply.time.lastDayLabel')] : []),
+  ].join(', ');
+  const tile = (
+    <View style={styles.tile}>
+      <View style={styles.upright}>
+        <Text style={styles.emoji}>🪧</Text>
+      </View>
+    </View>
+  );
   return (
     <View style={styles.marker} accessibilityLabel={spoken}>
       <View style={styles.tileWrap}>
-        <View style={styles.tile}>
-          <View style={styles.upright}>
-            <Text style={styles.emoji}>🪧</Text>
-          </View>
-        </View>
+        {timeLeft === undefined ? (
+          tile
+        ) : (
+          <TimeRing left={timeLeft} last={!!lastDay} size={SIDE}>
+            {tile}
+          </TimeRing>
+        )}
         {!isDiscovered && <Text style={styles.unvisited}>👣</Text>}
       </View>
       <View style={styles.labelRow}>

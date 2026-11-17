@@ -37,6 +37,7 @@ import { RecruitGrade } from './RecruitGrade';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { TradeLabel } from './TradeLabel';
+import { TimerStrip } from './TimerStrip';
 
 const problemText: Record<RecruitProblem, (distance: number, cap: number) => string> = {
   locked: () => t('tavern.locked'),
@@ -95,6 +96,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji="🍺" title={tavern.name} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
+        {supplyOn && <TimerStrip expiresAt={tavern.expiresAt} />}
         <OrderSection place={tavern} player={player} now={openedAt} />
         {supplyOn && !(tavern.id in save.supply.discovered) && <IconLabel emoji="👣" label={t('supply.discover.walkHere')} />}
         {far ? (

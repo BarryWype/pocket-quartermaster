@@ -31,9 +31,19 @@ export function buildingReach(save: SaveData): { count: number; meters: number }
   return supplyRules.buildings.limits[highestUnlockedTier(save)];
 }
 
+/** The ring's steps: the share of life left moves only when this many steps change, so markers stay memoised between them. */
+export const TIME_LEFT_STEPS = 48;
+
 /** Whether the building's last day has come: within `lastDayHours` of its expiry. */
 export function isLastDay(expiresAt: number, now: number): boolean {
   return expiresAt - now <= supplyRules.buildings.lastDayHours * HOUR;
+}
+
+/** The share of a life left, rounded to the ring's steps so a marker only re-renders when its ring moves. */
+export function timeLeftShare(startsAt: number, expiresAt: number, now: number): number {
+  const total = expiresAt - startsAt;
+  const left = total <= 0 ? 0 : Math.min(1, Math.max(0, (expiresAt - now) / total));
+  return Math.round(left * TIME_LEFT_STEPS) / TIME_LEFT_STEPS;
 }
 
 /** Why a building of this kind cannot be raised on the site now, or null. */

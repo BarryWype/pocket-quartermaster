@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { FillBar, PressScale } from '@/components/motion';
 
 import { Text } from '@/components/Text';
+import { IconLabel } from '@/components/IconLabel';
 import { LootGrid } from '@/components/LootGrid';
 import { ParchmentCard, WoodButton } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
@@ -43,6 +44,19 @@ export function NetworkTab() {
   const [openBuilding, setOpenBuilding] = useState<string | null>(null);
 
   const lastRaid = save.supply.raidLog.at(-1);
+  const orders = Object.values(save.supply.orders).sort((a, b) => a.expiresAt - b.expiresAt);
+  // Whatever is in its last day leaves the two lists below and comes first, soonest at the top.
+  const leaving = [
+    ...buildings.filter((building) => isLastDay(building.expiresAt, now)).map((building) => ({
+      expiresAt: building.expiresAt,
+      card: <BuildingCard key={building.id} building={building} now={now} onOpen={() => setOpenBuilding(building.id)} />,
+    })),
+    ...orders
+      .filter((order) => isLastDay(order.expiresAt, now))
+      .map((order) => ({ expiresAt: order.expiresAt, card: <OrderCard key={order.placeId} order={order} now={now} /> })),
+  ].sort((a, b) => a.expiresAt - b.expiresAt);
+  const stayingBuildings = buildings.filter((building) => !isLastDay(building.expiresAt, now));
+  const stayingOrders = orders.filter((order) => !isLastDay(order.expiresAt, now));
 
   return (
     <View style={styles.body}>
@@ -61,20 +75,24 @@ export function NetworkTab() {
       ) : (
         <Text style={styles.line}>{t('supply.network.noHall')}</Text>
       )}
+      {leaving.length > 0 && (
+        <>
+          <IconLabel emoji="⏳" label={t('supply.network.leavingSoonest')} labelStyle={styles.sectionTitle} />
+          {leaving.map(({ card }) => card)}
+        </>
+      )}
       {buildings.length === 0 ? (
         <Text style={styles.line}>{t('supply.network.empty')}</Text>
       ) : (
-        buildings.map((building) => (
+        stayingBuildings.map((building) => (
           <BuildingCard key={building.id} building={building} now={now} onOpen={() => setOpenBuilding(building.id)} />
         ))
       )}
       <Text style={styles.sectionTitle}>{t('supply.order.places')}</Text>
-      {Object.keys(save.supply.orders).length === 0 ? (
+      {orders.length === 0 ? (
         <Text style={styles.line}>{t('supply.order.empty')}</Text>
       ) : (
-        Object.values(save.supply.orders)
-          .sort((a, b) => a.expiresAt - b.expiresAt)
-          .map((order) => <OrderCard key={order.placeId} order={order} now={now} />)
+        stayingOrders.map((order) => <OrderCard key={order.placeId} order={order} now={now} />)
       )}
       <CartCard now={now} onOpen={() => setCartOpen(true)} />
       {cartOpen && <SupplyCartPanel onClose={() => setCartOpen(false)} />}

@@ -41,7 +41,7 @@ describe('the supply lines on the map', () => {
     act(() => {
       renderer = create(
         <>
-          <SupplyMarkers sites={[]} />
+          <SupplyMarkers sites={[]} now={Date.now()} />
           <SupplyLayers bounds={null} position={position} />
         </>,
       );

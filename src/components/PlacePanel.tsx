@@ -59,6 +59,7 @@ import { GameIcon } from './GameIcon';
 import { Overlay } from './Overlay';
 import { OrderSection } from './OrderSection';
 import { Sheet } from './Sheet';
+import { TimerStrip } from './TimerStrip';
 import { EmberButton, WoodButton } from './ui';
 import { Text } from './Text';
 import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
@@ -239,6 +240,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
+        {supplyOn && <TimerStrip expiresAt={place.expiresAt} />}
         <OrderSection place={place} player={player} now={now} />
         {supplyOn && isNetworkKind(place.kind) && !(place.id in save.supply.discovered) && (
           <IconLabel emoji="👣" label={t('supply.discover.walkHere')} />

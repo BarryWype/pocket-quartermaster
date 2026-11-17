@@ -14,6 +14,7 @@ import { isFightPlace, placeFightBriefing, placeFightDungeon, placeFightOdds, pl
 import type { SaveData } from '@/game/save';
 import { formatDuration, t, tr } from '@/i18n';
 import { syncBackground } from '@/hooks/useAutoGather';
+import { useSupplyOn } from '@/hooks/useSupply';
 import { useGameStore } from '@/store/gameStore';
 import { useWorldStore } from '@/store/worldStore';
 import { colors } from '@/theme';
@@ -26,6 +27,7 @@ import { PartyDialog } from './PartyDialog';
 import { Sheet } from './Sheet';
 import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
+import { TimerStrip } from './TimerStrip';
 import { TrophyLine } from './TrophyLine';
 import { IconLabel, PartsLine } from './IconLabel';
 import { asRecalled, recallWorkingHeroes } from './workingHeroes';
@@ -44,6 +46,7 @@ type Props = { place: PlaceSpawn; player: LatLng; now: number; onClose: () => vo
 /** A fight event or monster lair: its threat, how long it stays, and the heroes to send, like a patrol. */
 export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   const save = useGameStore((state) => state.save);
+  const supplyOn = useSupplyOn();
   const engage = useGameStore((state) => state.engagePlaceFight);
   const [openedAt] = useState(() => Date.now());
   const kind = isFightPlace(place.kind) ? place.kind : null;
@@ -93,6 +96,7 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
           </View>
         }
       >
+        {supplyOn && kind === 'monsterLair' && <TimerStrip expiresAt={place.expiresAt} />}
         <DifficultyChip difficulty={rules.difficulty} />
         {!far && <Text style={styles.muted}>{tr(info.description)}</Text>}
         <PartsLine

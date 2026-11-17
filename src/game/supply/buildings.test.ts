@@ -5,7 +5,7 @@ import { cellAt } from '../discovery/cells';
 import { offsetPosition } from '../generation/geo';
 import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
-import { build, buildProblem, buildingReach, isLastDay } from './buildings';
+import { build, buildProblem, buildingReach, isLastDay, timeLeftShare, TIME_LEFT_STEPS } from './buildings';
 import { emptySupply } from './state';
 import type { Building } from './types';
 import type { PlaceSpawn } from '../places/generate';
@@ -141,5 +141,27 @@ describe('isLastDay', () => {
     expect(isLastDay(expiresAt, now)).toBe(false);
     expect(isLastDay(expiresAt, expiresAt - supplyRules.buildings.lastDayHours * HOUR)).toBe(true);
     expect(isLastDay(expiresAt, expiresAt)).toBe(true);
+  });
+});
+
+describe('timeLeftShare', () => {
+  const life = (days: number) => days * DAY;
+
+  it('is the share of life left, clamped to 0 and 1', () => {
+    expect(timeLeftShare(now, now + life(6), now + life(3))).toBe(0.5);
+    expect(timeLeftShare(now, now + life(6), now - HOUR)).toBe(1);
+    expect(timeLeftShare(now, now + life(6), now + life(7))).toBe(0);
+    // A life already over has nothing left, whatever its start.
+    expect(timeLeftShare(now + DAY, now, now)).toBe(0);
+  });
+
+  it('rounds to the ring’s steps, so two moments inside one step share a share', () => {
+    const step = life(6) / TIME_LEFT_STEPS;
+    // Just under and just over one step’s worth of life gone both land on the same share.
+    expect(timeLeftShare(now, now + life(6), now + step * 0.9)).toBe(47 / TIME_LEFT_STEPS);
+    expect(timeLeftShare(now, now + life(6), now + step * 1.1)).toBe(47 / TIME_LEFT_STEPS);
+    // An unrounded share would be 0.49 and 0.51; the ring only moves at its steps.
+    expect(timeLeftShare(now, now + life(6), now + life(3) * 1.02)).toBe(0.5);
+    expect(timeLeftShare(now, now + life(6), now + life(3) * 0.98)).toBe(0.5);
   });
 });

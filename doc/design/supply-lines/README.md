@@ -1,6 +1,6 @@
 # Supply lines (experimental)
 
-**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (steps 0–5 built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. Time rings, street routes for the cart and the guided first chain come next.
+**Status: being reshaped** on branch `feat/supply-lines`, following `Claude outputs/supply-network-prompts.md` (steps 0–6 built). The first trial (`Claude outputs/supply-lines-small-prompt.md`) scouted ground and founded camps anywhere; the network replaces that with sites you discover and buildings you put on them. Street routes for the cart and the guided first chain come next.
 
 The whole feature sits behind **Settings → Developer → "Supply lines (experimental)"**, off by default. With it off, nothing changes or shows, and the simulator's default run doesn't play it. Every number lives in `src/content/supplyLines.ts` (table below). The rules are pure functions in `src/game/supply/`, settled from timestamps when read; nothing runs on a timer except one timeout for the next cart or raid moment while the app is open.
 
@@ -107,6 +107,15 @@ Behind the switch; the full proposal, approved as written on 2026-11-17, is `ord
 - **The day before** a place leaves with its order 25–99% filled: one notification, "Leaves tomorrow: Smithy", in the Orders setting (shown while the switch is on).
 - **Grain's use** is delivering: wanted goods carry a "Deliver" use on their item card.
 - **On screen:** the order sits at the top of the place's sheet (`OrderSection`, after the approved mockup); the Network tab lists live orders by time left.
+
+## Time made visible
+
+Behind the switch, after the approved map mockup (`mockups/MapNetwork.html`).
+
+- **The time ring:** a diamond outline around every temporary marker (places, taverns, the personal ones, replacement ruins, secret places, sites and buildings) that drains clockwise from its top over the marker's life: a faint track, the time left in brass. In the last 24 hours it turns ember **and** gains an hourglass badge, and the spoken label adds "last day". Fight events keep only their difficulty ring; a monster lair shows its difficulty ring inside and the time ring outside.
+- **Built with views,** no new native code: `TimeRing` sits beside `DifficultyRing` in `src/components/ui/DifficultyRing.tsx`, and `DifficultyRing` takes an optional `time`. The share left moves in 1/48 steps (`timeLeftShare`), on the map's existing slow clock, so markers stay memoised between steps.
+- **A timer in every temporary sheet:** the "Leaves in …" strip under the header (ember, with "LAST DAY", in the last day) on places, taverns, monster lairs, sites and buildings, once per sheet.
+- **The Network tab** puts a "Leaving soonest" section first whenever a building or an order is in its last day.
 
 ## Production and postings
 

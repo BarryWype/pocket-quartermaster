@@ -1210,6 +1210,9 @@ export const en = {
     },
     leavesIn: 'Leaves in {time}',
     lastDay: 'LAST DAY',
+    time: {
+      lastDayLabel: 'last day',
+    },
     site: {
       label: 'Site',
       emptyTitle: 'Empty site',
@@ -1244,6 +1247,7 @@ export const en = {
       hallDistance: '{distance} away',
       noHall: 'No hall yet: tap a cell on the map to place it.',
       empty: 'Build on a site you discovered.',
+      leavingSoonest: 'Leaving soonest',
       collectAtBuilding: 'Collect at the building',
     },
   },

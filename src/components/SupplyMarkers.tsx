@@ -7,8 +7,9 @@ import { GameIcon } from '@/components/GameIcon';
 import { IconLabel } from '@/components/IconLabel';
 import { SiteMarker } from '@/components/SiteMarker';
 import { Text } from '@/components/Text';
+import { TimeRing } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
-import { buildingEmoji, buildingNameKey, isLastDay } from '@/game/supply/buildings';
+import { buildingEmoji, buildingNameKey, isLastDay, timeLeftShare } from '@/game/supply/buildings';
 import { isAnnounced } from '@/game/supply/raids';
 import { buildingStockTotal, settleBuilding } from '@/game/supply/production';
 import type { PlaceSpawn } from '@/game/places/generate';
@@ -48,42 +49,41 @@ function RaidCountdown({ buildingId }: { buildingId: string }) {
   );
 }
 
-/** A building's whole stock under its marker, and the hourglass once its last day has come. */
+/** A building's whole stock under its marker; the time ring's badge says its last day. */
 function BuildingBadges({ buildingId }: { buildingId: string }) {
   const save = useGameStore((s) => s.save);
   const now = useNow(clockConfig.minutesMs);
   const building = save.supply.buildings.find((entry) => entry.id === buildingId);
   if (!building) return null;
   const stock = buildingStockTotal(settleBuilding(save, building, now));
+  const last = isLastDay(building.expiresAt, now);
   return (
     <View
       style={styles.badges}
-      accessibilityLabel={t('supply.building.markerLabel', {
-        building: t(buildingNameKey[building.kind]),
-        stock,
-        time: formatDuration(Math.max(0, building.expiresAt - now), false),
-      })}
+      accessibilityLabel={[
+        t('supply.building.markerLabel', {
+          building: t(buildingNameKey[building.kind]),
+          stock,
+          time: formatDuration(Math.max(0, building.expiresAt - now), false),
+        }),
+        ...(last ? [t('supply.time.lastDayLabel')] : []),
+      ].join(', ')}
     >
       <View style={styles.stockBadge}>
         <Text style={styles.badgeText}>{stock}</Text>
       </View>
-      {isLastDay(building.expiresAt, now) && (
-        <View style={[styles.stockBadge, styles.lastBadge]}>
-          <Text style={styles.badgeText}>⏳</Text>
-        </View>
-      )}
     </View>
   );
 }
 
-type Props = { sites: PlaceSpawn[] };
+type Props = { sites: PlaceSpawn[]; now: number };
 
 /**
  * The hall, the buildings and the sites on the map. Panels open through the
  * panels store, so the map screen's renders never reach this tree; `sites` is
  * the map screen's memoised list.
  */
-export const SupplyMarkers = memo(function SupplyMarkers({ sites }: Props) {
+export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) {
   const on = useSupplyOn();
   const planning = useMapPanels((state) => state.routeDraft !== null);
   const hall = useGameStore((s) => s.save.supply.hall);
@@ -108,7 +108,13 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites }: Props) {
           onPress={tapped(() => openBuilding(building.id))}
         >
           <View style={styles.building}>
-            <GameIcon emoji={buildingEmoji[building.kind]} size={MARKER_SIZE} />
+            <TimeRing
+              left={timeLeftShare(building.builtAt, building.expiresAt, now)}
+              last={isLastDay(building.expiresAt, now)}
+              size={MARKER_SIZE}
+            >
+              <GameIcon emoji={buildingEmoji[building.kind]} size={MARKER_SIZE} />
+            </TimeRing>
             <BuildingBadges buildingId={building.id} />
             <RaidCountdown buildingId={building.id} />
           </View>
@@ -121,7 +127,12 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites }: Props) {
           lngLat={toLngLat(site.position)}
           onPress={tapped(() => useMapPanels.getState().openSite(site))}
         >
-          <SiteMarker site={site} discovered={discovered} />
+          <SiteMarker
+            site={site}
+            discovered={discovered}
+            timeLeft={timeLeftShare(site.startsAt, site.expiresAt, now)}
+            lastDay={isLastDay(site.expiresAt, now)}
+          />
         </Marker>
       ))}
     </>
@@ -140,6 +151,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: 2,
   },
-  lastBadge: { backgroundColor: ui.ember },
   badgeText: { fontSize: 12, color: ui.parchment },
 });

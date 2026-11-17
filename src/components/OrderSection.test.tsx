@@ -154,6 +154,8 @@ describe('the Network tab’s Places section', () => {
     });
     const sheet = text(renderer!);
     expect(sheet).toContain(t('supply.order.places'));
+    // The last-day order leaves the Places list and heads the Leaving soonest section instead.
+    expect(sheet).toContain(t('supply.network.leavingSoonest'));
     const soonAt = sheet.indexOf(orderPlaceName(soon, tavernNameOf));
     const lateAt = sheet.indexOf(orderPlaceName(late, tavernNameOf));
     expect(soonAt).toBeGreaterThanOrEqual(0);

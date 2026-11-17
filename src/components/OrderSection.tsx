@@ -32,7 +32,6 @@ import { IconLabel } from './IconLabel';
 import { LootGrid } from './LootGrid';
 import { Price } from './Price';
 import { Text } from './Text';
-import { TimerStrip } from './TimerStrip';
 import { FillBar } from './motion';
 import { EmberButton, ParchmentCard, WoodButton } from './ui';
 
@@ -109,7 +108,6 @@ export function OrderSection({ place, player, now }: Props) {
 
   return (
     <View style={styles.section}>
-      <TimerStrip expiresAt={order.expiresAt} />
       <View style={styles.headlineRow}>
         <LootGrid tiles={lootTiles(order.headline)} size={64} />
         <View style={styles.headlineText}>
