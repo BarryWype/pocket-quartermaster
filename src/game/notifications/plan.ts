@@ -13,7 +13,7 @@ import { gathererFirstWoundAt } from '../jobs/gatherer';
 import { fullAt, jobWorker, tiredAt } from '../jobs/jobs';
 import type { SaveData } from '../save';
 import { orderPlaceName, orderProgress } from '../supply/orders';
-import { supplyActive } from '../supply/unlock';
+import { networkUnlocked } from '../supply/unlock';
 import { raidAnnouncedAt, raidLeadMs } from '../supply/raids';
 import { buildingNameKey } from '../supply/buildings';
 import { tavernNameOf } from '../taverns/taverns';
@@ -291,11 +291,10 @@ export function planNotifications(
   settings: NotificationSettings,
   now: number,
   rules: Rules = notificationRules,
-  supplyLines = false,
 ): PlannedNotification[] {
   if (!settings.enabled) return [];
   const { categories } = settings;
-  const supplyOn = supplyActive(save, supplyLines);
+  const supplyOn = networkUnlocked(save);
   const planned = [
     ...expeditionNotifications(save, settings, rules),
     ...heistNotifications(save, settings, rules),

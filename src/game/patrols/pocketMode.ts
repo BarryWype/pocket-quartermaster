@@ -47,10 +47,9 @@ export const snapshotPocket = (
   nearbyKinds: NearbyKind[],
   now: number,
   previous: PocketWatch | null,
-  supplyLines = false,
 ): PocketWatch => ({
   counts: snapshotPocketCounts(save, now, previous?.counts ?? null),
-  nearby: snapshotNearby(save, nearbyKinds, now, previous?.nearby ?? null, supplyLines),
+  nearby: snapshotNearby(save, nearbyKinds, now, previous?.nearby ?? null),
   log: previous?.log ?? emptyPocketLog(),
 });
 

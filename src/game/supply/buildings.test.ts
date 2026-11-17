@@ -5,7 +5,7 @@ import { cellAt } from '../discovery/cells';
 import { offsetPosition } from '../generation/geo';
 import type { LatLng } from '../generation/types';
 import { createInitialSave, type SaveData } from '../save';
-import { build, buildProblem, buildingReach, isLastDay, timeLeftShare, TIME_LEFT_STEPS } from './buildings';
+import { build, buildCost, buildProblem, buildingReach, isLastDay, timeLeftShare, TIME_LEFT_STEPS } from './buildings';
 import { emptySupply } from './state';
 import type { Building } from './types';
 import type { PlaceSpawn } from '../places/generate';
@@ -32,8 +32,8 @@ const ready = (buildings: Building[] = []): SaveData => {
   const base = createInitialSave();
   return {
     ...base,
-    gold: supplyRules.buildings.cost.gold,
-    materials: { ...base.materials, wood: supplyRules.buildings.cost.materials[0].amount },
+    gold: buildCost(base).gold,
+    materials: { ...base.materials, wood: buildCost(base).materials[0].amount },
     supply: { ...emptySupply(now), hall: { cell: cellAt(origin), moves: [] }, buildings, discovered: { 'site:x': now + 6 * DAY } },
   };
 };

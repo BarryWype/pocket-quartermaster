@@ -5,7 +5,6 @@ import { offsetPosition } from '@/game/generation/geo';
 import { startLoop } from '@/game/supply/cart';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 import { CartMarker } from './CartMarker';
 
@@ -34,11 +33,9 @@ describe('the cart marker', () => {
       renderer?.unmount();
     });
     renderer = null;
-    useSettingsStore.setState({ supplyLines: false });
   });
 
   const mount = (save: SaveData) => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save });
     });

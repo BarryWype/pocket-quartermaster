@@ -7,7 +7,7 @@ import { distanceMeters } from '../generation/geo';
 import { tileCenter } from '../generation/tiles';
 import { passRoute } from '../quests/progress';
 import { patrolOdds } from '../patrols/fight';
-import { build, buildProblem, buildingReach, openBuildingKinds } from '../supply/buildings';
+import { build, buildCost, buildProblem, buildingReach, openBuildingKinds } from '../supply/buildings';
 import { cartProblem, setCrew, setRoute, startCart, stopCart } from '../supply/cart';
 import { discoverAlong, discoverAt, networkPlacesAround } from '../supply/discovery';
 import { hallProblem, placeHall } from '../supply/hall';
@@ -231,7 +231,7 @@ function tryBuild(sim: Sim) {
   const reach = buildingReach(save);
   if (save.supply.buildings.length >= reach.count) return;
   const order = topOrders(save, sim.now).find((o) => !save.supply.buildings.some((building) => building.kind === servingKind(o.kind)));
-  if (save.gold < BUILD_GOLD_KEEP * supplyRules.buildings.cost.gold) return;
+  if (save.gold < BUILD_GOLD_KEEP * buildCost(save).gold) return;
   const centre = tileCenter(hall.cell);
   const site = networkPlacesAround(save, centre, sim.now)
     .filter((place) => place.kind === 'site' && place.id in save.supply.discovered && place.startsAt <= sim.now && sim.now < place.expiresAt)

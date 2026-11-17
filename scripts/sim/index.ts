@@ -18,12 +18,11 @@ const USAGE = `npm run sim -- [options]
   --out dir       where the CSVs go (default sim-output/<timestamp>)
   --report dir    where report.md and summary.json go (default doc/design/simulator)
   --no-jobs       run without guild jobs (for a baseline summary)
-  --supply-lines  play the supply lines experiment too (off by default; adds the Supply lines section)
   --baseline file   a summary.json to compare days per tier against (e.g. a --no-jobs run)
   --pacing        print weekly loot drops per category (as doc/design/loot/tools/pacing.py) and stop`;
 
 function parse(argv: string[]) {
-  const options = { profile: 'all', seeds: 4, seed: '1', maxDays: undefined as number | undefined, overrides: [] as string[], out: '', report: 'doc/design/simulator', pacing: false, noJobs: false, supplyLines: false, baseline: undefined as string | undefined, workers: os.availableParallelism() };
+  const options = { profile: 'all', seeds: 4, seed: '1', maxDays: undefined as number | undefined, overrides: [] as string[], out: '', report: 'doc/design/simulator', pacing: false, noJobs: false, baseline: undefined as string | undefined, workers: os.availableParallelism() };
   for (let i = 0; i < argv.length; i++) {
     const value = () => {
       const next = argv[++i];
@@ -40,7 +39,6 @@ function parse(argv: string[]) {
       case '--out': options.out = value(); break;
       case '--report': options.report = value(); break;
       case '--no-jobs': options.noJobs = true; break;
-      case '--supply-lines': options.supplyLines = true; break;
       case '--baseline': options.baseline = value(); break;
       case '--pacing': options.pacing = true; break;
       case '--help': console.log(USAGE); process.exit(0);
@@ -70,7 +68,6 @@ if (process.argv[2] === '--worker') {
     workers: options.workers,
     workerScript: process.argv[1],
     jobs: !options.noJobs,
-    supplyLines: options.supplyLines,
     baseline: options.baseline ? (JSON.parse(fs.readFileSync(options.baseline, 'utf8')) as Summary) : null,
   });
 }

@@ -7,7 +7,6 @@ import { emptySupply } from '@/game/supply/state';
 import type { Raid } from '@/game/supply/types';
 import { useCartTick } from '@/hooks/useCartTick';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 import { RaidBanner } from './RaidBanner';
 
@@ -60,11 +59,9 @@ describe('the raid banner', () => {
       renderer?.unmount();
     });
     renderer = null;
-    useSettingsStore.setState({ supplyLines: false });
   });
 
   const mount = (save: SaveData, buildingId?: string) => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save });
     });
@@ -108,12 +105,10 @@ describe('the supply tick', () => {
       renderer?.unmount();
     });
     renderer = null;
-    useSettingsStore.setState({ supplyLines: false });
     jest.useRealTimers();
   });
 
   it('waits for a pending raid even with the cart parked', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: raided(HOUR) });
     });

@@ -162,7 +162,7 @@ describe('quest progress', () => {
     const walked = refreshWalks(save, at);
     expect(walked.quests.list[0].progress).toBe(Math.floor(600 * 0.75));
     // A restart: the same save comes back, a new rotation day's upkeep runs.
-    const next = questUpkeep(walked, at + DAY, false);
+    const next = questUpkeep(walked, at + DAY);
     expect(next.quests.list[0].progress).toBe(Math.floor(600 * 0.75));
     expect(next.quests.list[0].stepsAtArrive).toBe(100);
     save.stepsTotal = 700 + 400;

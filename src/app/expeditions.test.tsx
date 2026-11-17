@@ -3,7 +3,6 @@ import { act, create } from 'react-test-renderer';
 import { useExpeditionsRail } from './expeditions';
 import { createInitialSave } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
 jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFocused: () => true, useLocalSearchParams: () => ({}) }));
@@ -26,18 +25,18 @@ function railOf(): { items: { key: string }[]; initial: string } {
 
 describe('the Expeditions rail', () => {
   afterEach(() => {
-    useSettingsStore.setState({ supplyLines: false });
     act(() => probe?.unmount());
   });
 
-  it('has no Network tab while the switch is off, and one while it is on', () => {
+  it('has no Network tab while the network is locked, and one once it opens', () => {
     const base = createInitialSave();
+    act(() => {
+      useGameStore.setState({ save: base });
+    });
+    expect(railOf().items.map((item) => item.key)).toEqual(['places', 'out', 'jobs']);
     act(() => {
       useGameStore.setState({ save: { ...base, supply: { ...base.supply, debugUnlocked: true } } });
     });
-    useSettingsStore.setState({ supplyLines: false });
-    expect(railOf().items.map((item) => item.key)).toEqual(['places', 'out', 'jobs']);
-    useSettingsStore.setState({ supplyLines: true });
     expect(railOf().items.map((item) => item.key)).toEqual(['places', 'out', 'jobs', 'network']);
   });
 });

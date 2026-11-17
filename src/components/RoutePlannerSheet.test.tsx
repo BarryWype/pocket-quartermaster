@@ -6,7 +6,6 @@ import type { Building } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 import { RoutePlannerSheet } from './RoutePlannerSheet';
 
@@ -58,11 +57,9 @@ const settle = async () => {
 
 describe('the route planner sheet', () => {
   let renderer: ReactTestRenderer | null = null;
-  beforeEach(() => useSettingsStore.setState({ supplyLines: true }));
   afterEach(() => {
     act(() => renderer?.unmount());
     act(() => useMapPanels.getState().closeRoutePlanner());
-    useSettingsStore.setState({ supplyLines: false });
   });
 
   const open = (save: SaveData, seed: SaveData['supply']['cart']['route']) => {

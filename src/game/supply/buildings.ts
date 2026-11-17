@@ -70,6 +70,12 @@ export function timeLeftShare(startsAt: number, expiresAt: number, now: number):
   return Math.round(left * TIME_LEFT_STEPS) / TIME_LEFT_STEPS;
 }
 
+/** What a building costs to raise at the player's tier. */
+export function buildCost(save: SaveData): { gold: number; materials: { materialId: string; amount: number }[] } {
+  const { goldByTier, materials } = supplyRules.buildings.cost;
+  return { gold: goldByTier[highestUnlockedTier(save) - 1], materials };
+}
+
 /** Why a building of this kind cannot be raised on the site now, or null. */
 export function buildProblem(save: SaveData, site: PlaceSpawn, kind: BuildingKind, player: LatLng, now: number): BuildProblem {
   if (!isKindOpen(save, kind)) return 'notOpen';
@@ -80,7 +86,7 @@ export function buildProblem(save: SaveData, site: PlaceSpawn, kind: BuildingKin
   if (distanceMeters(tileCenter(save.supply.hall.cell), site.position) > reach.meters) return 'tooFarFromHall';
   if (save.supply.buildings.length >= reach.count) return 'full';
   if (distanceMeters(player, site.position) > placeRules.interactionMeters) return 'notHere';
-  const { cost } = supplyRules.buildings;
+  const cost = buildCost(save);
   if (save.gold < cost.gold || !hasMaterials(save.materials, cost.materials)) return 'cost';
   return null;
 }
@@ -95,7 +101,7 @@ export function build(save: SaveData, site: PlaceSpawn, kind: BuildingKind, play
   if (problem !== null && !(free && (problem === 'notHere' || problem === 'cost'))) {
     throw new Error(`Cannot build a ${kind} on ${site.id}: ${problem}`);
   }
-  const { cost } = supplyRules.buildings;
+  const cost = buildCost(save);
   // A free (debug) build skips the cost entirely, not just the check.
   const paid: SaveData = free
     ? save

@@ -50,7 +50,7 @@ export const supplyRules = {
     /** The progress levels that pay a reward. */
     steps: [0.25, 0.5, 1],
     /** Gold rewards are multiplied by this, by tier 1–5. */
-    tierGold: [1, 1, 2, 4, 8],
+    tierGold: [1, 1, 1.5, 2, 3],
     rewards: {
       /** Gold at each step, before the tier multiplier; 0 marks a goods step. */
       gold: { tavern: [20, 0, 40], smithy: [20, 0, 40], apothecary: [20, 0, 40], market: [20, 30, 50] } as Record<OrderKind, [number, number, number]>,
@@ -155,8 +155,8 @@ export const supplyRules = {
       ironMine: { makes: { iron: 100 }, baseRate: 0.5, for: null, opensAtTier: 4 },
       charcoalKiln: { makes: { coal: 100 }, baseRate: 0.4, for: null, opensAtTier: 5 },
     } as Record<BuildingKind, { makes: Record<string, number>; baseRate: number; for: PlaceKind | null; opensAtTier: number }>,
-    /** What a building costs to raise. */
-    cost: { gold: 60, materials: [{ materialId: 'wood', amount: 10 }] },
+    /** What a building costs to raise; the gold by tier 1–5. */
+    cost: { goldByTier: [60, 60, 90, 140, 200], materials: [{ materialId: 'wood', amount: 10 }] },
     /** A building lasts this many days from when it was built. */
     lifeDays: 6,
     /** The last hours of its life warn that it is going. */

@@ -9,7 +9,7 @@ import { planNotifications } from '@/game/notifications/plan';
 import { deliveryTime } from '@/game/notifications/quietHours';
 import { stepAlerts } from '@/game/notifications/steps';
 import type { NotificationCategory } from '@/game/notifications/types';
-import { supplyActive } from '@/game/supply/unlock';
+import { networkUnlocked } from '@/game/supply/unlock';
 import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { navigate } from '@/services/navigation';
 import { deviceNotifications } from '@/services/notifications';
@@ -49,8 +49,7 @@ export function syncPlan() {
   const { save } = useGameStore.getState();
   const { notifications } = useSettingsStore.getState();
   const enabled = (category: NotificationCategory) => notifications.enabled && notifications.categories[category];
-  const { supplyLines } = useSettingsStore.getState();
-  deviceNotifications.sync(planNotifications(save, notifications, Date.now(), notificationRules, supplyActive(save, supplyLines)), enabled).catch(() => {});
+  deviceNotifications.sync(planNotifications(save, notifications, Date.now(), notificationRules), enabled).catch(() => {});
 }
 
 /**
@@ -73,7 +72,7 @@ export function useNotifications() {
     ].join('|'),
   );
   const settings = useSettingsStore((state) => state.notifications);
-  const supplyLines = useSettingsStore((state) => state.supplyLines);
+  const networkOn = useGameStore((state) => networkUnlocked(state.save));
   // A raid's announcement moves with a Watchman posted at its target.
   const raidAt = useGameStore(({ save }) => {
     const raid = save.supply.raid;
@@ -84,7 +83,7 @@ export function useNotifications() {
 
   useEffect(() => {
     syncPlan();
-  }, [expeditions, lastReport, jobsAt, settings, supplyLines, raidAt]);
+  }, [expeditions, lastReport, jobsAt, settings, networkOn, raidAt]);
 
   useEffect(() => {
     const unsubscribe = [useGameStore, useSettingsStore].map((store) => store.persist.onFinishHydration(syncPlan));

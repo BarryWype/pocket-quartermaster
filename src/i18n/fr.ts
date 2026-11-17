@@ -990,8 +990,6 @@ export const fr: Dictionary = {
     motionPhoneReduced: 'Votre téléphone demande moins de mouvement : les animations sont réduites.',
     haptics: 'Vibrations',
     hapticsHint: 'Une légère vibration aux appuis, récompenses et fabrications.',
-    supplyLines: 'Lignes de ravitaillement (expérimental)',
-    supplyLinesHint: 'Des bâtiments, une charrette et des raids sur la carte. Désactivé par défaut ; l’éteindre masque tout.',
     fieldNotes: 'Carnet de terrain',
     fieldNotesHint: {
       one: 'Relire l’astuce déjà vue',

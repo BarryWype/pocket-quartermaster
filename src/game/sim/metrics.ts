@@ -172,7 +172,7 @@ export type ProfileSummary = {
    * `targets.rotation.fromTier` on.
    */
   rotation: { topClass: string | null; topClassShare: Stat; fewestHeroesPerWeek: Stat };
-  /** The supply lines, on runs played with `--supply-lines`; null otherwise (see supplySummary). */
+  /** The supply network; null in summaries from before every run played it (see supplySummary). */
   supply: SupplySummary | null;
 };
 
@@ -206,7 +206,7 @@ export type SupplySummary = {
 /** What buildings make: the materials the cart's deliveries are set against. */
 const CAMP_MATERIALS = ['wood', 'meat', 'hide', 'bone'];
 
-/** The Supply lines section's numbers, or null for a run without them. */
+/** The Supply network section's numbers, or null for logs without it. */
 export function supplySummary(logs: RunLog[]): SupplySummary | null {
   const played = logs.filter((log) => log.supply !== null);
   if (played.length === 0) return null;
@@ -253,7 +253,7 @@ export function supplySummary(logs: RunLog[]): SupplySummary | null {
 
 /** What `npm run sim` writes to doc/design/simulator/summary.json, and the balance band tests read. */
 export type Summary = {
-  settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null; jobs: boolean; supplyLines?: boolean };
+  settings: { profiles: string[]; seeds: number; seed: string; overrides: string[]; maxDays: number | null; jobs: boolean };
   profiles: Record<string, ProfileSummary>;
   /** The reference roster's odds per tier and difficulty, measured once per run (see difficultyOdds.ts). */
   difficultyOdds: Record<number, DifficultyOdds>;

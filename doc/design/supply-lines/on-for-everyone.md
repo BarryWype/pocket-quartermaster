@@ -1,6 +1,6 @@
 # On for everyone · proposal (prompt 2, step 3)
 
-**Status: proposal, for review.** Nothing below is built yet. This step makes the network part of the main game.
+**Status: approved as proposed and built 2026-11-18.** The rules as built are in the README. The gold numbers below are a first pass; they get tuned after the next full simulator run ("after" goes next to "before" here).
 
 ## 1. The switch goes
 

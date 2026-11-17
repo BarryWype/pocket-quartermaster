@@ -12,7 +12,7 @@ describe('supply lines', () => {
   it('plays the network behind the flag: discovers, builds, serves an order and counts it', () => {
     // Full XP above the tier band reaches tier 2, where the network opens, quickly.
     const undo = applyOverrides([parseOverride('xp.aboveBandShare=1')]);
-    const log = runSim({ profile: 'regular', maxDays: 34, seed: 'supply-net', rates, supplyLines: true, afterSession: checkSave });
+    const log = runSim({ profile: 'regular', maxDays: 34, seed: 'supply-net', rates, afterSession: checkSave });
     undo();
     expect(log.milestones['boss:1']).toBeDefined();
     const supply = log.supply!;
@@ -29,16 +29,7 @@ describe('supply lines', () => {
     expect(summary.madePerDay.median).toBeGreaterThan(0);
     expect(summary.orderGoldPerDay.median).toBeGreaterThan(0);
     const report = renderReport({ summaries: [summarize([log])], rules: [], settings: { seeds: 1, seed: 'supply-net', overrides: [], elapsed: 0, date: 'test' }, difficultyOdds: {} });
-    expect(report).toContain('## Supply lines');
+    expect(report).toContain('## Supply network');
     expect(report).toContain('Goods made by buildings / day (units)');
-  });
-
-  it('plays nothing supply-related without the flag: no supply summary, no report section', () => {
-    const log = runSim({ profile: 'regular', maxDays: 4, seed: 'supply-off', rates });
-    expect(log.supply).toBeNull();
-    const summary = summarize([log]);
-    expect(summary.supply).toBeNull();
-    const report = renderReport({ summaries: [summary], rules: [], settings: { seeds: 1, seed: 'supply-off', overrides: [], elapsed: 0, date: 'test' }, difficultyOdds: {} });
-    expect(report).not.toContain('## Supply lines');
   });
 });

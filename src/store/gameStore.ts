@@ -82,7 +82,7 @@ import { placeHall as placeHallInSave } from '@/game/supply/hall';
 import { discoverAlong, discoverAt, discoveryNote, networkPlacesAround } from '@/game/supply/discovery';
 import { claimStep, deliverFromBag, isOrderKind, makeOrder } from '@/game/supply/orders';
 import { advanceFirstChain } from '@/game/supply/firstChain';
-import { supplyActive } from '@/game/supply/unlock';
+import { networkUnlocked } from '@/game/supply/unlock';
 import { collectBuilding as collectBuildingInSave, postHero as postHeroInSave, recallPosted as recallPostedInSave } from '@/game/supply/postings';
 import { build as buildInSave } from '@/game/supply/buildings';
 import { checkPersonalSite as checkPersonalSiteInSave } from '@/game/supply/sites';
@@ -96,7 +96,6 @@ import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, Pla
 import { t } from '@/i18n';
 
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
-import { useSettingsStore } from './settingsStore';
 import { useWorldStore } from './worldStore';
 
 /** A tip for a place already tipped pays gold: say so on the map. New tips have their own toast (SecretToast). */
@@ -377,7 +376,7 @@ export const useGameStore = create<GameState>()(
         const { save, summary } = processWalkPath(anchored, fixes, options);
         let walked = refreshWalks(save, Date.now());
         // Supply lines: the walk discovers the network places it passed. The switch is read here, so autoGather stays store-free.
-        if (supplyActive(before, useSettingsStore.getState().supplyLines)) {
+        if (networkUnlocked(before)) {
           const fresh = fixes.filter((fix) => fix.timestamp > before.autoGather.processedUntil);
           const { save: discovered, found } = discoverAlong(walked, fresh, options.tiles ?? {});
           if (found.length > 0) {
@@ -646,7 +645,7 @@ export const useGameStore = create<GameState>()(
         })),
       prune: () => {
         const save = get().save;
-        const pruned = questUpkeep(pruneExpired(save, Date.now()), Date.now(), supplyActive(save, useSettingsStore.getState().supplyLines));
+        const pruned = questUpkeep(pruneExpired(save, Date.now()), Date.now());
         if (pruned !== get().save) set({ save: pruned });
       },
       collectLoot: (expeditionId) => {
@@ -690,7 +689,7 @@ export const useGameStore = create<GameState>()(
         if (next !== get().save) set({ save: next });
       },
       rerollQuest: (questId) =>
-        set(({ save }) => ({ save: rerollQuest(save, questId, Date.now(), supplyActive(save, useSettingsStore.getState().supplyLines)) })),
+        set(({ save }) => ({ save: rerollQuest(save, questId, Date.now()) })),
       claimQuest: (questId) => {
         const { save, loot } = claimQuest(get().save, questId, Date.now());
         set({ save });
@@ -914,7 +913,7 @@ useGameStore.subscribe(({ save }) => {
 
 // The first chain advances with the save while the network runs; finishing pays its reward once and notes it on the map.
 useGameStore.subscribe(({ save }) => {
-  if (!supplyActive(save, useSettingsStore.getState().supplyLines)) return;
+  if (!networkUnlocked(save)) return;
   const next = advanceFirstChain(save, Date.now());
   if (next.save === save) return;
   useGameStore.setState({ save: next.save });

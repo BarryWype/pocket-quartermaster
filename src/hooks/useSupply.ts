@@ -1,10 +1,7 @@
 import { networkUnlocked } from '@/game/supply/unlock';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
-/** Whether the supply lines experiment runs: the switch is on and the network is unlocked on this save. */
+/** Whether the supply network is open on this save: tier 2 reached, or the debug unlock. */
 export function useSupplyOn(): boolean {
-  const setting = useSettingsStore((s) => s.supplyLines);
-  const unlocked = useGameStore((s) => networkUnlocked(s.save));
-  return setting && unlocked;
+  return useGameStore((s) => networkUnlocked(s.save));
 }

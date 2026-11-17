@@ -987,8 +987,6 @@ export const en = {
     motionPhoneReduced: 'Your phone asks for less motion, so animations are reduced.',
     haptics: 'Haptics',
     hapticsHint: 'A light buzz on presses, rewards and crafts.',
-    supplyLines: 'Supply lines (experimental)',
-    supplyLinesHint: 'Buildings, a cart and raids on the map. Off by default; turning it off hides it all.',
     fieldNotes: 'Field notes',
     fieldNotesHint: {
       one: "Read again the tip you've seen",

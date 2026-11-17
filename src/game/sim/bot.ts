@@ -1,6 +1,5 @@
 import { dungeons } from '@/content/dungeons';
 import { networkGoods } from '@/content/supplyLines';
-import { networkUnlocked } from '../supply/unlock';
 import { difficultyRules } from '@/content/difficulty';
 import { rosterRules } from '@/content/roster';
 import { affinityRules, classAffinities } from '@/content/equipment';
@@ -1466,7 +1465,7 @@ const QUEST_SOURCE: Record<Quest['band'], LootSourceId> = { short: 'questShort',
  * patrols, gathering and sales count through the game's own events.
  */
 export function doQuests(sim: Sim, walking: boolean) {
-  sim.save = questUpkeep(sim.save, sim.now, sim.supply !== null && networkUnlocked(sim.save));
+  sim.save = questUpkeep(sim.save, sim.now);
   if (!isRevealed(sim.save, 'quests')) return;
   const accept = (quest: Quest): Quest => {
     if (quest.acceptedAt !== null) return quest;

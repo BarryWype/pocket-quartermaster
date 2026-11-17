@@ -49,14 +49,14 @@ const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
 
 describe('the site sheet', () => {
   afterEach(() => {
-    useSettingsStore.setState({ supplyLines: false, haptics: false });
+    useSettingsStore.setState({ haptics: false });
     useMapPanels.setState({ site: null, supplyBuilding: null });
     act(() => renderer?.unmount());
   });
   let renderer: ReactTestRenderer | null = null;
 
   it('shows only the walk hint and the distances while undiscovered', () => {
-    useSettingsStore.setState({ supplyLines: true, haptics: false });
+    useSettingsStore.setState({ haptics: false });
     const site = siteIn();
     act(() => {
       useGameStore.setState({ save: createInitialSave() });
@@ -76,7 +76,7 @@ describe('the site sheet', () => {
   });
 
   it('shows a discovered site with its quality and builds the chosen kind', () => {
-    useSettingsStore.setState({ supplyLines: true, haptics: false });
+    useSettingsStore.setState({ haptics: false });
     const site = siteIn();
     act(() => {
       useGameStore.setState({ save: saveReadyToBuild(site) });
@@ -108,7 +108,7 @@ describe('the site sheet', () => {
   });
 
   it('blocks every building with one banner, and says the walk under buttons it only stops', () => {
-    useSettingsStore.setState({ supplyLines: true, haptics: false });
+    useSettingsStore.setState({ haptics: false });
     const site = siteIn();
     // No hall: one reason stops every kind, so the banner says it once.
     act(() => {

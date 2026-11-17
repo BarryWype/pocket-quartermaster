@@ -57,7 +57,7 @@ export const targets = {
   materialSpent: 0.75,
   /** The gatherer gives at most this share of a material's walking intake (regular profile); walk first. */
   gathererShareMax: 0.25,
-  /** With `--supply-lines`, a regular player's buildings make at least this many times what walking gathers of the same goods at tier 2, and the ratio never falls as tiers rise. */
+  /** A regular player's buildings make at least this many times what walking gathers of the same goods at tier 2, and the ratio never falls as tiers rise. */
   buildingsOverWalking: 1.5,
   /** Heroes end each tier within this many levels of the top of its band (expectedLevels). */
   levelSlack: 1,

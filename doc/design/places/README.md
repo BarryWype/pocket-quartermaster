@@ -7,12 +7,11 @@
 `places.csv` lists every place, event, fight event and secret place, with what it does and its lifetime.
 
 ## Rules
-- Every place is temporary: it resets after 72 hours at most, even if nobody reached it; fight events last 24 hours. The village fair (weekends) is left out for now.
+- Every place is temporary. Places last six days in three groups, one group changing every second day at 04:00 phone time (`doc/design/supply-lines/rotation.md`); fight events last 24 hours; the personal tavern two days. The village fair (weekends) is left out for now.
 - Spawns are seeded like patrols: every player sees the same places at the same time.
 - A used-up place (stock sold out, ruins dug, a fight won) disappears early.
-- Places tied to a material above the player's tier show greyed out and locked.
 - A place or event can carry 1 threat or 1 opportunity from the threat catalogue (`doc/design/threats/`).
-- Shops sell small stocks (5-10 of a material).
+- The six material shops (sawmill, quarry, copper and iron mines, coal pit, hunting lodge) left the map with the supply network (2026-11-18, `doc/design/supply-lines/replacements.md`); its buildings make those materials, and the market sells every material.
 - 4 key fragments make a mysterious key, which opens secret places and the Sealed vault.
 - **Secret places**: a tip places a marker on the map; the place stays until it resets; entering uses up a mysterious key. Two tip sources each, never a place that sells a boss weakness item (tavern, chapel, apothecary, market). Daily quests can become a third source later.
 

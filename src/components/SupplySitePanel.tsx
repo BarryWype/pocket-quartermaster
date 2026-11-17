@@ -15,7 +15,7 @@ import { tileCenter } from '@/game/generation/tiles';
 import type { LatLng } from '@/game/generation/types';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { networkPlacesAround } from '@/game/supply/discovery';
-import { openBuildingKinds, buildingNameKey, buildingReach, buildProblem, type BuildProblem } from '@/game/supply/buildings';
+import { openBuildingKinds, buildCost, buildingNameKey, buildingReach, buildProblem, type BuildProblem } from '@/game/supply/buildings';
 import { siteQuality } from '@/game/supply/sites';
 import type { BuildingKind } from '@/game/supply/types';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
@@ -182,7 +182,8 @@ function BuildingCard({
 }) {
   const debugOn = useDebugStore(debugEnabled);
   const rules = supplyRules.buildings.kinds[kind];
-  const cost = supplyRules.buildings.cost;
+  const gold = useGameStore(({ save }) => buildCost(save).gold);
+  const { materials } = supplyRules.buildings.cost;
   const totalWeight = Object.values(rules.makes).reduce((sum, weight) => sum + weight, 0);
   return (
     <ParchmentCard contentStyle={styles.card}>
@@ -222,11 +223,11 @@ function BuildingCard({
         ) : (
           <WoodButton compact style={styles.build} title={t('supply.site.build')} disabled={problem !== null} onPress={() => onBuild(kind, false)} />
         )}
-        <Price amount={cost.gold} size={18} />
+        <Price amount={gold} size={18} />
         <IconLabel
           emoji={materialById['wood']?.emoji ?? '🪵'}
           icon={materialById['wood']?.icon}
-          label={String(cost.materials[0].amount)}
+          label={String(materials[0].amount)}
           size={18}
         />
       </View>

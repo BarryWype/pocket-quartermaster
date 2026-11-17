@@ -37,8 +37,8 @@ describe('quest arrivals', () => {
   it('hands out 2–3 quests a day, deterministically', () => {
     const save = opened();
     const now = 10 * DAY;
-    const first = receiveQuests(save, now, false);
-    const second = receiveQuests(receiveQuests(save, now, false), now, false);
+    const first = receiveQuests(save, now);
+    const second = receiveQuests(receiveQuests(save, now), now);
     expect(first.quests.list.length).toBeGreaterThanOrEqual(2);
     expect(first.quests.list.length).toBeLessThanOrEqual(3);
     expect(first.quests.list.map((q) => q.id).sort()).toEqual(second.quests.list.map((q) => q.id).sort());
@@ -48,8 +48,8 @@ describe('quest arrivals', () => {
 
   it('does not arrive twice on the same day', () => {
     const save = opened();
-    const first = receiveQuests(save, 10 * DAY, false);
-    const again = receiveQuests(first, 10 * DAY + HOUR, false);
+    const first = receiveQuests(save, 10 * DAY);
+    const again = receiveQuests(first, 10 * DAY + HOUR);
     expect(again.quests.list).toEqual(first.quests.list);
     expect(again.quests.lastArrivalDay).toBe(10);
   });
@@ -58,7 +58,7 @@ describe('quest arrivals', () => {
     const save = opened();
     save.quests.list = [regular('a'), regular('b'), regular('c'), regular('d'), regular('e'), regular('f')];
     expect(activeCount(save)).toBe(6);
-    const next = receiveQuests(save, 10 * DAY, false);
+    const next = receiveQuests(save, 10 * DAY);
     expect(next.quests.list).toHaveLength(6);
   });
 
@@ -66,14 +66,14 @@ describe('quest arrivals', () => {
     const save = opened();
     save.guild = { questCap: 2 };
     save.quests.list = [regular('a'), regular('b'), regular('c'), regular('d'), regular('e'), regular('f')];
-    expect(receiveQuests(save, 10 * DAY, false).quests.list).toHaveLength(8);
+    expect(receiveQuests(save, 10 * DAY).quests.list).toHaveLength(8);
   });
 
   it('only hands out days whose quests are still alive, and prunes the rest', () => {
     const save = opened();
     save.quests.lastArrivalDay = 7;
     const now = 10 * DAY; // day 8's quests would already be 48 h old
-    const next = receiveQuests(save, now, false);
+    const next = receiveQuests(save, now);
     const days = new Set(next.quests.list.map((q) => q.id.split('|')[1]));
     expect(days).toEqual(new Set(['9', '10']));
 
@@ -89,14 +89,14 @@ describe('quest arrivals', () => {
 
   it('does nothing before the tutorial is done', () => {
     const save = createInitialSave();
-    const next = receiveQuests(save, 10 * DAY, false);
+    const next = receiveQuests(save, 10 * DAY);
     expect(next.quests.list).toEqual([]);
     expect(next.quests.lastArrivalDay).toBe(null);
   });
 
   it('gives quests a 48 h lifetime from their day start', () => {
     const save = opened();
-    const next = receiveQuests(save, 10 * DAY, false);
+    const next = receiveQuests(save, 10 * DAY);
     for (const quest of next.quests.list) {
       expect(quest.arrivedAt).toBe(10 * DAY);
       expect(quest.expiresAt).toBe(10 * DAY + questRules.lifetimeHours * HOUR);
@@ -113,7 +113,7 @@ describe('quest arrivals', () => {
     // Visit and Fight are already active: the day's new quests come from the other kinds.
     save.quests.list = [{ ...regular('a'), objective: 'chapel' }, { ...regular('b'), objective: 'patrols' }];
     save.quests.lastArrivalDay = 9;
-    const next = receiveQuests(save, 10 * DAY, false);
+    const next = receiveQuests(save, 10 * DAY);
     const fresh = next.quests.list.filter((q) => q.arrivedAt === 10 * DAY);
     expect(fresh.length).toBeGreaterThanOrEqual(2);
     for (const quest of fresh) {
@@ -132,7 +132,7 @@ describe('quest arrivals', () => {
     save.quests.list = taken.map((objective, i) => ({ ...regular(`q${i}`), objective }));
     save.quests.lastArrivalDay = 9;
     save.guild = { questCap: 3 };
-    const next = receiveQuests(save, 10 * DAY, false);
+    const next = receiveQuests(save, 10 * DAY);
     const fresh = next.quests.list.filter((q) => q.arrivedAt === 10 * DAY);
     expect(fresh.length).toBeGreaterThanOrEqual(2);
     expect(fresh.every((q) => q.objective !== 'walk')).toBe(true);
@@ -153,7 +153,7 @@ describe('quest arrivals', () => {
       const now = day * DAY;
       save = pruneQuests(save, now);
       save = { ...save, quests: { ...save.quests, list: save.quests.list.filter((q) => q.doneAt === null) } };
-      save = receiveQuests(save, now, false);
+      save = receiveQuests(save, now);
       const active = save.quests.list.filter((q) => q.band !== 'secret' && q.doneAt === null);
       expect(active.length).toBeGreaterThan(0);
       expect(active.filter((q) => q.objective === 'walk').length).toBeLessThanOrEqual(1);
@@ -162,17 +162,17 @@ describe('quest arrivals', () => {
 
   it('seeds the picks per player and day: two players get different first quests, the same player gets the same ones', () => {
     const now = 10 * DAY;
-    const alice = receiveQuests(openedWithSeed('alice'), now, false);
-    const bob = receiveQuests(openedWithSeed('bob'), now, false);
-    const aliceAgain = receiveQuests(openedWithSeed('alice'), now, false);
+    const alice = receiveQuests(openedWithSeed('alice'), now);
+    const bob = receiveQuests(openedWithSeed('bob'), now);
+    const aliceAgain = receiveQuests(openedWithSeed('alice'), now);
     expect(alice.quests.list.map((q) => `${q.objective}/${q.band}`)).toEqual(aliceAgain.quests.list.map((q) => `${q.objective}/${q.band}`));
     expect(alice.quests.list.map((q) => `${q.objective}/${q.band}`)).not.toEqual(bob.quests.list.map((q) => `${q.objective}/${q.band}`));
     // And over several days the two players' quest streams differ.
     let a = openedWithSeed('alice');
     let b = openedWithSeed('bob');
     for (let day = 10; day <= 14; day++) {
-      a = receiveQuests(a, day * DAY, false);
-      b = receiveQuests(b, day * DAY, false);
+      a = receiveQuests(a, day * DAY);
+      b = receiveQuests(b, day * DAY);
     }
     expect(a.quests.list.map((q) => q.objective)).not.toEqual(b.quests.list.map((q) => q.objective));
   });
@@ -180,7 +180,7 @@ describe('quest arrivals', () => {
   it('gives a walk quest its step baseline at arrival, not at acceptance', () => {
     const save = opened();
     save.stepsTotal = 400;
-    const next = receiveQuests(save, 10 * DAY, false);
+    const next = receiveQuests(save, 10 * DAY);
     for (const quest of next.quests.list) {
       if (quest.objective === 'walk') expect(quest.stepsAtArrive).toBe(400);
       else expect(quest.stepsAtArrive).toBeUndefined();
@@ -190,10 +190,10 @@ describe('quest arrivals', () => {
 
 describe('quest reroll', () => {
   it('rerolls once a day, in place, never a done quest', () => {
-    let save = receiveQuests(opened(), 10 * DAY, false);
+    let save = receiveQuests(opened(), 10 * DAY);
     const quest = save.quests.list[1];
     expect(rerollProblem(save, quest.id, 10 * DAY)).toBe(null);
-    save = rerollQuest(save, quest.id, 10 * DAY, false);
+    save = rerollQuest(save, quest.id, 10 * DAY);
     const rerolled = save.quests.list[1];
     expect(rerolled.id).toBe('q|10|reroll0');
     expect(rerolled.arrivedAt).toBe(quest.arrivedAt);
@@ -203,9 +203,9 @@ describe('quest reroll', () => {
     expect(save.quests.rerolls).toBe(1);
 
     expect(rerollProblem(save, rerolled.id, 10 * DAY + HOUR)).toBe('used');
-    expect(rerollQuest(save, rerolled.id, 10 * DAY + HOUR, false).quests.list[1].id).toBe('q|10|reroll0');
+    expect(rerollQuest(save, rerolled.id, 10 * DAY + HOUR).quests.list[1].id).toBe('q|10|reroll0');
     expect(rerollProblem(save, rerolled.id, 11 * DAY)).toBe(null);
-    expect(rerollQuest(save, rerolled.id, 11 * DAY, false).quests.list[1].id).toBe('q|11|reroll0');
+    expect(rerollQuest(save, rerolled.id, 11 * DAY).quests.list[1].id).toBe('q|11|reroll0');
 
     const done = { ...save.quests.list[2], doneAt: 10 * DAY };
     save.quests.list[2] = done;
@@ -214,12 +214,12 @@ describe('quest reroll', () => {
   });
 
   it('gives a second reroll with the Extra reroll track, with its own id', () => {
-    let save = receiveQuests(opened(), 10 * DAY, false);
+    let save = receiveQuests(opened(), 10 * DAY);
     save = { ...save, guild: { questReroll: 1 } };
     const quest = save.quests.list[1];
-    const first = rerollQuest(save, quest.id, 10 * DAY, false);
+    const first = rerollQuest(save, quest.id, 10 * DAY);
     expect(first.quests.list[1].id).toBe('q|10|reroll0');
-    const second = rerollQuest(first, first.quests.list[1].id, 10 * DAY + HOUR, false);
+    const second = rerollQuest(first, first.quests.list[1].id, 10 * DAY + HOUR);
     expect(second.quests.list[1].id).toBe('q|10|reroll1');
     expect(second.quests.rerolls).toBe(2);
     expect(rerollProblem(second, second.quests.list[1].id, 10 * DAY + 2 * HOUR)).toBe('used');
@@ -272,7 +272,7 @@ describe('available objectives', () => {
     save.seenPlaceKinds = ['chapel', 'library', 'ruins', 'fishingDock', 'market', 'apothecary', 'tavern', 'smithy'];
     save.quests.list = [{ ...regular('a'), objective: 'sellGoods' }];
     save.quests.lastArrivalDay = 9;
-    const next = receiveQuests(save, 10 * DAY, false);
+    const next = receiveQuests(save, 10 * DAY);
     const fresh = next.quests.list.filter((q) => q.arrivedAt === 10 * DAY);
     expect(fresh.length).toBeGreaterThanOrEqual(2);
     for (const quest of fresh) {

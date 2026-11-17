@@ -136,13 +136,13 @@ describe('Pocket mode nearby-place alerts', () => {
     expect(pruned.alerted[spawn.id]).toBeUndefined();
   });
 
-  it('alerts once for an undiscovered network place while the switch is on, never while off or already discovered', () => {
+  it('alerts once for an undiscovered network place once the network is open, never while locked or already discovered', () => {
     const { spawn, at } = findSpawn((s) => isNetworkKind(s.kind));
     const fixes = [fixNear(spawn.position, 100, at)];
-    const off = snapshotNearby(readySave(), [], at);
+    const off = snapshotNearby({ ...readySave(), revealAll: false }, [], at);
     expect(off.network).toBe(false);
     expect(stepNearby(off, fixes, at).alerts).toEqual([]);
-    const on = snapshotNearby(readySave(), [], at, null, true);
+    const on = snapshotNearby(readySave(), [], at);
     expect(on.network).toBe(true);
     const stepped = stepNearby(on, fixes, at);
     expect(stepped.alerts).toMatchObject([{ kind: 'newPlace', placeId: spawn.id, place: spawn.kind, distance: 100 }]);
@@ -150,6 +150,6 @@ describe('Pocket mode nearby-place alerts', () => {
     expect(again.alerts).toEqual([]);
     const known = readySave();
     known.supply.discovered[spawn.id] = spawn.expiresAt;
-    expect(stepNearby(snapshotNearby(known, [], at, null, true), fixes, at).alerts).toEqual([]);
+    expect(stepNearby(snapshotNearby(known, [], at), fixes, at).alerts).toEqual([]);
   });
 });

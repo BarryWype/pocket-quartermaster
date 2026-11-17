@@ -6,7 +6,7 @@ import { createInitialSave, type SaveData } from '../save';
 import { build } from '../supply/buildings';
 import { discoverAt } from '../supply/discovery';
 import { deliverGoods, makeOrder } from '../supply/orders';
-import { newQuest } from './arrival';
+import { newQuest, receiveQuests } from './arrival';
 import { passRoute } from './progress';
 import type { Quest } from './types';
 import { availableObjectives } from './unlocks';
@@ -48,6 +48,21 @@ const withQuest = (save: SaveData, objective: Quest['objective'], band: Quest['b
 const quest = (save: SaveData) => save.quests.list[0];
 
 describe('network quests: when they are offered', () => {
+  it('never rolls one at tier 1, and rolls them once the network opens', () => {
+    const network = ['discover', 'build', 'orderStep', 'supply', 'rideRoute'];
+    const rolled = (save: SaveData) => {
+      const objectives: string[] = [];
+      for (let day = 1; day <= 30; day++) {
+        save = receiveQuests({ ...save, quests: { ...save.quests, list: [] } }, now + day * 24 * HOUR);
+        objectives.push(...save.quests.list.map((q) => q.objective));
+      }
+      return objectives;
+    };
+    const tierOne = { ...ready(), clearedDungeons: [], supply: { ...ready().supply, debugUnlocked: false } };
+    expect(rolled(tierOne).some((o) => network.includes(o))).toBe(false);
+    expect(rolled(ready()).some((o) => network.includes(o))).toBe(true);
+  });
+
   it('rolls none without the network, and its own once it is open', () => {
     const save = ready();
     const network = ['discover', 'build', 'orderStep', 'supply', 'rideRoute'];

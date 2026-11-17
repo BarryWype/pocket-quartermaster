@@ -16,7 +16,7 @@ import { sightRules } from '@/content/map';
 import { MOTION_LEVELS, type MotionLevel } from '@/content/motion';
 import { notificationCategories, notificationGroups } from '@/content/notifications';
 import type { NotificationCategory, NotificationGroup } from '@/game/notifications/types';
-import { supplyActive } from '@/game/supply/unlock';
+import { networkUnlocked } from '@/game/supply/unlock';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useMotion } from '@/hooks/useMotion';
 import { syncPlan } from '@/hooks/useNotifications';
@@ -152,11 +152,11 @@ function SettingsScreen() {
 
 function SettingsContent() {
   useLanguage();
-  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, sightRange, pocketMode, setPocketMode, animations, haptics, supplyLines } = useSettingsStore();
+  const { language, notifications, updateNotifications, setCategory, setQuietHours, set, sightRange, pocketMode, setPocketMode, animations, haptics } = useSettingsStore();
   const { phoneReduced } = useMotion();
   const autoToggle = useAutoGatherToggle();
   const walks = useGameStore((state) => state.save.autoGather.history);
-  const networkOn = useGameStore((state) => supplyActive(state.save, supplyLines));
+  const networkOn = useGameStore((state) => networkUnlocked(state.save));
   const tipsSeen = useGameStore((state) => state.save.tips.seen.length);
   const setAutoStop = (autoStopMinutes: number) => {
     setPocketMode({ autoStopMinutes });
@@ -394,14 +394,6 @@ function SettingsContent() {
           value={debugOn}
           disabled={__DEV__}
           onChange={toggleDebug}
-        />
-        <SwitchRow
-          title={t('settings.supplyLines')}
-          description={t('settings.supplyLinesHint')}
-          value={supplyLines}
-          onChange={(on) => {
-            set({ supplyLines: on });
-          }}
         />
       </ParchmentCard>
     </>

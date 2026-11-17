@@ -43,25 +43,28 @@ const raided = (): SaveData => {
   };
 };
 
+/** The same save with the network locked: no tier 2, no debug unlock. */
+const locked = (save: SaveData): SaveData => ({ ...save, supply: { ...save.supply, debugUnlocked: false } });
+
 describe('raid notifications', () => {
-  const raidsOf = (save: SaveData, supplyLines: boolean, on = true) => {
+  const raidsOf = (save: SaveData, on = true) => {
     const settings = defaultNotificationSettings();
     const withCategory = { ...settings, categories: { ...settings.categories, raids: on } };
-    return planNotifications(save, withCategory, noon, notificationRules, supplyLines).filter((n) => n.category === 'raids');
+    return planNotifications(save, withCategory, noon, notificationRules).filter((n) => n.category === 'raids');
   };
 
   it('is planned at the announcement, two hours before the landing, pointing at the Network tab', () => {
-    const [raid] = raidsOf(raided(), true);
+    const [raid] = raidsOf(raided());
     expect(raid.at).toBe(noon + 2 * HOUR);
     expect(raid.data).toEqual({ route: 'network' });
     expect(raid.title).toContain('farm');
   });
 
-  it('is not planned with the switch off, with the category off, or once the raid has landed', () => {
+  it('is not planned with the network locked, with the category off, or once the raid has landed', () => {
+    expect(raidsOf(locked(raided()))).toEqual([]);
     expect(raidsOf(raided(), false)).toEqual([]);
-    expect(raidsOf(raided(), true, false)).toEqual([]);
     const landed = raided();
     const raid = landed.supply.raid!;
-    expect(raidsOf({ ...landed, supply: { ...landed.supply, raid: { ...raid, result: { won: null, fighters: [] } } } }, true)).toEqual([]);
+    expect(raidsOf({ ...landed, supply: { ...landed.supply, raid: { ...raid, result: { won: null, fighters: [] } } } })).toEqual([]);
   });
 });

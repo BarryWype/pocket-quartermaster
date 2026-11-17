@@ -14,7 +14,7 @@ import { Price } from '@/components/Price';
 import { ScreenHeader } from '@/components/ui';
 import { SecretToast } from '@/components/SecretToast';
 import { TipBar } from '@/components/TipBar';
-import { supplyActive } from '@/game/supply/unlock';
+import { networkUnlocked } from '@/game/supply/unlock';
 import { useAutoGather } from '@/hooks/useAutoGather';
 import { useCartTick } from '@/hooks/useCartTick';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -25,7 +25,6 @@ import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 import { colors, fonts, ui } from '@/theme';
 
 configureNotifications();
@@ -70,7 +69,7 @@ function useUpkeep() {
       useGameStore.getState().resolvePatrolFights();
       useGameStore.getState().resolvePlaces();
       useGameStore.getState().train();
-      if (supplyActive(useGameStore.getState().save, useSettingsStore.getState().supplyLines)) useGameStore.getState().settleSupply();
+      if (networkUnlocked(useGameStore.getState().save)) useGameStore.getState().settleSupply();
     };
     const unsubscribeHydration = useGameStore.persist.onFinishHydration(upkeep);
     if (useGameStore.persist.hasHydrated()) upkeep();

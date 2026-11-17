@@ -13,6 +13,7 @@ import type { SaveData } from '../save';
 import { hasKey } from '../secrets/keys';
 import { secretPlaces } from '../secrets/tips';
 import { isNetworkKind } from '../supply/discovery';
+import { networkUnlocked } from '../supply/unlock';
 
 /** A spot the save knows about (treasure, secret place, replacement ruin), copied at hand-off. */
 export type KnownSpot = {
@@ -35,7 +36,7 @@ export type NearbyWatch = {
   secrets: (KnownSpot & { secret: SecretKind })[];
   /** Places used / dug / won (save.usedPlaces) at hand-off. */
   used: Record<string, number>;
-  /** The supply-lines switch at hand-off: undiscovered network places alert. */
+  /** The network open at hand-off: undiscovered network places alert. */
   network: boolean;
   /** Network places already discovered (save.supply.discovered) at hand-off. */
   discovered: Record<string, number>;
@@ -68,7 +69,6 @@ export function snapshotNearby(
   wanted: NearbyKind[],
   now: number,
   previous: NearbyWatch | null = null,
-  network = false,
 ): NearbyWatch {
   const wants = (kind: NearbyKind) => wanted.includes(kind);
   const ruins = wants('ruins') && isPlaceRevealed(save, 'ruins');
@@ -88,7 +88,7 @@ export function snapshotNearby(
       ? secretPlaces(save, now).map((spawn) => ({ ...toSpot(spawn), secret: spawn.kind as SecretKind }))
       : [],
     used: { ...save.usedPlaces },
-    network,
+    network: networkUnlocked(save),
     discovered: { ...save.supply.discovered },
     alerted: prune(previous?.alerted ?? {}, now),
   };

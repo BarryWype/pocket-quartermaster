@@ -1,7 +1,7 @@
 import { createInitialSave, type SaveData } from '../save';
 import { tierBoss } from '../guild/guild';
 import { emptySupply } from './state';
-import { networkUnlocked, supplyActive } from './unlock';
+import { networkUnlocked } from './unlock';
 
 const now = Date.UTC(2026, 10, 2, 12);
 
@@ -30,19 +30,3 @@ describe('networkUnlocked', () => {
   });
 });
 
-describe('supplyActive', () => {
-  it('is off with the switch off, whatever the save', () => {
-    expect(supplyActive(save(), false)).toBe(false);
-    expect(supplyActive(tierTwo(save()), false)).toBe(false);
-  });
-
-  it('is off with the switch on but the network locked', () => {
-    expect(supplyActive(save(), true)).toBe(false);
-  });
-
-  it('is on only with the switch on and the network unlocked', () => {
-    expect(supplyActive(tierTwo(save()), true)).toBe(true);
-    const debug = { ...save(), supply: { ...save().supply, debugUnlocked: true } };
-    expect(supplyActive(debug, true)).toBe(true);
-  });
-});

@@ -58,8 +58,8 @@ export function routeQuestStops(save: SaveData): { id: string; position: LatLng 
 
 /**
  * The objectives this player can roll in this band (objectives.csv, "Unlocked
- * from"); the network's need `network`, its switch on and opened (see
- * game/supply/unlock.ts), which the caller reads.
+ * from"); the network's only with `network` (rolls pass the network's unlock,
+ * game/supply/unlock.ts; retargets and old migrations leave them out).
  */
 export function availableObjectives(save: SaveData, band: QuestBand, network: boolean): QuestObjective[] {
   const all: QuestObjective[] = [

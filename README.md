@@ -14,7 +14,8 @@ Walk around your real neighbourhood to pick up wood, ore, herbs and animal mater
 - ⚒️ **Craft.** Forge gear from wood up to steel, brew potions and rations, and infuse weapons with elements.
 - 🧙 **Build a team.** Recruit heroes from taverns on the map. Each class and trait has its strengths.
 - 🏰 **Send expeditions.** Every dungeon shows its dangers up front, so the real game is picking the right heroes and gear for the job. Dungeons rotate daily, across 5 tiers, each ending in a boss.
-- 🗺️ **Explore the map.** Shops, ruins to dig, fights that last a day, Sanctums guarded by elemental bosses, treasure maps and secret places that open with a mysterious key.
+- 🗺️ **Explore the map.** Ruins to dig, fights that last a day, Sanctums guarded by elemental bosses, treasure maps and secret places that open with a mysterious key.
+- 🏠 **Run a supply network.** From tier 2, put buildings on sites you discover, fill orders for taverns, smithies and markets, and send a cart along your route, guarding it from raids.
 - 👖 **Play from your pocket.** With the phone in your pocket, the game still gathers nearby resources, counts your steps and tells you when something needs you.
 
 The game is in English and French. Everything runs on the phone: there's no account and no server.

@@ -7,7 +7,6 @@ import type { Building, CartLogLine } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useCartTick } from '@/hooks/useCartTick';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 import { SupplyCartPanel } from './SupplyCartPanel';
 
@@ -49,13 +48,11 @@ const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
 describe('the cart sheet', () => {
   let renderer: ReactTestRenderer | null = null;
   afterEach(() => {
-    useSettingsStore.setState({ supplyLines: false });
     act(() => renderer?.unmount());
     renderer = null;
   });
 
   const open = (save: SaveData) => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save });
     });
@@ -110,12 +107,10 @@ describe('the cart tick', () => {
   afterEach(() => {
     act(() => renderer?.unmount());
     renderer = null;
-    useSettingsStore.setState({ supplyLines: false });
     jest.useRealTimers();
   });
 
   const mount = (save: SaveData) => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save });
     });

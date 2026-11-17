@@ -8,7 +8,6 @@ import { makeOrder, orderPlaceName, orderProgress, type Order } from '@/game/sup
 import { tavernNameOf } from '@/game/taverns/taverns';
 import { formatDistance, formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 import { NetworkTab } from './NetworkTab';
 import { OrderSection } from './OrderSection';
@@ -49,10 +48,8 @@ const button = (renderer: ReactTestRenderer, title: string) =>
   renderer.root.findAll((node) => node.props.title === title && typeof node.props.onPress === 'function');
 
 describe('an order on a place sheet', () => {
-  beforeEach(() => useSettingsStore.setState({ supplyLines: true }));
   afterEach(() => {
     act(() => renderer?.unmount());
-    useSettingsStore.setState({ supplyLines: false });
   });
   let renderer: ReactTestRenderer | null = null;
 

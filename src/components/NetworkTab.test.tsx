@@ -8,7 +8,6 @@ import type { Building } from '@/game/supply/types';
 import { navigate } from '@/services/navigation';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
-import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
 
 import { NetworkTab } from './NetworkTab';
@@ -91,13 +90,11 @@ const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
 
 describe('the Network tab', () => {
   afterEach(() => {
-    useSettingsStore.setState({ supplyLines: false });
     act(() => renderer?.unmount());
   });
   let renderer: ReactTestRenderer | null = null;
 
   it('shows the empty state: the First steps checklist at step 0, the greyed flow, and no hall', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: createInitialSave() });
     });
@@ -122,7 +119,6 @@ describe('the Network tab', () => {
   });
 
   it('shows the route step as the current one, with its button alone', () => {
-    useSettingsStore.setState({ supplyLines: true });
     const base = createInitialSave();
     act(() => {
       useGameStore.setState({ save: { ...base, supply: { ...base.supply, firstChain: { step: 4, doneAt: null } } } });
@@ -138,7 +134,6 @@ describe('the Network tab', () => {
   });
 
   it('shows the next step for a building worked by locals only', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: runningSave([buildingIn('b1', 1)]) });
     });
@@ -150,7 +145,6 @@ describe('the Network tab', () => {
   });
 
   it('shows the steady line and no next-step button when nothing is left to do', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: runningSave([buildingIn('b1', 1, 6, 'bram')]) });
     });
@@ -165,7 +159,6 @@ describe('the Network tab', () => {
   });
 
   it('collapses the flow picture past three buildings into a count', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({
         save: runningSave(['b1', 'b2', 'b3', 'b4'].map((id, i) => buildingIn(id, ((i % 3) + 1) as 1 | 2 | 3))),
@@ -180,7 +173,6 @@ describe('the Network tab', () => {
   });
 
   it('heads a last-day building with the Leaving soonest section, and does not repeat it below', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: runningSave([buildingIn('b1', 1, 0.5)]) });
     });
@@ -194,7 +186,6 @@ describe('the Network tab', () => {
   });
 
   it('opens a building’s sheet on the map when its card is tapped', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: runningSave([buildingIn('b1', 1)]) });
     });
@@ -209,7 +200,6 @@ describe('the Network tab', () => {
   });
 
   it('warns when a stop on the cart’s route has left, and the button opens the planner on the map', () => {
-    useSettingsStore.setState({ supplyLines: true });
     const save = runningSave([buildingIn('b1', 1)]);
     act(() => {
       useGameStore.setState({

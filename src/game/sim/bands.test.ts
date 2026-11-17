@@ -131,7 +131,7 @@ check('simulator balance bands', () => {
   });
 
   describe('supply network', () => {
-    // A summary from a run without --supply-lines has no supply data to check.
+    // A summary from before every run played the network has no supply data to check.
     const tiers = (summary.profiles.regular?.supply?.byTier ?? []).filter((t) => t.ratio.median !== null);
     const tier2 = tiers.find((t) => t.tier === 2);
     if (tier2)

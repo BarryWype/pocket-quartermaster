@@ -32,30 +32,33 @@ const withOrder = (progress: number): SaveData => {
   return { ...base, supply: { ...emptySupply(noon), debugUnlocked: true, orders: { s1: filled } } };
 };
 
+/** The same save with the network locked: no tier 2, no debug unlock. */
+const locked = (save: SaveData): SaveData => ({ ...save, supply: { ...save.supply, debugUnlocked: false } });
+
 describe('order notifications', () => {
-  const ordersOf = (save: SaveData, supplyLines: boolean, on = true) => {
+  const ordersOf = (save: SaveData, on = true) => {
     const settings = defaultNotificationSettings();
     const withCategory = { ...settings, categories: { ...settings.categories, orders: on } };
-    return planNotifications(save, withCategory, noon, notificationRules, supplyLines).filter((n) => n.category === 'orders');
+    return planNotifications(save, withCategory, noon, notificationRules).filter((n) => n.category === 'orders');
   };
 
   it('is planned the day before the place leaves, naming the place and how full the order is', () => {
-    const [order] = ordersOf(withOrder(0.7), true);
+    const [order] = ordersOf(withOrder(0.7));
     expect(order.at).toBe(noon + 2 * 24 * HOUR - supplyRules.orders.noticeHours * HOUR);
     expect(order.title).toBe('Leaves tomorrow: Smithy');
     expect(order.body).toBe('Its order is 70% filled; steps not reached by then are lost.');
     expect(order.data).toEqual({ route: 'network' });
   });
 
-  it('is not planned below a quarter, once filled, past the notice, or with the switch or category off', () => {
-    expect(ordersOf(withOrder(0.1), true)).toEqual([]);
-    expect(ordersOf(withOrder(1), true)).toEqual([]);
+  it('is not planned below a quarter, once filled, past the notice, or with the network locked or the category off', () => {
+    expect(ordersOf(withOrder(0.1))).toEqual([]);
+    expect(ordersOf(withOrder(1))).toEqual([]);
+    expect(ordersOf(locked(withOrder(0.7)))).toEqual([]);
     expect(ordersOf(withOrder(0.7), false)).toEqual([]);
-    expect(ordersOf(withOrder(0.7), true, false)).toEqual([]);
     // The notice time already passed: the place leaves in a few hours.
     const soon = withOrder(0.7);
     const order = soon.supply.orders.s1;
     const leaving = { ...soon, supply: { ...soon.supply, orders: { s1: { ...order, expiresAt: noon + 3 * HOUR } } } };
-    expect(ordersOf(leaving, true)).toEqual([]);
+    expect(ordersOf(leaving)).toEqual([]);
   });
 });

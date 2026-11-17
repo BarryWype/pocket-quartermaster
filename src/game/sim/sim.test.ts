@@ -118,9 +118,8 @@ describe('balance lab', () => {
     expect(homeHeroes(save).map((hero) => hero.id)).toEqual(['mira']);
   });
 
-  it('plays the supply lines only with the flag, and keeps the save valid', () => {
-    expect(runSim({ profile: 'regular', maxDays: 2, seed: 'supply', rates }).supply).toBeNull();
-    const log = runSim({ profile: 'regular', maxDays: 10, seed: 'supply', rates, supplyLines: true, afterSession: checkSave });
+  it('plays the supply network, keeping the save valid', () => {
+    const log = runSim({ profile: 'regular', maxDays: 10, seed: 'supply', rates, afterSession: checkSave });
     expect(log.supply).not.toBeNull();
     expect(supplySummary([log])).not.toBeNull();
   });

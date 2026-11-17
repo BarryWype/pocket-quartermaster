@@ -6,7 +6,6 @@ import { offsetPosition } from '@/game/generation/geo';
 import { tileCenter } from '@/game/generation/tiles';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 import { t } from '@/i18n';
 
 import { statusText } from './HeroPicker';
@@ -31,13 +30,14 @@ const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
 
 describe('the supply lines on the map', () => {
   afterEach(() => {
-    useSettingsStore.setState({ supplyLines: false });
     act(() => renderer?.unmount());
   });
   let renderer: ReactTestRenderer | null = null;
 
-  it('renders nothing while the switch is off', () => {
-    useSettingsStore.setState({ supplyLines: false });
+  it('renders nothing while the network is locked', () => {
+    act(() => {
+      useGameStore.setState({ save: createInitialSave() });
+    });
     act(() => {
       renderer = create(
         <>
@@ -50,7 +50,6 @@ describe('the supply lines on the map', () => {
   });
 
   it('shows a green cell with the hall elsewhere: the move button, and no founding any more', () => {
-    useSettingsStore.setState({ supplyLines: true });
     const base = createInitialSave();
     act(() => {
       useGameStore.setState({
@@ -73,7 +72,6 @@ describe('the supply lines on the map', () => {
   });
 
   it('refuses a move once the week’s moves are spent, and says when the next comes back', () => {
-    useSettingsStore.setState({ supplyLines: true });
     const base = createInitialSave();
     const spent = Date.now() - 3 * 24 * 3_600_000;
     act(() => {
@@ -95,7 +93,6 @@ describe('the supply lines on the map', () => {
   });
 
   it('asks before a move: moves left, when the next comes back, and the buildings left out of reach', () => {
-    useSettingsStore.setState({ supplyLines: true });
     const base = createInitialSave();
     const farBuilding: SaveData['supply']['buildings'][number] = {
       id: 'b1',

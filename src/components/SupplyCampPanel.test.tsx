@@ -3,7 +3,6 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { Building } from '@/game/supply/types';
 import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
-import { useSettingsStore } from '@/store/settingsStore';
 
 import { SupplyCampPanel } from './SupplyCampPanel';
 
@@ -45,13 +44,11 @@ const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON());
 
 describe('the building sheet', () => {
   afterEach(() => {
-    useSettingsStore.setState({ supplyLines: false });
     act(() => renderer?.unmount());
   });
   let renderer: ReactTestRenderer | null = null;
 
   it('shows a locals-only building: the flow row, the ember Post a hero, and the cart to add', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: saveWithBuilding(buildingIn()) });
     });
@@ -74,7 +71,6 @@ describe('the building sheet', () => {
   });
 
   it('shows a posted building: the hero with their trade, the bonus rate, and Recall', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({ save: saveWithBuilding(buildingIn({ heroId: 'bram', postedAt: Date.now() })) });
     });
@@ -90,7 +86,6 @@ describe('the building sheet', () => {
   });
 
   it('warns in the last day: the ember strip, the lost stock, and the hero coming home', () => {
-    useSettingsStore.setState({ supplyLines: true });
     act(() => {
       useGameStore.setState({
         save: saveWithBuilding(buildingIn({ heroId: 'bram', postedAt: Date.now(), expiresAt: Date.now() + 9 * 3_600_000, stock: { herb: 3 } })),

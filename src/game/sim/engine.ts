@@ -85,8 +85,6 @@ export type RunOptions = {
   config?: SimConfig;
   /** Guild jobs on (false: a baseline run without them). */
   jobs?: boolean;
-  /** The supply lines experiment on (off by default, so the default report doesn't move). */
-  supplyLines?: boolean;
   /** Called after every session, e.g. to check the save. */
   afterSession?: (save: SaveData) => void;
   /** Called at the end of each simulated day, after the daily row is pushed. */
@@ -374,7 +372,7 @@ function lootTrinketShare(save: SaveData) {
 }
 
 /** Plays a profile with the bot until the tier 5 boss falls or the profile's day cap, and returns everything that happened. */
-export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, jobs = true, supplyLines = false, afterSession, afterDay }: RunOptions): RunLog {
+export function runSim({ profile: name, seed, rates, maxDays, config = simConfig, jobs = true, afterSession, afterDay }: RunOptions): RunLog {
   const profile = profiles[name];
   if (!profile) throw new Error(`Unknown profile ${name}`);
   const days = maxDays ?? profile.maxDays;
@@ -415,7 +413,7 @@ export function runSim({ profile: name, seed, rates, maxDays, config = simConfig
     waiting: new Set(),
     rerolled: new Set(),
     expeditionStop: { reason: null, launched: false },
-    supply: supplyLines ? emptySupplySim() : null,
+    supply: emptySupplySim(),
     log: emptyLog(name, seed),
   };
 

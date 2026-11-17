@@ -387,7 +387,7 @@ function materials(s: ProfileSummary) {
   return table(['Tier', 'Main material', 'Gathered', 'Spent', `Spent share (min ${pct(targets.materialSpent)})`], rows);
 }
 
-/** The supply lines on a `--supply-lines` run: the buildings' output, the cart's deliveries against walking, the orders served, ambushes and raids, and hero time. */
+/** The supply network: the buildings' output, the cart's deliveries against walking, the orders served, ambushes and raids, and hero time. */
 function supplyTable(s: ProfileSummary) {
   const supply = s.supply!;
   const outcomes = (o: Record<'won' | 'lost' | 'unguarded', { median: number | null }>) =>
@@ -705,9 +705,9 @@ export function renderReport({ summaries, rules, settings, difficultyOdds, famil
   }
   if (summaries.some((s) => s.supply)) {
     out.push(
-      '## Supply lines',
+      '## Supply network',
       '',
-      'Played with `--supply-lines` (doc/design/supply-lines/). The network opens at tier 2: the bot places the hall at home, discovers the network places and sites its walks pass (and detours to the nearest undiscovered site and order place within 400 m of a walk’s points), builds on the best discovered site in reach the kind serving the order it values most (a gear headline by rarity and fit first), and keeps twice a building’s cost in gold before spending. It serves the top orders up to its buildings: at the day’s last session the cart runs the planner’s route round the buildings and those places with one spare escort, and a walk that passes a discovered order place hands goods over from the bag. Reached order steps are claimed each session. Deliveries go straight into the stock, outside the material flows above (the walking columns still mean walking), but the bot spends them like any material, so days per tier can move against a run without the flag.',
+      'The supply network (doc/design/supply-lines/) opens at tier 2: the bot places the hall at home, discovers the network places and sites its walks pass (and detours to the nearest undiscovered site and order place within 400 m of a walk’s points), builds on the best discovered site in reach the kind serving the order it values most (a gear headline by rarity and fit first), and keeps twice a building’s cost in gold before spending. It serves the top orders up to its buildings: at the day’s last session the cart runs the planner’s route round the buildings and those places with one spare escort, and a walk that passes a discovered order place hands goods over from the bag. Reached order steps are claimed each session. Deliveries go straight into the stock, outside the material flows above (the walking columns still mean walking), and the bot spends them like any material.',
       '',
     );
     for (const s of summaries) if (s.supply) out.push(`### ${s.profile}`, '', supplyTable(s), '', '**Buildings vs walking, by tier**', '', supplyByTier(s), '');
