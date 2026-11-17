@@ -1,8 +1,11 @@
 import type { PlaceKind } from '@/content/places';
 import { deliverPlaces, objectives, questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 import { itemById, recipeById } from '@/content/lookup';
+import { supplyRules, type OrderKind } from '@/content/supplyLines';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
+import type { LatLng } from '../generation/types';
+import { openBuildingKinds } from '../supply/buildings';
 import { isPlaceRevealed, isRevealed } from '../reveal/reveal';
 import type { SaveData } from '../save';
 
@@ -30,8 +33,35 @@ export function deliverItems(save: SaveData): DeliverItem[] {
   return items;
 }
 
-/** The objectives this player can roll in this band (objectives.csv, "Unlocked from"). */
-export function availableObjectives(save: SaveData, band: QuestBand): QuestObjective[] {
+/** The goods a Supply quest can ask for, with the kind of place they go to: what the open buildings make for orders. */
+export function supplyOptions(save: SaveData): { good: string; placeKind: OrderKind }[] {
+  return openBuildingKinds(save).flatMap((kind) => {
+    const rule = supplyRules.buildings.kinds[kind];
+    const goods = Object.keys(rule.makes);
+    // A building serving no place kind supplies markets, which take every good.
+    return goods.map((good) => ({ good, placeKind: (rule.for ?? 'market') as OrderKind }));
+  });
+}
+
+/** The cart's route stops a Ride-the-route quest walks past: buildings and places, with where they stand. */
+export function routeQuestStops(save: SaveData): { id: string; position: LatLng }[] {
+  const route = save.supply.cart.nextRoute ?? save.supply.cart.route;
+  return route.flatMap((point) => {
+    if ('building' in point) {
+      const building = save.supply.buildings.find((b) => b.id === point.building);
+      return building ? [{ id: building.id, position: building.position }] : [];
+    }
+    if ('place' in point) return [{ id: point.place, position: point.position }];
+    return [];
+  });
+}
+
+/**
+ * The objectives this player can roll in this band (objectives.csv, "Unlocked
+ * from"); the network's need `network`, its switch on and opened (see
+ * game/supply/unlock.ts), which the caller reads.
+ */
+export function availableObjectives(save: SaveData, band: QuestBand, network: boolean): QuestObjective[] {
   const all: QuestObjective[] = [
     'chapel',
     'library',
@@ -44,6 +74,11 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
     'sellGoods',
     'gatherOnWay',
     'walk',
+    'discover',
+    'build',
+    'orderStep',
+    'supply',
+    'rideRoute',
   ];
   return all.filter((objective) => {
     const def = objectives[objective];
@@ -64,6 +99,15 @@ export function availableObjectives(save: SaveData, band: QuestBand): QuestObjec
         return deliverItems(save).some((item) => seenKind(item.place));
       case 'sellGoods':
         return seenKind('market');
+      case 'discover':
+      case 'orderStep':
+        return network;
+      case 'build':
+        return network && save.supply.hall !== null;
+      case 'supply':
+        return network && supplyOptions(save).length > 0;
+      case 'rideRoute':
+        return network && save.supply.hall !== null && routeQuestStops(save).length >= questRules.rideRouteMinStops;
       default:
         return true;
     }

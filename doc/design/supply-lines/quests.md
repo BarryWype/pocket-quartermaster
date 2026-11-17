@@ -1,6 +1,6 @@
 # Quests in the network's language · proposal (prompt 2, step 2)
 
-**Status: proposal, for review.** Nothing below is built yet.
+**Status: approved as proposed and built 2026-11-18.** The rules as built are in the README ("Network quests"). Map marks for Ride the route's stops were left out: the quest card counts the stops passed instead.
 
 ## Where quests stand
 

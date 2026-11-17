@@ -152,6 +152,22 @@ Prompt 2, step 1 (proposal approved as written in `replacements.md`); for everyo
   - The job engine stays generic (energy cycles, output), with the gatherer its only job.
 - **Hand gathering is untouched.** The simulator's supply section compares, by tier, what the bot's buildings make with what its walks gather of the same goods; a band test wants at least 1.5× at tier 2 and a ratio that never falls as tiers rise (`targets.buildingsOverWalking`).
 
+## Network quests
+
+Prompt 2, step 2 (proposal approved as written in `quests.md`).
+
+- **A new quest kind, Network,** so the variety rule keeps at most one network quest at a time (more only when every other kind is taken):
+  - **Discover** 1 / 2 / 3 new sites or order places.
+  - **Build** on a site (short and medium).
+  - **Order step:** reach a 25%, 50% or 100% step of any order (medium and long).
+  - **Supply** 10 / 20 / 40 of a good to a kind of place, by cart or by hand: a good the open buildings make, to the place kind it serves (markets for goods that serve none). An order sheet whose goods count says "Counts for a quest".
+  - **Ride the route** (long): walk past every stop of the cart's route, in any order, then back to the hall; a stop that leaves counts as passed. Only offered with two stops or more on the route.
+- **Offered once the network is open:** quest rolls take a `network` flag (`questUpkeep`, `rerollQuest`), which the store reads from the switch and the unlock; step 3 will drop the switch from it.
+- **Counted from arrival,** from the events where they happen: discovering (`discoverAt`, which also walks Ride the route on), building (`build`), and deliveries by cart or hand (`deliverGoods`: the goods and a step reached).
+- **Not in Pocket mode's "quest ready" alerts,** which stay with walk and patrol quests.
+- **The simulator's bot** counts them through the same actions, and rides its route on a walk when that quest is open and the loop fits its walk.
+- **No migration:** open quests keep their shape.
+
 ## Production and postings
 
 - **Rate:** quality × the building's base rate per hour, at the full rate (guild jobs make 0.3 an hour).

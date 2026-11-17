@@ -24,8 +24,12 @@ export type Quest = {
   acceptedAt: number | null;
   amount: number;
   progress: number;
-  /** Deliver: the item to hand over. */
+  /** Deliver: the item to hand over. Supply: the good to deliver. */
   itemId?: string;
+  /** Supply: the kind of place the good goes to. */
+  placeKind?: 'tavern' | 'smithy' | 'apothecary' | 'market';
+  /** Ride the route: the route's stops when the quest arrived, those passed so far, and whether all were passed before the hall. */
+  route?: { stops: { id: string; position: LatLng }[]; passed: string[] };
   /** Walk: lifetime step count when the quest arrived; everything after it counts. */
   stepsAtArrive?: number;
   target: QuestTarget | null;

@@ -208,9 +208,9 @@ describe('quest objectives', () => {
   it('keeps fight events out until a patrol is won', () => {
     const save = opened();
     save.seenPlaceKinds = ['banditCamp', 'chapel', 'market'];
-    expect(availableObjectives(save, 'short')).not.toContain('fightEvent');
+    expect(availableObjectives(save, 'short', false)).not.toContain('fightEvent');
     save.stats.patrolsWon = 1;
-    expect(availableObjectives(save, 'short')).toContain('fightEvent');
+    expect(availableObjectives(save, 'short', false)).toContain('fightEvent');
   });
 });
 

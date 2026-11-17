@@ -645,7 +645,8 @@ export const useGameStore = create<GameState>()(
           save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation(), loadout)),
         })),
       prune: () => {
-        const pruned = questUpkeep(pruneExpired(get().save, Date.now()), Date.now());
+        const save = get().save;
+        const pruned = questUpkeep(pruneExpired(save, Date.now()), Date.now(), supplyActive(save, useSettingsStore.getState().supplyLines));
         if (pruned !== get().save) set({ save: pruned });
       },
       collectLoot: (expeditionId) => {
@@ -688,7 +689,8 @@ export const useGameStore = create<GameState>()(
         const next = markSeen(get().save);
         if (next !== get().save) set({ save: next });
       },
-      rerollQuest: (questId) => set(({ save }) => ({ save: rerollQuest(save, questId, Date.now()) })),
+      rerollQuest: (questId) =>
+        set(({ save }) => ({ save: rerollQuest(save, questId, Date.now(), supplyActive(save, useSettingsStore.getState().supplyLines)) })),
       claimQuest: (questId) => {
         const { save, loot } = claimQuest(get().save, questId, Date.now());
         set({ save });

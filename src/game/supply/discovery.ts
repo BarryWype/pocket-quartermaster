@@ -2,8 +2,9 @@ import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 import { siteGroup, supplyRules } from '@/content/supplyLines';
 
 import { distanceMeters } from '../generation/geo';
+import { passRoute, questEvent } from '../quests/progress';
 import { localDayIndex } from '../generation/localDays';
-import { tileAt } from '../generation/tiles';
+import { tileAt, tileCenter } from '../generation/tiles';
 import type { LatLng } from '../generation/types';
 import type { WalkableTile } from '../generation/walkable';
 import { placeGroupOf, placesAround, type PlaceSpawn } from '../places/generate';
@@ -55,16 +56,18 @@ export function discoverAt(
       !isDiscovered(save, place.id) &&
       distanceMeters(position, place.position) <= placeRules.interactionMeters,
   );
-  if (found.length === 0) return { save, found };
-  const discovered = { ...save.supply.discovered };
-  const orders = { ...save.supply.orders };
+  // Every position also walks a Ride-the-route quest on.
+  const passed = passRoute(save, position, save.supply.hall ? tileCenter(save.supply.hall.cell) : null, timeMs);
+  if (found.length === 0) return { save: passed, found };
+  const discovered = { ...passed.supply.discovered };
+  const orders = { ...passed.supply.orders };
   // The seed save carries the orders made so far, so two places of one kind differ in their headline.
-  const next = { ...save, supply: { ...save.supply, discovered, orders } };
+  const next = { ...passed, supply: { ...passed.supply, discovered, orders } };
   for (const place of found) {
     discovered[place.id] = place.expiresAt;
     if (isOrderKind(place.kind)) orders[place.id] = makeOrder(next, place, timeMs);
   }
-  return { save: next, found };
+  return { save: questEvent(next, { kind: 'discovered', count: found.length }, timeMs), found };
 }
 
 /**

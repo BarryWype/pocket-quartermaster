@@ -5,6 +5,7 @@ import { supplyRules } from '@/content/supplyLines';
 import { cellAt } from '../discovery/cells';
 import { distanceMeters } from '../generation/geo';
 import { tileCenter } from '../generation/tiles';
+import { passRoute } from '../quests/progress';
 import { patrolOdds } from '../patrols/fight';
 import { build, buildProblem, buildingReach, openBuildingKinds } from '../supply/buildings';
 import { cartProblem, setCrew, setRoute, startCart, stopCart } from '../supply/cart';
@@ -243,6 +244,18 @@ function tryBuild(sim: Sim) {
   sim.save = build(save, site, kind, site.position, sim.now);
 }
 
+/** An open Ride-the-route quest: the bot walks hall → each stop → hall when that loop fits in its walk. */
+function rideRoute(sim: Sim) {
+  const ride = sim.save.quests.list.find((quest) => quest.objective === 'rideRoute' && quest.doneAt === null && quest.route);
+  const hallCell = sim.save.supply.hall?.cell;
+  if (!ride || !hallCell) return;
+  const hall = tileCenter(hallCell);
+  const loop = [hall, ...ride.route!.stops.map((stop) => stop.position), hall];
+  const meters = loop.slice(1).reduce((sum, point, i) => sum + distanceMeters(loop[i], point), 0);
+  if (meters > sim.profile.walkMinutes * 60 * sim.config.walk.speed) return;
+  for (const point of loop.slice(1)) sim.save = passRoute(sim.save, point, hall, sim.now);
+}
+
 /**
  * On a walk: discover the network places and sites the walk passes, detour to
  * the nearest undiscovered site and order place, and hand goods from the bag to
@@ -257,6 +270,7 @@ export function supplyWalk(sim: Sim, supply: SupplySim) {
   const along = discoverAlong(sim.save, fixes, {});
   sim.save = along.save;
   for (const place of along.found) supply.log[place.kind === 'site' ? 'discoveredSites' : 'discoveredPlaces'] += 1;
+  rideRoute(sim);
 
   const places = networkPlacesAround(sim.save, sim.location, sim.now).filter(
     (place) => place.startsAt <= sim.now && sim.now < place.expiresAt,

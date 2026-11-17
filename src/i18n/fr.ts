@@ -724,6 +724,11 @@ export const fr: Dictionary = {
       walk: 'Marcher {distance}',
       visit: 'Visiter le lieu marqué sur votre carte',
       mark: 'Trouver l’étrange marque',
+      discover: { one: 'Découvrir un nouveau chantier ou lieu', other: 'Découvrir {count} nouveaux chantiers ou lieux' },
+      build: 'Bâtir sur un chantier',
+      orderStep: 'Atteindre une étape d’une commande',
+      supply: 'Livrer {count} {good} : {places}',
+      rideRoute: 'Parcourir l’itinéraire de la charrette : chaque arrêt, puis le hall',
     },
   },
   secrets: {
@@ -1032,6 +1037,7 @@ export const fr: Dictionary = {
       wantedBy: { tavern: 'tavernes', smithy: 'forges', apothecary: 'apothicaires', market: 'marchés' },
     },
     order: {
+      countsForQuest: 'Compte pour une quête',
       wants: 'Commande',
       each: 'chacun',
       onlyHere: 'Uniquement par les commandes.',
@@ -1276,7 +1282,7 @@ export const fr: Dictionary = {
         tooFarFromHall: 'Trop loin de votre hall. Les bâtiments doivent se dresser à moins de {distance} de lui au palier {tier}. Déplacez le hall, ou choisissez un chantier plus proche.',
         full: 'Les {max} bâtiments sont placés. Il faut qu’un parte avant d’en bâtir un autre.',
       },
-      for: { tavern: 'Tavernes', smithy: 'Forges', apothecary: 'Apothicaires' },
+      for: { tavern: 'Tavernes', smithy: 'Forges', apothecary: 'Apothicaires', market: 'Marchés' },
       makes: 'Produit',
       forWord: 'pour',
       forWorkshop: 'votre atelier',

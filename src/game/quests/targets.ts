@@ -96,7 +96,8 @@ function findTarget(
 /** The other objectives to try when a quest's own pick has no target, seeded by its id. */
 function swapOrder(save: SaveData, quest: Quest): QuestObjectiveOrMark[] {
   const rng = createRng(`quest-swap|${save.playerSeed}|${quest.id}`);
-  let remaining = availableObjectives(save, bandOf(quest)).filter((o) => o !== quest.objective);
+  // Only quests that point at a place retarget, and no network objective does.
+  let remaining = availableObjectives(save, bandOf(quest), false).filter((o) => o !== quest.objective);
   const order: QuestObjectiveOrMark[] = [];
   while (remaining.length > 0) {
     const pick = rng.weighted(remaining, (o) => objectives[o].weight);

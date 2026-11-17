@@ -1152,7 +1152,7 @@ function toV60Places(save: SaveData): SaveData {
       changed = true;
       const rng = createRng(`quest|${save.playerSeed}|v60|${quest.id}`);
       const band = quest.band as QuestBand;
-      const available = availableObjectives(save, band);
+      const available = availableObjectives(save, band, false);
       const objective = rng.weighted(available, (o) => objectives[o].weight);
       const fresh = newQuest(quest.id, band, objective, save, rng, quest.arrivedAt);
       return { ...fresh, arrivedAt: quest.arrivedAt, expiresAt: quest.expiresAt };

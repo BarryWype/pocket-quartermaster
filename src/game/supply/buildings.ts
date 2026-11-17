@@ -8,6 +8,7 @@ import { distanceMeters } from '../generation/geo';
 import { tileCenter } from '../generation/tiles';
 import type { LatLng } from '../generation/types';
 import { hasMaterials, removeMaterials } from '../inventory';
+import { questEvent } from '../quests/progress';
 import type { SaveData } from '../save';
 import type { Building, BuildingKind } from './types';
 import type { PlaceSpawn } from '../places/generate';
@@ -120,10 +121,11 @@ export function build(save: SaveData, site: PlaceSpawn, kind: BuildingKind, play
     inspectedUntil: 0,
     closedUntil: 0,
   };
-  return {
-    ...paid,
-    supply: { ...paid.supply, buildings: [...paid.supply.buildings, building], nextId: paid.supply.nextId + 1 },
-  };
+  return questEvent(
+    { ...paid, supply: { ...paid.supply, buildings: [...paid.supply.buildings, building], nextId: paid.supply.nextId + 1 } },
+    { kind: 'built' },
+    now,
+  );
 }
 
 /** The cell a building stands on, for danger, ambushes and raids. */

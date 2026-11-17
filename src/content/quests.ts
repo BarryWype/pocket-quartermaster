@@ -8,7 +8,8 @@ export type QuestObjective =
   | 'deliver'                                      // Deliver
   | 'gatherOnWay'                                  // Gather
   | 'sellGoods'                                    // Trade
-  | 'walk';                                        // Walk
+  | 'walk'                                         // Walk
+  | 'discover' | 'build' | 'orderStep' | 'supply' | 'rideRoute'; // Network (doc/design/supply-lines/quests.md)
 
 export const questRules = {
   /** New quests each rotation day, inclusive range. */
@@ -32,7 +33,11 @@ export const questRules = {
     gatherOnWay: { short: 4, medium: 8, long: 15 },
     deliver: { short: 1, medium: 2, long: 3 },
     walk: { short: 500, medium: 1000, long: 2000 },
+    discover: { short: 1, medium: 2, long: 3 },
+    supply: { short: 10, medium: 20, long: 40 },
   } as Partial<Record<QuestObjective, Record<QuestBand, number>>>,
+  /** Ride the route: offered only when the cart's route has at least this many stops. */
+  rideRouteMinStops: 2,
   /** Herbs, berries and mushrooms count for "gather on the way". */
   gatherOnWayMaterials: ['herb', 'berries', 'mushroom'],
   /** Gold to sell for the sellGoods quest, by dungeon tier 1–5: roughly a regular player's daily gold from selling materials at that tier (simulator summary 2026-11-12). */
@@ -52,7 +57,7 @@ export const questRules = {
 };
 
 export type ObjectiveDef = {
-  kind: 'visit' | 'fight' | 'deliver' | 'gather' | 'trade' | 'walk';
+  kind: 'visit' | 'fight' | 'deliver' | 'gather' | 'trade' | 'walk' | 'network';
   emoji: string;
   /** Place kinds a target can be; none for objectives without a place. */
   places?: PlaceKind[];
@@ -85,6 +90,11 @@ export const objectives: Record<QuestObjective, ObjectiveDef> = {
   gatherOnWay: { kind: 'gather', emoji: '🌿', weight: 1 },
   sellGoods: { kind: 'trade', emoji: '💰', weight: 1 },
   walk: { kind: 'walk', emoji: '🥾', weight: 1 },
+  discover: { kind: 'network', emoji: '👣', weight: 1 },
+  build: { kind: 'network', emoji: '🔨', weight: 1, bands: ['short', 'medium'] },
+  orderStep: { kind: 'network', emoji: '📈', weight: 1, bands: ['medium', 'long'] },
+  supply: { kind: 'network', emoji: '📦', weight: 1 },
+  rideRoute: { kind: 'network', emoji: '🛤️', weight: 1, bands: ['long'] },
 };
 
 /** Where each crafted item group is wanted (see deliverItems). */

@@ -16,7 +16,11 @@ export type QuestEvent =
   | { kind: 'patrolWon' }
   | { kind: 'gathered'; materialId: string; amount: number }
   | { kind: 'sold'; gold: number } // goods sold anywhere: materials, gear
-  | { kind: 'arrived'; placeId: string }; // reached a 'mark'
+  | { kind: 'arrived'; placeId: string } // reached a 'mark'
+  | { kind: 'discovered'; count: number } // network places or sites discovered
+  | { kind: 'built' } // a building raised on a site
+  | { kind: 'orderStep' } // an order reached one of its steps
+  | { kind: 'supplied'; good: string; placeKind: string; amount: number }; // goods delivered to an order, by cart or by hand
 
 const questsState = (save: SaveData, quests: Partial<QuestsState>): SaveData => ({
   ...save,
@@ -32,7 +36,8 @@ const countsFromArrival = (quest: Quest) =>
   quest.objective === 'walk' ||
   quest.objective === 'gatherOnWay' ||
   quest.objective === 'patrols' ||
-  quest.objective === 'sellGoods';
+  quest.objective === 'sellGoods' ||
+  (quest.objective !== 'mark' && objectives[quest.objective].kind === 'network');
 
 const counts = (quest: Quest, at: number) =>
   quest.doneAt === null &&
@@ -86,6 +91,18 @@ export function questEvent(save: SaveData, event: QuestEvent, at: number): SaveD
       case 'arrived':
         if (atTarget && quest.objective === 'mark') progress += quest.amount;
         break;
+      case 'discovered':
+        if (quest.objective === 'discover') progress += event.count;
+        break;
+      case 'built':
+        if (quest.objective === 'build') progress += 1;
+        break;
+      case 'orderStep':
+        if (quest.objective === 'orderStep') progress += 1;
+        break;
+      case 'supplied':
+        if (quest.objective === 'supply' && quest.itemId === event.good && quest.placeKind === event.placeKind) progress += event.amount;
+        break;
     }
     if (progress >= quest.amount && quest.progress < quest.amount) {
       next = complete(next, { ...quest, progress }, at);
@@ -94,6 +111,30 @@ export function questEvent(save: SaveData, event: QuestEvent, at: number): SaveD
         list: next.quests.list.map((q) => (q.id === quest.id ? { ...q, progress } : q)),
       });
     }
+  }
+  return next;
+}
+
+/**
+ * Ride the route: a position within arrival range of a stop not yet passed
+ * marks it; a stop that has left counts as passed; once every stop is passed,
+ * reaching the hall finishes the quest.
+ */
+export function passRoute(save: SaveData, position: LatLng, hall: LatLng | null, at: number): SaveData {
+  let next = save;
+  for (const quest of save.quests.list) {
+    if (quest.objective !== 'rideRoute' || !quest.route || !counts(quest, at)) continue;
+    const near = (point: LatLng) => distanceMeters(position, point) <= questRules.arrivalMeters;
+    const passed = [...quest.route.passed, ...quest.route.stops.filter((stop) => !quest.route!.passed.includes(stop.id) && near(stop.position)).map((stop) => stop.id)];
+    const gone = (id: string) => !save.supply.buildings.some((b) => b.id === id) && !(id in save.supply.orders);
+    const done = quest.route.stops.filter((stop) => passed.includes(stop.id) || gone(stop.id)).length;
+    const allPassed = done === quest.route.stops.length;
+    const progress = done + (allPassed && hall !== null && near(hall) ? 1 : 0);
+    if (progress === quest.progress) continue;
+    const updated: Quest = { ...quest, progress, route: { ...quest.route, passed } };
+    next = progress >= quest.amount
+      ? complete(next, updated, at)
+      : questsState(next, { list: next.quests.list.map((q) => (q.id === quest.id ? updated : q)) });
   }
   return next;
 }

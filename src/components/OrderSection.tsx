@@ -192,6 +192,9 @@ export function OrderSection({ place, player, now }: Props) {
             </View>
           ))
         )}
+        {save.quests.list.some(
+          (quest) => quest.objective === 'supply' && quest.doneAt === null && quest.placeKind === order.kind && goods.includes(quest.itemId ?? ''),
+        ) && <IconLabel emoji="📜" label={t('supply.order.countsForQuest')} size={14} labelStyle={styles.muted} />}
         {order.wants !== null &&
           Object.keys(order.wants)
             .filter(

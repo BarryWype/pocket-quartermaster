@@ -721,6 +721,11 @@ export const en = {
       walk: 'Walk {distance}',
       visit: 'Visit the place marked on your map',
       mark: 'Find the strange mark',
+      discover: { one: 'Discover a new site or place', other: 'Discover {count} new sites or places' },
+      build: 'Build on a site',
+      orderStep: 'Reach a step of an order',
+      supply: 'Deliver {count} {good} to {places}',
+      rideRoute: 'Walk your cart’s route: every stop, then the hall',
     },
   },
   secrets: {
@@ -1029,6 +1034,7 @@ export const en = {
       wantedBy: { tavern: 'taverns', smithy: 'smithies', apothecary: 'apothecaries', market: 'markets' },
     },
     order: {
+      countsForQuest: 'Counts for a quest',
       wants: 'Wants',
       each: 'each',
       onlyHere: 'Only from orders.',
@@ -1272,7 +1278,7 @@ export const en = {
         tooFarFromHall: 'Too far from your hall. Buildings must stand within {distance} of it at tier {tier}. Move the hall, or pick a nearer site.',
         full: 'All {max} buildings are placed. One leaves before another can be built.',
       },
-      for: { tavern: 'Taverns', smithy: 'Smithies', apothecary: 'Apothecaries' },
+      for: { tavern: 'Taverns', smithy: 'Smithies', apothecary: 'Apothecaries', market: 'Markets' },
       makes: 'Makes',
       forWord: 'for',
       forWorkshop: 'your workshop',

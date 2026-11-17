@@ -7,7 +7,7 @@ import { questCap, guildBonus } from '../guild/guild';
 import type { SaveData } from '../save';
 import { isRevealed } from '../reveal/reveal';
 import { refreshWalks } from './progress';
-import { availableObjectives, deliverItems, objectiveAmount, sellGoodsAmount } from './unlocks';
+import { availableObjectives, deliverItems, objectiveAmount, routeQuestStops, sellGoodsAmount, supplyOptions } from './unlocks';
 import type { Quest, QuestsState } from './types';
 
 const DAY_MS = 86_400_000;
@@ -38,8 +38,8 @@ const activeQuests = (list: Quest[]): Quest[] => list.filter((quest) => quest.ba
  * unlocked; once every unlocked kind is taken, a kind may repeat (never Walk
  * twice, and avoiding an objective already active within its kind).
  */
-function rollQuest(id: string, band: QuestBand, save: SaveData, rng: Rng, arrivedAt: number, existing: Quest[]): Quest {
-  const available = availableObjectives(save, band);
+function rollQuest(id: string, band: QuestBand, save: SaveData, rng: Rng, arrivedAt: number, existing: Quest[], network: boolean): Quest {
+  const available = availableObjectives(save, band, network);
   const active = activeQuests(existing);
   const takenKinds = new Set(active.map((quest) => objectives[quest.objective as QuestObjective].kind));
   const free = available.filter((objective) => !takenKinds.has(objectives[objective].kind));
@@ -69,10 +69,19 @@ export function newQuest(
   arrivedAt: number,
 ): Quest {
   let itemId: string | undefined;
+  let placeKind: Quest['placeKind'];
   if (objective === 'deliver') {
     const options = deliverOptions(save);
     itemId = options[rng.int(0, options.length - 1)]?.itemId;
   }
+  if (objective === 'supply') {
+    const options = supplyOptions(save);
+    const pick = options[rng.int(0, options.length - 1)];
+    itemId = pick?.good;
+    placeKind = pick?.placeKind;
+  }
+  // Ride the route: every stop, then the hall.
+  const stops = objective === 'rideRoute' ? routeQuestStops(save) : [];
   return {
     id,
     objective,
@@ -80,10 +89,12 @@ export function newQuest(
     arrivedAt,
     expiresAt: arrivedAt + questRules.lifetimeHours * HOUR_MS,
     acceptedAt: null,
-    amount: objective === 'sellGoods' ? sellGoodsAmount(save) : objectiveAmount(objective, band),
+    amount: objective === 'sellGoods' ? sellGoodsAmount(save) : objective === 'rideRoute' ? stops.length + 1 : objectiveAmount(objective, band),
     progress: 0,
     ...(objective === 'walk' ? { stepsAtArrive: save.stepsTotal } : {}),
     ...(itemId !== undefined ? { itemId } : {}),
+    ...(placeKind !== undefined ? { placeKind } : {}),
+    ...(objective === 'rideRoute' ? { route: { stops, passed: [] } } : {}),
     target: null,
     doneAt: null,
     seen: false,
@@ -95,7 +106,7 @@ export function newQuest(
  * today: 2–3 a day, each 48 h alive, none past the cap. Nothing before the
  * tutorial is done.
  */
-export function receiveQuests(save: SaveData, now: number): SaveData {
+export function receiveQuests(save: SaveData, now: number, network: boolean): SaveData {
   if (!isRevealed(save, 'quests')) return save;
   const today = rotationDay(now);
   if (save.quests.lastArrivalDay === today) return save;
@@ -115,7 +126,7 @@ export function receiveQuests(save: SaveData, now: number): SaveData {
       const rng = createRng(`quest|${save.playerSeed}|${day}|${i}`);
       const bands = Object.keys(questRules.bandWeights) as QuestBand[];
       const band = rng.weighted(bands, (b) => questRules.bandWeights[b]);
-      fresh.push(rollQuest(`q|${day}|${i}`, band, save, rng, arrivedAt, [...list, ...fresh]));
+      fresh.push(rollQuest(`q|${day}|${i}`, band, save, rng, arrivedAt, [...list, ...fresh], network));
     }
     list = [...list, ...fresh];
   }
@@ -138,7 +149,7 @@ export function rerollProblem(save: SaveData, questId: string, now: number): 'us
 }
 
 /** The day's free reroll: a fresh quest in the old one's slot, keeping its clock. */
-export function rerollQuest(save: SaveData, questId: string, now: number): SaveData {
+export function rerollQuest(save: SaveData, questId: string, now: number, network: boolean): SaveData {
   if (rerollProblem(save, questId, now) !== null) return save;
   const day = rotationDay(now);
   const index = save.quests.list.findIndex((q) => q.id === questId);
@@ -148,7 +159,7 @@ export function rerollQuest(save: SaveData, questId: string, now: number): SaveD
   const bands = Object.keys(questRules.bandWeights) as QuestBand[];
   const band = rng.weighted(bands, (b) => questRules.bandWeights[b]);
   const others = save.quests.list.filter((q) => q.id !== questId);
-  const fresh = rollQuest(`q|${day}|reroll${n}`, band, save, rng, old.arrivedAt, others);
+  const fresh = rollQuest(`q|${day}|reroll${n}`, band, save, rng, old.arrivedAt, others, network);
   // A rerolled walk quest keeps its clock: the same baseline, so no walk is lost.
   const baseline = fresh.objective === 'walk' && old.objective === 'walk' ? old.stepsAtArrive : undefined;
   const rerolled: Quest = { ...fresh, arrivedAt: old.arrivedAt, expiresAt: old.expiresAt, ...(baseline !== undefined ? { stepsAtArrive: baseline } : {}) };
@@ -165,7 +176,11 @@ export function pruneQuests(save: SaveData, now: number): SaveData {
   return questsState(save, { list, completions });
 }
 
-/** Keeps the quests current on app open and return: lapsed ones go, the day's arrive, walks catch up. */
-export function questUpkeep(save: SaveData, now: number): SaveData {
-  return refreshWalks(receiveQuests(pruneQuests(save, now), now), now);
+/**
+ * Keeps the quests current on app open and return: lapsed ones go, the day's
+ * arrive, walks catch up. `network`: the supply network is on and open, so its
+ * objectives can roll.
+ */
+export function questUpkeep(save: SaveData, now: number, network: boolean): SaveData {
+  return refreshWalks(receiveQuests(pruneQuests(save, now), now, network), now);
 }

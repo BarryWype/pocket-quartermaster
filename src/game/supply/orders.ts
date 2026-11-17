@@ -12,6 +12,7 @@ import { highestUnlockedTier, isDungeonUnlocked } from '../dungeons/unlock';
 import { distanceMeters } from '../generation/geo';
 import { createRng, type Rng } from '../generation/rng';
 import { removeMaterials } from '../inventory';
+import { questEvent } from '../quests/progress';
 import { grantLoot } from '../loot/grant';
 import { mergeLoot } from '../loot/roll';
 import { emptyLoot, type Loot } from '../loot/types';
@@ -263,23 +264,21 @@ export function deliverGoods(
     fraction += take * supplyRules.orders.goldPerUnitShare * materialPrices[good];
   }
   const gold = Math.floor(fraction);
-  const orders = {
-    ...save.supply.orders,
-    [placeId]: {
-      ...order,
-      delivered: {
-        ...order.delivered,
-        ...Object.fromEntries(Object.entries(taken).map(([good, amount]) => [good, (order.delivered[good] ?? 0) + amount])),
-      },
-      goldFraction: fraction - gold,
-      goldPaid: order.goldPaid + gold,
+  const updated: Order = {
+    ...order,
+    delivered: {
+      ...order.delivered,
+      ...Object.fromEntries(Object.entries(taken).map(([good, amount]) => [good, (order.delivered[good] ?? 0) + amount])),
     },
+    goldFraction: fraction - gold,
+    goldPaid: order.goldPaid + gold,
   };
-  return {
-    save: { ...save, gold: save.gold + gold, supply: { ...save.supply, orders } },
-    taken,
-    gold,
-  };
+  let next: SaveData = { ...save, gold: save.gold + gold, supply: { ...save.supply, orders: { ...save.supply.orders, [placeId]: updated } } };
+  // The quests see what went where, and a step reached.
+  for (const [good, amount] of Object.entries(taken)) next = questEvent(next, { kind: 'supplied', good, placeKind: order.kind, amount }, now);
+  const stepsBefore = order.steps.filter((step) => orderProgress(order) >= step.at).length;
+  if (order.steps.filter((step) => orderProgress(updated) >= step.at).length > stepsBefore) next = questEvent(next, { kind: 'orderStep' }, now);
+  return { save: next, taken, gold };
 }
 
 /**

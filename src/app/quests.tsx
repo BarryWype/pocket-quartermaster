@@ -10,7 +10,7 @@ import { lootTiles, type RewardTile } from '@/game/loot/tiles';
 import { Countdown, countdownText } from '@/components/Countdown';
 import { AppearIf, CountUp, FillBar } from '@/components/motion';
 import { Text } from '@/components/Text';
-import { itemById } from '@/content/lookup';
+import { itemById, materialById } from '@/content/lookup';
 import { lootMatrix } from '@/content/loot/matrix';
 import { placeInfo } from '@/content/places';
 import { objectives, questRules } from '@/content/quests';
@@ -80,6 +80,18 @@ function objectiveText(quest: Quest) {
       return t('quests.objective.sellGoods', { gold: quest.amount });
     case 'fightEvent':
       return t('quests.objective.fightEvent', { place });
+    case 'discover':
+      return t('quests.objective.discover', { count: quest.amount });
+    case 'supply':
+      return t('quests.objective.supply', {
+        count: quest.amount,
+        good: tr(materialById[quest.itemId ?? '']?.name ?? '').toLowerCase(),
+        places: t(`supply.site.for.${quest.placeKind ?? 'market'}`).toLowerCase(),
+      });
+    case 'build':
+    case 'orderStep':
+    case 'rideRoute':
+      return t(`quests.objective.${quest.objective}`);
     default:
       return t(`quests.objective.${quest.objective}`);
   }
