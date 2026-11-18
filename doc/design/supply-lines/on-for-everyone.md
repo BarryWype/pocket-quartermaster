@@ -120,3 +120,24 @@ You chose to triple the buildings' output. Tested on one regular seed (bosses fe
 - **One seed, made / walked per day:** about 170 / 116 early in tier 2, 125–170 / 110–135 at tier 3, 280–330 / 120 at tier 4. So about 1.5× at tier 2, rising to 2–2.5×.
 - **Orders grow with the rates** (their size follows the serving building's rate): a tavern wants about 210 grain and 37 meat. Delivery gold per order grows with them, so order gold should roughly double or triple. That's still small next to tier 5 income; check it in the next run.
 - **To check in the next full run:** buildings ÷ walking by tier (the band test), order gold per day, the materials spent share (at least 75%), days per tier, and gold per tier against the tables above.
+
+## Second full run, with the tripled output (2026-11-18)
+
+**Gold per tier, regular player** (medians over 4 seeds; order gold and building costs now in the table):
+
+| Tier | Income: before network → first run → now | Spent: before → now | Gold held, change: before → first run → now | Orders in the income |
+| --- | --- | --- | --- | --- |
+| 1 | 3,207 → 2,944 → 3,249 | 2,453 → 3,025 | +133 → +84 → +46 | none |
+| 2 | 6,270 → 5,538 → 6,542 | 6,059 → 6,432 | +81 → +366 → +354 | 966 |
+| 3 | 10,726 → 11,031 → 13,766 | 9,611 → 12,161 | +654 → +1,957 → +1,748 | 1,729 |
+| 4 | 17,740 → 17,669 → 17,060 | 15,240 → 14,547 | +999 → −1,415 → +1,848 | under the top four |
+| 5 | 22,882 → 23,684 → 28,446 | 18,024 → 17,059 | +6,053 → +19,679 → +10,952 | under the top four |
+
+Heavy tier 5: +14,176 → +18,647 → +21,606; casual tier 5: +1,094 → +4,542 → +3,746 (its "gold piles up" band now passes).
+
+- **Order gold:** 121 / 128 / 172 a day (casual / regular / heavy), up from 56 / 72 / 88, about 5% of a regular player's tier 5 income. Buildings cost 285–1,700 a tier. Tier 5 income is still where the surplus is, as before the network.
+- **Buildings ÷ walking (regular):** 1.25× at tier 2 (band: 1.5×), then 1.98×, 2.10×, 2.18×, rising. Casual 2.9–3.9×; heavy 0.84–0.96× (heavy walks twice as much; the band is for regular).
+- **Made isn't received:** a regular player's buildings make 160 units a day, but the cart brings 17 home and 71 go to places (by cart and by hand); 36 a day are lost when buildings expire full. The bot runs one cart loop a day.
+- **Pace holds:** days to the end are 68 / 44 / 29 (casual / regular / heavy), against 69 / 44 / 27 before the network. Main-material spent share stays 87–151%.
+- **Losses dominate the cart and raids:** a regular player's cart meets 9 ambushes a week (0.1 won, 4.1 lost, 5.0 unguarded); raids 0.1 won, 1.6 lost, 0.9 unguarded.
+- **Other bands:** 140 fail against 144 last run. They're mostly the win odds and the gatherer's share bands, which also failed last run, and they move from run to run. The supply band at tier 2 is the only one for the network.
