@@ -140,7 +140,7 @@ describe('the Network tab', () => {
     act(() => {
       renderer = create(<NetworkTab />);
     });
-    expect(text(renderer!)).toContain('Post a hero at the Farm: it runs at 40%.');
+    expect(text(renderer!)).toContain('Post a hero at the Farm: it runs at 60%.');
     expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Post a hero' }).length).toBeGreaterThan(0);
   });
 

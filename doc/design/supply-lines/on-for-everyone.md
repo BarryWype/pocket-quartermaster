@@ -104,3 +104,19 @@ Heavy tier 5: +14,176 → +18,647; casual tier 5: +1,094 → +4,542.
   - A building stops at 12 hours of stock, and the cart takes 20 units in one loop a day, so most buildings sit full. Locals make 0.4 of the rate, and heroes are posted overnight only.
   - Cart capacity 60 and 24 hours of stock, with locals at 0.6 and 1.2 sites per km², reached about 0.5–0.7× walking. 1.5× needs roughly three times the buildings' output.
 - **The gold table now counts** order gold (`orders`) and building costs (`building`). `--set` reaches `supply.…` and `siteGroup.…`.
+
+## Building output tripled (2026-11-18)
+
+You chose to triple the buildings' output. Tested on one regular seed (bosses fell on the same days, so tiers don't go faster):
+
+| Number | Was | Now |
+| --- | --- | --- |
+| Base rates per star | farm and lumber camp 1.0, herb garden, quarry and hunting camp 0.8, copper 0.6, iron 0.5, coal 0.4 | three times: 3.0, 2.4, 1.8, 1.5, 1.2 |
+| `production.localsShare` | 0.4 | 0.6 |
+| `production.capHours` | 12 | 24 |
+| `cart.capacity` | 20 | 100 |
+| `siteGroup.densityPerKm2` | 0.8 | 1.2 |
+
+- **One seed, made / walked per day:** about 170 / 116 early in tier 2, 125–170 / 110–135 at tier 3, 280–330 / 120 at tier 4. So about 1.5× at tier 2, rising to 2–2.5×.
+- **Orders grow with the rates** (their size follows the serving building's rate): a tavern wants about 210 grain and 37 meat. Delivery gold per order grows with them, so order gold should roughly double or triple. That's still small next to tier 5 income; check it in the next run.
+- **To check in the next full run:** buildings ÷ walking by tier (the band test), order gold per day, the materials spent share (at least 75%), days per tier, and gold per tier against the tables above.

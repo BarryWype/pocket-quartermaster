@@ -57,10 +57,10 @@ describe('the building sheet', () => {
     });
     const sheet = text(renderer!);
     // The flow row reads left to right: locals at their share, the goods, the stock, who takes it home.
-    expect(sheet).toContain('Locals 40%');
+    expect(sheet).toContain('Locals 60%');
     expect(sheet).toContain('You collect');
     expect(sheet).toContain('0');
-    expect(sheet).toContain('of 9');
+    expect(sheet).toContain('of 57');
     // One ember button a sheet: posting is the next step, so the cart's add stays wood.
     expect(sheet).toContain('Post a hero');
     expect(sheet).toContain('Add to the cart’s route');
@@ -79,8 +79,8 @@ describe('the building sheet', () => {
     });
     const sheet = text(renderer!);
     expect(sheet).toContain('Bram · Herbalist, level 2');
-    // Quality 1 at the full rate with a level 2 Herbalist: 1.2 an hour, +50%.
-    expect(sheet).toContain('Full rate +50%: 1.2 an hour');
+    // Quality 1 at the full rate with a level 2 Herbalist: 3.6 an hour, +50%.
+    expect(sheet).toContain('Full rate +50%: 3.6 an hour');
     expect(sheet).toContain('Recall');
     expect(sheet).not.toContain('Post a hero');
   });

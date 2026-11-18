@@ -92,21 +92,21 @@ eady generates:
   - The first placement is free and doesn't count as a move.
   - After that it moves **twice in any 7 days**. The sheet's button says when the next move comes back once both are used.
   - A move asks first, in a dialog: the moves left this week, when the next one comes back, and how many buildings would end up beyond the tier's reach of it (a warning, not a refusal).
-- **Sites** are places of their own (`siteGroup`, kept out of the map's other place groups): six days, the three-group rotation, 0.8 per km² (about 2–3 within 1 km), placed on walkable ground like other places. Only shown once the network is open.
+- **Sites** are places of their own (`siteGroup`, kept out of the map's other place groups): six days, the three-group rotation, 1.2 per km² (about 3–4 within 1 km), placed on walkable ground like other places. Only shown once the network is open.
   - **The guarantee:** if no site is within 800 m of the period's first map position, a personal site appears 300–700 m away for the two-day period, like the personal tavern.
   - **Quality:** 1 to 3 stars (50%, 35%, 15%), drawn from the site's seed and revealed by discovering it.
 - **Buildings:** any of three on any discovered site, built in person (within 50 m) for 10 wood and 60 gold (90, 140, 200 at tiers 3–5). Building resets the site's life: a building lasts six days.
 
   | Building | Makes, per unit | Base rate per star | Mainly for | Opens at | Trade |
   | --- | --- | --- | --- | --- | --- |
-  | Farm | grain 85%, meat 15% | 1.0 / h | Taverns | tier 2 | Farmer |
-  | Herb garden | herbs 50%, berries 30%, mushrooms 20% | 0.8 / h | Apothecaries | tier 2 | Herbalist |
-  | Quarry | stone | 0.8 / h | Smithies | tier 2 | Miner |
-  | Lumber camp | wood | 1.0 / h | your workshop | tier 2 | Woodcutter |
-  | Hunting camp | meat 45%, hide 35%, bone 20% | 0.8 / h | your workshop | tier 2 | Hunter |
-  | Copper mine | copper | 0.6 / h | your workshop | tier 3 | Miner |
-  | Iron mine | iron | 0.5 / h | your workshop | tier 4 | Miner |
-  | Charcoal kiln | coal | 0.4 / h | your workshop | tier 5 | Woodcutter |
+  | Farm | grain 85%, meat 15% | 3.0 / h | Taverns | tier 2 | Farmer |
+  | Herb garden | herbs 50%, berries 30%, mushrooms 20% | 2.4 / h | Apothecaries | tier 2 | Herbalist |
+  | Quarry | stone | 2.4 / h | Smithies | tier 2 | Miner |
+  | Lumber camp | wood | 3.0 / h | your workshop | tier 2 | Woodcutter |
+  | Hunting camp | meat 45%, hide 35%, bone 20% | 2.4 / h | your workshop | tier 2 | Hunter |
+  | Copper mine | copper | 1.8 / h | your workshop | tier 3 | Miner |
+  | Iron mine | iron | 1.5 / h | your workshop | tier 4 | Miner |
+  | Charcoal kiln | coal | 1.2 / h | your workshop | tier 5 | Woodcutter |
 
   Dearer ores come slower, so each building's gold per hour stays close. Goods "for your workshop" go home, or to markets, which take every good. A save unlocked before tier 2 (debug) builds as at tier 2.
 
@@ -120,7 +120,7 @@ eady generates:
 The full proposal, approved as written on 2026-11-17, is `orders.md`.
 
 - **One order per discovered tavern, smithy, apothecary and market**, made at discovery (seeded from the place and you) and kept in `save.supply.orders` until the place leaves.
-- **Wants:** taverns grain and meat, smithies stone, apothecaries herbs and berries, markets any network good. **Size:** one average building (1.65 stars) at 60% of its full rate fills it in 3.5 days, ±20% (a tavern wants about 70 grain and 12 meat).
+- **Wants:** taverns grain and meat, smithies stone, apothecaries herbs and berries, markets any network good. **Size:** one average building (1.65 stars) at 60% of its full rate fills it in 3.5 days, ±20% (a tavern wants about 210 grain and 37 meat; orders grew with the building rates).
 - **Gold per unit delivered:** 1.25 × the shop price, fractions carried on the order.
 - **Steps** at 25%, 50% and 100%: gold (×1 at tiers 1–2, ×1.5, ×2, ×3 at tiers 3–5), then meals you can cook (taverns), your tier's ore (smithies) or your best healing potion (apothecaries), then gold and the **headline**.
 - **Headlines, found nowhere else:** Banquet roast, Wayfarer's feast and Stormbread (meals); Phoenix, Giant's and Sage's draughts (potions), or one time in five a Rare flask weapon (apothecaries); a Rare piece of a type your heroes wear (smithies); any of these (markets). A new order avoids the headlines of your other live orders of that kind.
@@ -171,11 +171,11 @@ Prompt 2, step 2 (proposal approved as written in `quests.md`).
 ## Production and postings
 
 - **Rate:** quality × the building's base rate per hour, at the full rate (guild jobs make 0.3 an hour).
-- **Locals** work an empty building at 40% of the rate. Set `localsShare` to 0 and an empty building makes nothing.
+- **Locals** work an empty building at 60% of the rate. Set `localsShare` to 0 and an empty building makes nothing.
 - **Posting** a hero runs the building at the full rate.
   - A matching trade (Farmer at a farm, Quarryman at a quarry, Herbalist at a herb garden) adds 25/50/100% by level. Any other trade gets the full rate with no bonus.
   - A posted hero is busy like a hero on a guild job: shown as "Posted", and recalled automatically by any send.
-- **Stock** fills up to 12 hours of full output, then stops.
+- **Stock** fills up to 24 hours of full output, then stops.
 - **Collecting** in person within 100 m moves the stock to the inventory and inspects the building: +25% for 24 hours.
 - **Settling:** a building settles in pieces split at every rate change (inspection, closure, expiry), so settling once or often gives the same stock.
 - **The sheets** follow the approved mockups (`mockups/SiteSheet.html`, `mockups/BuildingSheet.html`): a "Leaves in …" strip under the header (ember with "LAST DAY" in the last 24 h), the building's flow (worker → goods per hour → stock → cart or you), who works it, its stock and the cart, with one ember button for the next step.
@@ -192,7 +192,7 @@ Prompt 2, step 2 (proposal approved as written in `quests.md`).
 - **Streets:** the walkable ways of the zoom-14 tiles over the hall's reach plus 300 m, with way ends joined to the nearest point within 15 m (on the Wellington fixture: 53 pieces become 8, the largest holding 94%). The hall and stops snap to the nearest way within 200 m, with a straight last leg; shortest paths between them (Dijkstra). A leg with no street path is straight, and the planner says so.
 - **Found once, stored with the route:** the path is computed when the route is set (`useStreetPath`, off the press) and stored with it (`cart.path`, simplified to 5 m). Settling never touches tiles or searches; a stored path stays until the route is next changed, even when the map data updates.
 - **The planner** is a guided sheet (`RoutePlannerSheet`, after `mockups/RoutePlanner.html`): pick stops (what each gives or wants, time left), order them (arrows, and "Suggest": buildings before the places they serve, nearest next), see the result (a flow strip of loads, unloads and what comes home, the loop time, the street length, the ambush chance per loop, warnings for stops leaving before the next loop ends and for straight legs). A tap on a street at the result step forces the route through it. Opened from the cart's sheet, the Network tab, and "Add to the cart's route" on a building or an order.
-- **Speed and load:** 3 km/h, or 60% of that with no driver. It carries 20 units.
+- **Speed and load:** 3 km/h, or 60% of that with no driver. It carries 100 units.
   - A Teamster driving adds 15/30/50% speed and 25/50/100% capacity.
 - **Crew:** a driver and up to two escorts. They are away during a loop, and the crew can only change while the cart is parked.
 - **Ambushes:** at departure, each distinct crossed cell rolls its level's chance once, seeded by loop and cell, at the cell's **day average** danger (8 samples over the local day, cached per cell and day), the same the planner shows.
@@ -273,19 +273,19 @@ Prompt 2, step 2 (proposal approved as written in `quests.md`).
 | `buildings.kinds` | see the table above | What each building makes, its base rate per star, the place kind it serves. |
 | `sites.qualityShares` | 0.5 / 0.35 / 0.15 | Chances of 1, 2 and 3 stars. |
 | `sites.guaranteeMeters` / `personal.meters` | 800 / 300–700 | The site guarantee and where a personal site goes. |
-| `siteGroup` | 0.8 per km², six days, three groups | How sites spawn. |
+| `siteGroup` | 1.2 per km², six days, three groups | How sites spawn. |
 | `terrain.samplesPerSide` | 4 | A cell is classified on this many points per side. |
 | `terrain.greenShare` | 0.25 | Share of points in green that makes a cell green. |
 | `terrain.waterEdgeMeters` | 50 | How close to water still counts as water's edge. |
-| `production.localsShare` | 0.4 | Share of the rate locals make with nobody posted (0 works). |
+| `production.localsShare` | 0.6 | Share of the rate locals make with nobody posted (0 works). |
 | `production.tradeBonus` | 0.25 / 0.5 / 1.0 | A matching trade's bonus by level. |
-| `production.capHours` | 12 | Stock holds this many hours of full output. |
+| `production.capHours` | 24 | Stock holds this many hours of full output. |
 | `production.inspectHours` / `inspectBonus` | 24 / 0.25 | Collecting in person inspects the building: +25% for a day. |
 | `production.collectMeters` | 100 | Collect range from the building. |
 | `matchingTrade` | farm farmer, quarry quarryman, herb garden herbalist | The trade that raises each building. |
 | `cart.speedKmh` | 3 | The cart's speed with a driver. |
 | `cart.noDriverSpeed` | 0.6 | Share of the speed with nobody driving. |
-| `cart.capacity` | 20 | Units the cart carries. |
+| `cart.capacity` | 100 | Units the cart carries. |
 | `cart.maxEscorts` | 2 | Escorts beside the driver. |
 | `cart.teamster.speed` / `.capacity` | 0.15/0.3/0.5, 0.25/0.5/1.0 | A Teamster driver's bonuses by level. |
 | `cart.lostReturnMinutes` | 30 | An emptied cart is home this long after a lost ambush. |

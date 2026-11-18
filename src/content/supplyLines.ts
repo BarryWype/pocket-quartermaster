@@ -95,11 +95,11 @@ export const supplyRules = {
 
   production: {
     /** Share of the full rate locals make with nobody posted; 0 means an empty building makes nothing. */
-    localsShare: 0.4,
+    localsShare: 0.6,
     /** Output bonus by trade level when the posted hero's trade matches the building. */
     tradeBonus: [0.25, 0.5, 1.0],
     /** Stock holds this many hours of full output (no bonus), then stops. */
-    capHours: 12,
+    capHours: 24,
     /** Collecting inspects the building for this many hours. */
     inspectHours: 24,
     /** Output bonus while the building is inspected. */
@@ -139,21 +139,21 @@ export const supplyRules = {
         /** Weights picking the material each made unit becomes. */
         makes: { grain: 85, meat: 15 },
         /** Units per hour per quality star at the full rate. */
-        baseRate: 1.0,
+        baseRate: 3.0,
         /** The place kind the farm mainly serves; null: its goods go home (and to markets). */
         for: 'tavern',
         /** The tier at which it can be built. */
         opensAtTier: 2,
       },
-      herbGarden: { makes: { herb: 50, berries: 30, mushroom: 20 }, baseRate: 0.8, for: 'apothecary', opensAtTier: 2 },
-      quarry: { makes: { stone: 100 }, baseRate: 0.8, for: 'smithy', opensAtTier: 2 },
-      lumberCamp: { makes: { wood: 100 }, baseRate: 1.0, for: null, opensAtTier: 2 },
+      herbGarden: { makes: { herb: 50, berries: 30, mushroom: 20 }, baseRate: 2.4, for: 'apothecary', opensAtTier: 2 },
+      quarry: { makes: { stone: 100 }, baseRate: 2.4, for: 'smithy', opensAtTier: 2 },
+      lumberCamp: { makes: { wood: 100 }, baseRate: 3.0, for: null, opensAtTier: 2 },
       /** The old trapper job's weights. */
-      huntingCamp: { makes: { meat: 45, hide: 35, bone: 20 }, baseRate: 0.8, for: null, opensAtTier: 2 },
+      huntingCamp: { makes: { meat: 45, hide: 35, bone: 20 }, baseRate: 2.4, for: null, opensAtTier: 2 },
       /** Dearer ores come slower, so each building's gold per hour stays close. */
-      copperMine: { makes: { copper: 100 }, baseRate: 0.6, for: null, opensAtTier: 3 },
-      ironMine: { makes: { iron: 100 }, baseRate: 0.5, for: null, opensAtTier: 4 },
-      charcoalKiln: { makes: { coal: 100 }, baseRate: 0.4, for: null, opensAtTier: 5 },
+      copperMine: { makes: { copper: 100 }, baseRate: 1.8, for: null, opensAtTier: 3 },
+      ironMine: { makes: { iron: 100 }, baseRate: 1.5, for: null, opensAtTier: 4 },
+      charcoalKiln: { makes: { coal: 100 }, baseRate: 1.2, for: null, opensAtTier: 5 },
     } as Record<BuildingKind, { makes: Record<string, number>; baseRate: number; for: PlaceKind | null; opensAtTier: number }>,
     /** What a building costs to raise; the gold by tier 1–5. */
     cost: { goldByTier: [60, 60, 90, 140, 200], materials: [{ materialId: 'wood', amount: 10 }] },
@@ -177,7 +177,7 @@ export const supplyRules = {
     /** Share of the speed with nobody driving. */
     noDriverSpeed: 0.6,
     /** Units the cart carries. */
-    capacity: 20,
+    capacity: 100,
     /** Escorts allowed beside the driver. */
     maxEscorts: 2,
     teamster: {
@@ -251,7 +251,7 @@ export const supplyRules = {
 export const siteGroup: PlaceGroup = {
   id: 'site',
   kinds: { site: 1 },
-  densityPerKm2: 0.8,
+  densityPerKm2: 1.2,
   precision: 5,
   windowHours: 144,
   phases: 3,
