@@ -1,3 +1,4 @@
+import { Modal } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { cellAt } from '@/game/discovery/cells';
@@ -7,6 +8,7 @@ import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 
+import { ISLAND_HEIGHT } from './IslandMenu';
 import { RoutePlannerSheet } from './RoutePlannerSheet';
 
 jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
@@ -136,5 +138,104 @@ describe('the route planner sheet', () => {
     expect(sheet).toContain('No street from');
     expect(sheet).toContain('the cart cuts across');
     expect(button(renderer!, 'Set the route').every((node) => node.props.disabled)).toBe(false);
+  });
+
+  /** Opens the planner on the farm and walks it to the result step. */
+  const toResult = async () => {
+    open(saveWith([buildingAt('b1', now + 3 * 24 * 3_600_000, { grain: 12 })]), [{ building: 'b1' }]);
+    act(() => {
+      button(renderer!, 'Next: order')[0].props.onPress();
+    });
+    act(() => {
+      button(renderer!, 'Next: result')[0].props.onPress();
+    });
+    await settle();
+  };
+  const routeSet = () => {
+    const { cart } = useGameStore.getState().save.supply;
+    return cart.nextRoute ?? cart.route;
+  };
+  const tapNearFarm = async () => {
+    act(() => {
+      useMapPanels.getState().tapMap(offsetPosition(origin, 200, 0));
+    });
+    await settle();
+  };
+
+  it('closes every other map sheet when it opens', () => {
+    const panels = useMapPanels.getState();
+    const site = { id: 'site:x', kind: 'site' } as never;
+    act(() => {
+      panels.openSupplyBuilding('b1');
+      panels.openSite(site);
+      panels.openPlace(site);
+      panels.openCart();
+      panels.openRoutePlanner([]);
+    });
+    const state = useMapPanels.getState();
+    expect(state.routePlanner).toEqual([]);
+    expect([state.supplyBuilding, state.supplyCell, state.site, state.place, state.sanctum, state.tavern, state.patrol]).toEqual([null, null, null, null, null, null, null]);
+    expect(state.cartOpen).toBe(false);
+  });
+
+  it('is a bottom sheet in its own modal, so its footer sits above the island menu, and a backdrop tap closes it', () => {
+    const onClose = jest.fn();
+    act(() => {
+      useGameStore.setState({ save: saveWith([buildingAt('b1', now + 3 * 24 * 3_600_000, {})]) });
+    });
+    act(() => {
+      renderer = create(<RoutePlannerSheet onClose={onClose} />);
+    });
+    // The modal covers the whole screen, the island menu included; the footer's buttons are inside it.
+    const modal = renderer!.root.findByType(Modal);
+    expect(modal.findAll((node) => node.props.title === 'Next: order').length).toBeGreaterThan(0);
+    // The dimmed backdrop behind the sheet (the step's Cancel button calls onClose too).
+    const backdrop = modal.findAll((node) => node.props.onPress === onClose && JSON.stringify(node.props.style ?? null).includes('rgba(0,0,0,0.4)'), { deep: false });
+    expect(backdrop).toHaveLength(1);
+    act(() => {
+      backdrop[0].props.onPress();
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns a map tap into a via point only while adjusting on the map', async () => {
+    await toResult();
+    // On the full sheet a map tap adds nothing.
+    await tapNearFarm();
+    expect(useMapPanels.getState().plannerTap).toBeNull();
+    // Adjust on the map: the sheet becomes a bar above the island menu, and a tap adds a via point.
+    act(() => {
+      button(renderer!, 'Adjust on the map')[0].props.onPress();
+    });
+    expect(renderer!.root.findAllByType(Modal)).toHaveLength(0);
+    expect(text(renderer!)).toContain('Tap a street to route through it');
+    const bar = renderer!.root.findAll((node) => node.props.style && JSON.stringify(node.props.style).includes('"bottom"'))[0];
+    expect(JSON.stringify(bar.props.style)).toContain(`"bottom":${ISLAND_HEIGHT + 12}`);
+    await tapNearFarm();
+    act(() => {
+      button(renderer!, 'Done')[0].props.onPress();
+    });
+    await settle();
+    expect(renderer!.root.findAllByType(Modal)).toHaveLength(1);
+    act(() => {
+      button(renderer!, 'Set the route')[0].props.onPress();
+    });
+    expect(routeSet().some((point) => 'via' in point)).toBe(true);
+  });
+
+  it('drops the via points of an adjustment cancelled', async () => {
+    await toResult();
+    act(() => {
+      button(renderer!, 'Adjust on the map')[0].props.onPress();
+    });
+    await tapNearFarm();
+    act(() => {
+      button(renderer!, 'Cancel')[0].props.onPress();
+    });
+    await settle();
+    act(() => {
+      button(renderer!, 'Set the route')[0].props.onPress();
+    });
+    expect(routeSet().some((point) => 'via' in point)).toBe(false);
   });
 });

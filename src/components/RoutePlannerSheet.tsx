@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GameIcon } from '@/components/GameIcon';
 import { IconLabel } from '@/components/IconLabel';
+import { ISLAND_HEIGHT } from '@/components/IslandMenu';
 import { Overlay } from '@/components/Overlay';
 import { PressScale } from '@/components/motion';
 import { Sheet } from '@/components/Sheet';
@@ -39,14 +41,15 @@ const sameStop = (a: RoutePoint, b: RoutePoint): boolean =>
 /** The goods a building kind makes. */
 const makes = (kind: BuildingKind): string[] => Object.keys(supplyRules.buildings.kinds[kind].makes);
 
-type Props = { onClose: () => void; /** True when the sheet sits over another screen, not the map. */ overlay?: boolean };
+type Props = { onClose: () => void };
 
 /**
- * The route planner: a guided sheet in three steps — pick the stops, put them
- * in order, see the loop the route makes. On the map it keeps the top of the
- * map in view, and a tap there (on the last step) sends the cart through it.
+ * The route planner: a guided bottom sheet in three steps — pick the stops,
+ * put them in order, see the loop the route makes. On the last step "Adjust on
+ * the map" shrinks it to a bar above the island menu, and only then does a map
+ * tap send the cart through a street.
  */
-export function RoutePlannerSheet({ onClose, overlay = false }: Props) {
+export function RoutePlannerSheet({ onClose }: Props) {
   const save = useGameStore((s) => s.save);
   const setRoute = useGameStore((s) => s.setRoute);
   const now = useNow(clockConfig.minutesMs);
@@ -54,14 +57,15 @@ export function RoutePlannerSheet({ onClose, overlay = false }: Props) {
   const [draft, setDraft] = useState<RoutePoint[]>(() => useMapPanels.getState().routePlanner ?? []);
   const { path, finding } = useStreetPath(draft);
   const tap = useMapPanels((s) => s.plannerTap);
+  const adjusting = useMapPanels((s) => s.plannerAdjusting);
+  const setAdjusting = useMapPanels((s) => s.setPlannerAdjusting);
+  // The route as it stood when adjusting began, for Cancel.
+  const [beforeAdjust, setBeforeAdjust] = useState<RoutePoint[] | null>(null);
+  const { bottom } = useSafeAreaInsets();
 
+  // While adjusting, a tap on the map becomes a via point after the stop nearest to it, off the press.
   useEffect(() => {
-    useMapPanels.getState().setPlannerStep(step);
-  }, [step]);
-
-  // A tap on the map becomes a via point after the stop nearest to it, off the press.
-  useEffect(() => {
-    if (!tap || step !== 3) return;
+    if (!tap || !adjusting) return;
     const timer = setTimeout(() => {
       setDraft((current) => {
         let best = -1;
@@ -159,6 +163,23 @@ export function RoutePlannerSheet({ onClose, overlay = false }: Props) {
         ? t('supply.planner.subOrder')
         : t('supply.planner.subResult');
 
+  if (adjusting) {
+    return (
+      <View style={[styles.adjustBar, { bottom: bottom + ISLAND_HEIGHT + 12 }]}>
+        <Text style={styles.adjustText}>{t('supply.planner.adjustBar')}</Text>
+        <WoodButton
+          compact
+          title={t('common.cancel')}
+          onPress={() => {
+            if (beforeAdjust) setDraft(beforeAdjust);
+            setAdjusting(false);
+          }}
+        />
+        <EmberButton compact title={t('supply.planner.done')} onPress={() => setAdjusting(false)} />
+      </View>
+    );
+  }
+
   const sheet = (
     <Sheet
       variant="wood"
@@ -169,6 +190,15 @@ export function RoutePlannerSheet({ onClose, overlay = false }: Props) {
         <View style={styles.footer}>
           {step === 1 && <WoodButton title={t('common.cancel')} onPress={onClose} />}
           {(step === 2 || step === 3) && <WoodButton title={t('common.back')} onPress={() => setStep((step === 3 ? 2 : 1) as 1 | 2)} />}
+          {step === 3 && (
+            <WoodButton
+              title={t('supply.planner.adjust')}
+              onPress={() => {
+                setBeforeAdjust(draft);
+                setAdjusting(true);
+              }}
+            />
+          )}
           {step === 1 && (
             <EmberButton
               title={t('supply.planner.nextOrder')}
@@ -297,14 +327,11 @@ export function RoutePlannerSheet({ onClose, overlay = false }: Props) {
     </Sheet>
   );
 
-  if (overlay) {
-    return (
-      <Overlay onClose={onClose} position="bottom">
-        {sheet}
-      </Overlay>
-    );
-  }
-  return <View style={styles.overMap}>{sheet}</View>;
+  return (
+    <Overlay onClose={onClose} position="bottom">
+      {sheet}
+    </Overlay>
+  );
 }
 
 /** One stop of the result step: the flow strip, the stats, the warnings and the straight legs. */
@@ -450,14 +477,26 @@ function StopRow({
 }
 
 const styles = StyleSheet.create({
-  overMap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  adjustBar: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 8,
+    borderWidth: 3,
+    borderColor: ui.outline,
+    backgroundColor: ui.parchment,
+  },
+  adjustText: { flex: 1, color: ui.ink },
   body: { gap: 10 },
   list: { gap: 6 },
   stepsBar: { flexDirection: 'row', gap: 14 },
   stepText: { color: ui.inkMuted },
   stepOn: { color: ui.ink, fontFamily: fonts.serifBold },
   stepDone: { color: ui.ink },
-  footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, flex: 1 },
+  footer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchmentShade },
   rowOn: { borderColor: ui.brass, backgroundColor: ui.parchment },
   rowDim: { opacity: 0.55 },

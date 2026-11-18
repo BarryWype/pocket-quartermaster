@@ -794,13 +794,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
             setDebug({ mockLocation: { latitude, longitude } });
           } else if (supplyOn) {
             const [longitude, latitude] = event.nativeEvent.lngLat;
-            const panels = useMapPanels.getState();
-            // On the planner's result step a tap becomes a via point; anywhere else it opens the cell's sheet.
-            if (panels.routePlanner !== null && panels.plannerStep === 3) {
-              panels.notePlannerTap({ latitude, longitude });
-            } else {
-              panels.openSupplyCell(cellAt({ latitude, longitude }));
-            }
+            useMapPanels.getState().tapMap({ latitude, longitude });
           }
         }}
       >
