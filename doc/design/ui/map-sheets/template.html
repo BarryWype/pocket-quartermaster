@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map sheet template</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(../../../../assets/fonts/FantaisieArtistique.ttf) format('truetype');font-display:swap}
+:root{
+  --outline:#1E120A;--woodDeep:#2A180D;--woodDark:#3A2314;--woodMid:#5A3820;--woodSeam:#4E301B;--woodSel:#7A4A26;
+  --brass:#C9A04E;--brassDim:#8A6A34;--brassLight:#F6D98E;--parch:#F2E4C2;--parchShade:#E6D3A8;--rule:#B9A27A;
+  --ink:#3A2314;--inkMuted:#6A4A2C;--onWood:#F2E4C2;--onWoodMuted:#C9B48A;--ember:#B4471C;--emberLight:#E07A3E;--emberDark:#6E2A0E;--onEmber:#FFF1DC;
+  --good:#2F6B32;--goodBg:#DDE8C8;--bad:#8A2E1C;--badBg:#F2D3C2;--easy:#4E9A3E;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--woodDeep);color:var(--onWood);font-family:Alegreya,Georgia,serif;font-size:16px;line-height:1.45}
+main{max-width:1720px;margin:0 auto;padding:24px 16px 80px}
+h1{font-family:Fantaisie,serif;font-weight:400;color:var(--brassLight);font-size:34px;margin:0 0 4px}
+h2{font-family:Fantaisie,serif;font-weight:400;color:var(--brassLight);font-size:28px;margin:52px 0 6px;border-bottom:2px solid var(--brassDim);padding-bottom:6px}
+h3{color:var(--brassLight);font-size:17px;margin:18px 0 4px}
+.lede{color:#E2CFA4;max-width:860px}
+.note{background:var(--woodDark);border:2px solid var(--outline);outline:2px solid var(--brassDim);outline-offset:-6px;padding:14px 18px;margin:16px 0;max-width:900px}
+.note b{color:var(--brassLight)}
+.row4{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-top:12px}
+.cap{font-size:13px;color:var(--onWoodMuted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em}
+.why{max-width:900px;color:#E2CFA4}
+.why li{margin:4px 0}
+ul.q li{margin:8px 0}
+code{font-size:14px}
+
+/* ---------- phone and map ---------- */
+.phone{width:390px;max-width:100%;height:844px;position:relative;overflow:hidden;border:3px solid #000;border-radius:28px;background:#6DAE4F;flex:none}
+.map{position:absolute;inset:0;background:
+  linear-gradient(90deg,transparent 46%,#d9cfae 46% 52%,transparent 52%),
+  linear-gradient(0deg,transparent 58%,#d9cfae 58% 62%,transparent 62%),
+  linear-gradient(118deg,transparent 28%,#cfc4a1 28% 31%,transparent 31%),
+  radial-gradient(circle at 20% 20%,#5d9a43 0 60px,transparent 61px),
+  radial-gradient(circle at 80% 75%,#5d9a43 0 70px,transparent 71px),#6DAE4F}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+.mk{position:absolute;width:44px;height:44px;transform:translate(-50%,-50%)}
+.mk .d{position:absolute;inset:4px;transform:rotate(45deg);background:var(--parch);border:3px solid var(--outline)}
+.mk .e{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-family:system-ui}
+.mk.sel .d{outline:3px solid var(--brassLight);outline-offset:3px}
+.me{position:absolute;width:20px;height:20px;border-radius:10px;background:#2E6FD8;border:3px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 8px rgba(46,111,216,.25)}
+.island{position:absolute;left:12px;right:12px;bottom:26px;height:64px;background:repeating-linear-gradient(0deg,var(--woodMid) 0 13px,var(--woodSeam) 13px 14px);border:2px solid var(--outline);outline:2px solid var(--brass);outline-offset:-5px;border-radius:2px}
+
+/* ---------- the sheet ---------- */
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:717px;display:flex;flex-direction:column;background:var(--parch);border:3px solid var(--outline);color:var(--ink);font-family:Fantaisie,serif;font-size:18px}
+.sheet:before{content:"";position:absolute;inset:5px;border:2px solid var(--brass);pointer-events:none;z-index:2}
+.grab{position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:44px;height:5px;background:var(--brass);border:1px solid var(--outline);z-index:3}
+.band{display:flex;align-items:center;gap:12px;padding:12px 14px 10px;background:repeating-linear-gradient(0deg,var(--woodMid) 0 13px,var(--woodSeam) 13px 14px);border-bottom:3px solid var(--outline);position:relative;z-index:1}
+.band .t{font-size:23px;color:var(--brassLight);line-height:25px}
+.band .s{font-family:Alegreya,serif;font-size:14px;color:#E2CFA4;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.band .s b{color:var(--brassLight);font-weight:700}
+.band .more{margin-left:auto;white-space:nowrap;flex:none;align-self:flex-start;font-family:Alegreya,serif;font-size:13px;color:var(--brassLight);border:2px solid var(--brass);padding:3px 8px;min-height:30px;display:flex;align-items:center}
+/* header icon inside its ring */
+.ring{position:relative;width:56px;height:56px;flex:none}
+.ring .time{position:absolute;inset:4px;transform:rotate(45deg);background:conic-gradient(from -45deg,var(--brass) 0 var(--left),rgba(30,18,10,.45) var(--left) 100%)}
+.ring .time.last{background:conic-gradient(from -45deg,var(--emberLight) 0 var(--left),rgba(30,18,10,.45) var(--left) 100%)}
+.ring .in{position:absolute;inset:11px;transform:rotate(45deg);background:var(--woodDeep);border:2px solid var(--outline)}
+.ring .diff{position:absolute;inset:8px;transform:rotate(45deg);border:4px solid var(--easy);background:var(--woodDeep)}
+.ring img,.ring .em{position:absolute;inset:0;margin:auto;width:28px;height:28px;image-rendering:pixelated;font-size:22px;display:flex;align-items:center;justify-content:center;font-family:system-ui}
+.ring .pip{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);display:flex;gap:2px}
+.ring .pip i{width:7px;height:7px;background:var(--easy);border:1px solid var(--outline);transform:rotate(45deg)}
+.body{overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;position:relative;z-index:1;flex:1 1 auto}
+.sum{font-size:19px;line-height:1.3}
+.sum .m{color:var(--inkMuted)}
+.foot{padding:10px 16px 34px;display:flex;flex-direction:column;gap:8px;position:relative;z-index:1;border-top:2px solid var(--parchShade)}
+.sec{display:flex;gap:8px}
+.sec .btn{flex:1}
+
+/* ---------- pieces ---------- */
+.btn{min-height:52px;padding:0 14px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Fantaisie,serif;font-size:22px;border:3px solid var(--outline);position:relative;text-align:center;line-height:1.1}
+.btn.c{min-height:44px;font-size:18px}
+.btn.wood{background:var(--woodMid);color:var(--brassLight)}
+.btn.wood:after{content:"";position:absolute;inset:3px;border:2px solid var(--brass);pointer-events:none}
+.btn.ember{background:var(--ember);color:var(--onEmber);box-shadow:inset 3px 3px 0 var(--emberLight),inset -3px -3px 0 var(--emberDark)}
+.btn.locked{background:var(--parchShade);color:var(--ink);box-shadow:none;border-style:solid}
+.btn .lk{font-family:system-ui;font-size:16px}
+.btn small{font-family:Alegreya,serif;font-size:14px;opacity:.9}
+.btn img{width:18px;height:18px;image-rendering:pixelated}
+.tabs{display:flex;border:3px solid var(--outline);background:var(--woodDark)}
+.tabs span{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;color:var(--onWoodMuted);font-size:17px;border-right:2px solid var(--outline);text-align:center;padding:0 4px}
+.tabs span:last-child{border-right:0}
+.tabs span.on{background:var(--woodSel);color:var(--brassLight);box-shadow:inset 0 -3px 0 var(--brass)}
+.sub{display:flex;gap:6px}
+.sub span{min-height:36px;padding:0 12px;display:flex;align-items:center;border:2px solid var(--rule);font-size:16px}
+.sub span.on{border-color:var(--ink);background:#F7ECCF}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:3px}
+.slot{width:100%;aspect-ratio:1;min-height:60px;background:var(--woodDeep);border:2px solid var(--outline);box-shadow:inset 2px 2px 0 #160C06;display:flex;align-items:center;justify-content:center;position:relative}
+.slot img{width:62%;height:62%;image-rendering:pixelated}
+.slot .em{font-size:28px;font-family:system-ui}
+.slot.rare{border-color:#3C6FD0;box-shadow:inset 2px 2px 0 #160C06,inset 0 0 0 2px #3C6FD0}
+.slot.sel{background:var(--woodSel);outline:3px solid var(--brassLight);outline-offset:1px}
+.slot.dim img,.slot.dim .em{opacity:.5}
+.slot .n{position:absolute;right:3px;bottom:1px;font-size:13px;color:#fff;font-family:Alegreya,serif;font-weight:700;text-shadow:0 1px 0 #000}
+.slot .badge{position:absolute;left:-4px;top:-6px;font-family:Alegreya,serif;font-size:11px;background:var(--parch);border:1px solid var(--outline);padding:0 4px;color:var(--ink)}
+.price{display:inline-flex;align-items:center;gap:3px;font-size:16px}
+.price img{width:16px;height:16px;image-rendering:pixelated}
+.price.short{color:var(--bad)}
+.mini{display:inline-flex;gap:4px;vertical-align:middle}
+.mini .slot{width:30px;min-height:30px;height:30px}
+.mini .slot img{width:22px;height:22px}
+.mini .slot .em{font-size:16px}
+.card{border:3px solid var(--outline);background:#F7ECCF;padding:10px;display:flex;gap:10px;align-items:flex-start;box-shadow:inset 0 0 0 2px var(--parch),inset 0 0 0 4px var(--rule)}
+.card .slot{width:64px;min-height:64px;flex:none}
+.card .ct{font-size:20px}
+.card .cd{font-family:Alegreya,serif;font-size:14px;color:var(--inkMuted)}
+.threat{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;background:var(--badBg);border:2px solid var(--bad);font-size:16px}
+.threat i{font-family:system-ui;font-style:normal}
+.foe{display:flex;gap:10px;align-items:center;padding:6px 0;border-top:2px solid var(--parchShade)}
+.foe .slot{width:44px;min-height:44px;height:44px;flex:none}
+.foe .fn{font-size:19px}
+.tag{font-family:Alegreya,serif;font-size:13px;border:1px solid var(--rule);padding:0 6px;margin-right:4px;color:var(--inkMuted)}
+.bar{height:16px;border:2px solid var(--outline);background:var(--woodDeep);position:relative}
+.bar>i{position:absolute;left:0;top:0;bottom:0;background:var(--emberLight);box-shadow:inset 0 3px 0 #F2A066}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:17px}
+.dl dt{color:var(--inkMuted)}
+.dl dd{margin:0}
+.callout{position:absolute;z-index:5;font-family:Alegreya,serif;font-size:13px;background:#FFF7DD;color:var(--ink);border:2px solid var(--ember);padding:5px 8px;max-width:210px;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.portrait{width:56px;height:56px;border:2px solid var(--outline);background:var(--woodDeep);display:flex;align-items:center;justify-content:center;flex:none}
+.portrait img{width:40px;height:40px;image-rendering:pixelated}
+.portrait.empty{border-style:dashed;border-color:var(--brassDim);background:#E9D9B2;font-size:28px;color:var(--brassDim)}
+/* chooser */
+.chooser{position:absolute;width:300px;background:var(--parch);border:3px solid var(--outline);color:var(--ink);font-family:Fantaisie,serif;box-shadow:inset 0 0 0 2px var(--parch),inset 0 0 0 4px var(--brass),0 5px 0 var(--outline);padding:8px 8px 6px}
+.chooser .hd{font-family:Alegreya,serif;font-size:13px;color:var(--inkMuted);padding:0 6px 4px}
+.chooser .opt{display:flex;align-items:center;gap:10px;min-height:56px;padding:4px 6px;border-top:2px solid var(--parchShade)}
+.chooser .opt .nm{font-size:19px;line-height:1.1}
+.chooser .opt .st{font-family:Alegreya,serif;font-size:13px;color:var(--inkMuted)}
+.chooser .opt .go{margin-left:auto;font-size:20px;color:var(--brassDim)}
+.chooser:after{content:"";position:absolute;left:var(--tail,50%);bottom:-13px;width:18px;height:18px;background:var(--parch);border-right:3px solid var(--outline);border-bottom:3px solid var(--outline);transform:translateX(-50%) rotate(45deg)}
+.ring.sm{width:44px;height:44px}
+.ring.sm .in{inset:9px}.ring.sm .diff{inset:7px;border-width:3px}
+.ring.sm img,.ring.sm .em{width:22px;height:22px;font-size:17px}
+.legend{font-size:14px;color:var(--onWoodMuted)}
+</style>
+</head>
+<body>
+<main>
+<h1>One template for every map sheet</h1>
+<p class="lede">Prompt 1, step 2 of the map UI pass. The template on three very different sheets (a smithy, a patrol and a network building), each as a <b>peek</b> and <b>full</b>, <b>far</b> and <b>here</b>. Then the chooser for overlapping markers. For review before any code.</p>
+
+<div class="note">
+<b>The template, top to bottom.</b> (1) The header: the kind's icon inside its time ring (a difficulty ring for fights), the name, one status line: distance or “You're here”, and time left. (2) What's here, in one line. (3) The main action in the footer, changing with the situation, and a row of secondary actions under it. (4) Tabs in the full sheet, in a fixed order: what the place does, then its order with its progress in the label, then Details. (5) Items as tiles everywhere; tapping one opens its card with its price and its action.<br><br>
+<b>Peek and full.</b> A tap opens the peek: header, summary and main action, sized to its content, with the map still showing above it. Swiping up, tapping <i>More</i> or walking into range opens the full sheet. Swiping down goes back to the peek, then closes. No Close button anywhere: a tap outside, a swipe down and Android back close.<br><br>
+<b>Drawn with</b> the theme's wood, brass and parchment, the game font, the real 44 and 52 pt button heights, and the game's own pixel icons for items, goods, gold and classes. Places keep their emoji, as on the map today.
+</div>
+
+<!-- ======================= SMITHY ======================= -->
+<h2>Smithy</h2>
+<p class="why">Shows its stock from any distance. Far, the one action is the walk, and its label says how far. Here, the main action is Buy; picking a tile turns it into “Buy <i>that</i> · price”. The order is a tab of its own, after the shop.</p>
+<div class="row4" id="smithy"></div>
+
+<!-- ======================= PATROL ======================= -->
+<h2>Patrol</h2>
+<p class="why">Foes, the threat with its level and the drops are visible from afar. The fight rules haven't changed, so far the footer says “Walk 320 m to fight”. If you decide heroes may be sent from afar, only that label changes, to “Send heroes”, and the far frames below show where it would go.</p>
+<div class="row4" id="patrol"></div>
+
+<!-- ======================= BUILDING ======================= -->
+<h2>Network building</h2>
+<p class="why">Everything on a building works from afar except collecting, so the main action follows the next useful step: post a hero, then add it to the delivery route, then collect before it's lost. Here, Collect leads. Its full sheet's tabs are what it makes, who works it, and Details.</p>
+<div class="row4" id="building"></div>
+
+<!-- ======================= CHOOSER ======================= -->
+<h2>Chooser for overlapping markers</h2>
+<p class="why">A tap that hits more than one marker opens a small list anchored to the tap, instead of guessing. One row per marker: its icon in its ring, its name, distance and the same status as its header. Picking one opens its peek. A tap outside closes it. Two markers or more only: a single hit opens its sheet straight away, as today.</p>
+<div class="row4" id="chooser"></div>
+
+<h2>What to decide before step 3</h2>
+<ul class="q">
+  <li><b>Send heroes from afar?</b> Today every fight needs the player within 80 m (patrols) or 50 m (places, Sanctum). The patrol mock-ups keep that: “Walk 320 m to fight”. Allowing it is a game rule change for you to make; the template takes either label.</li>
+  <li><b>What the far “Walk …” button does.</b> Proposed: it centres the map on the place and closes to the peek, so the player sees the way. It never starts navigation.</li>
+  <li><b>Peek height.</b> Proposed: the peek is as tall as its content, about a third of the screen, so the tapped marker stays visible above it. The map does not pan to keep it in view.</li>
+  <li><b>Walking into range</b> opens the full sheet only if the peek is the one showing. A full sheet already open stays as it is.</li>
+  <li><b>Dragging between heights.</b> Proposed: follow the finger on the header only (as the Sheet does today); the body keeps its scroll. If that fights the scroll on Android, <i>More</i> and a tap on the header switch heights instead.</li>
+</ul>
+<p class="legend">Not shown yet, deliberately: the French labels (checked when building), the place kinds from step 5, and the network's route mode from prompt 2.</p>
+</main>
+
+<script>
+const I = (p) => `../../../../assets/icons/${p}`;
+const ic = {
+  gold: I('tavern/coins-gold.png'), sword: I('rpg/sword-knight-longsword.png'), helm: I('rpg/helmet-bronze-nasal.png'),
+  blue: I('magic/scroll-rune-blue-1.png'), stone: I('scaled/stone.png'), wood: I('scaled/wood.png'), meat: I('alchemy/food-raw-meat.png'),
+  hide: I('relics/pelt-hide.png'), shard: I('magic/charm-sun-crystal.png'), hammer: I('rpg/tool-hammer.png'), potion: I('rpg/potion-green-flask.png'),
+  warrior: I('class/warrior.png'), ranger: I('class/ranger.png'), thief: I('class/thief.png'), dagger: I('rpg/dagger-emerald-blade.png'),
+};
+const img = (src) => `<img src="${src}" alt="">`;
+const em = (e) => `<span class="em">${e}</span>`;
+const gold = (n, short) => `<span class="price${short ? ' short' : ''}">${img(ic.gold)}${n}</span>`;
+const slot = (inner, o = {}) => `<div class="slot${o.rare ? ' rare' : ''}${o.sel ? ' sel' : ''}${o.dim ? ' dim' : ''}">${inner}${o.n ? `<span class="n">${o.n}</span>` : ''}${o.badge ? `<span class="badge">${o.badge}</span>` : ''}</div>`;
+const tile = (inner, label, o = {}) => `<div class="tile">${slot(inner, o)}${label}</div>`;
+const mini = (list) => `<span class="mini">${list.map(([src, n]) => slot(src.startsWith('.') ? img(src) : em(src), { n })).join('')}</span>`;
+const btn = (label, kind = 'ember', o = {}) => `<div class="btn ${kind}${o.c ? ' c' : ''}">${label}</div>`;
+const locked = (label) => `<div class="btn locked"><span class="lk">👣</span>${label}</div>`;
+
+/** The header: icon in its time ring (or difficulty ring), name, status line. */
+function band({ icon, name, status, left = 0.6, last, diff, peek }) {
+  const ring = diff
+    ? `<div class="ring"><div class="time" style="--left:${Math.round(left * 100)}%"></div><div class="diff"></div>${icon}<span class="pip"><i></i></span></div>`
+    : `<div class="ring"><div class="time${last ? ' last' : ''}" style="--left:${Math.round(left * 100)}%"></div><div class="in"></div>${icon}</div>`;
+  return `<div class="band">${ring}<div><div class="t">${name}</div><div class="s">${status}</div></div>${peek ? '<span class="more">More ▴</span>' : ''}</div>`;
+}
+function phone({ cap, sheet, markers = [], me = [195, 520], dim, extra = '' }) {
+  return `<div><p class="cap">${cap}</p><div class="phone" role="img" aria-label="${cap}"><div class="map"></div>
+    ${markers.map(([x, y, e, sel]) => `<div class="mk${sel ? ' sel' : ''}" style="left:${x}px;top:${y}px"><div class="d"></div><div class="e">${e}</div></div>`).join('')}
+    <div class="me" style="left:${me[0]}px;top:${me[1]}px"></div>
+    ${sheet ? '' : '<div class="island"></div>'}
+    ${dim ? '<div class="dim"></div>' : ''}${sheet || ''}${extra}</div></div>`;
+}
+const sheet = (head, body, foot) => `<div class="sheet"><span class="grab"></span>${head}${body ? `<div class="body">${body}</div>` : ''}<div class="foot">${foot}</div></div>`;
+
+/* ---------- smithy ---------- */
+const smithyIcon = img(ic.hammer);
+const smithyMarkers = (sel) => [[300, 150, '⚒️', sel], [80, 260, '🍺'], [250, 330, '🌾']];
+const smithySum = `<div class="sum">Sells 3 pieces and a helm blueprint <span class="m">·</span> wants ${mini([[ic.stone], [ic.wood]])} stone and wood</div>`;
+const shopGrid = (sel, far) => `<div class="grid">
+  ${tile(img(ic.sword), gold(120), { sel })}
+  ${tile(img(ic.helm), gold(60))}
+  ${tile(img(ic.dagger), gold(240), { rare: 1 })}
+  ${tile(img(ic.blue), gold(480, true), { badge: 'Blueprint' })}
+</div>`;
+const shopTabs = (on) => `<div class="tabs"><span class="${on === 'buy' ? 'on' : ''}">Buy · Sell</span><span class="${on === 'order' ? 'on' : ''}">Order · 40%</span><span class="${on === 'details' ? 'on' : ''}">Details</span></div>`;
+document.getElementById('smithy').innerHTML = [
+  phone({ cap: 'Peek · far · 320 m', markers: smithyMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: smithyIcon, name: 'Smithy', status: '<span>320 m away</span><span>·</span><span>leaves in 2 h</span>', peek: 1 }), smithySum,
+      locked('Walk 320 m to trade')) }),
+  phone({ cap: 'Peek · here', markers: smithyMarkers(1), me: [300, 175], dim: 1,
+    sheet: sheet(band({ icon: smithyIcon, name: 'Smithy', status: '<b>You’re here</b><span>·</span><span>leaves in 2 h</span>', peek: 1 }), smithySum,
+      btn('Buy') + `<div class="sec">${btn('Sell', 'wood', { c: 1 })}${btn(`Deliver 6 ${img(ic.stone)}`, 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Full · far · Buy tab', markers: smithyMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: smithyIcon, name: 'Smithy', status: '<span>320 m away</span><span>·</span><span>leaves in 2 h</span>' }),
+      smithySum + shopTabs('buy') + `<div class="sub"><span class="on">Buy</span><span>Sell</span></div>` + shopGrid(false, true) +
+      `<div class="sum" style="font-size:16px"><span class="m">Stock changes when the smithy moves on. You hold</span> ${gold(412)}</div>`,
+      locked('Walk 320 m to trade')),
+    extra: `<div class="callout" style="left:150px;top:520px">Prices show from afar. Tapping a tile still opens its card, with “Walk 320 m to buy” as its action.</div>` }),
+  phone({ cap: 'Full · here · a tile picked', markers: smithyMarkers(1), me: [300, 175], dim: 1,
+    sheet: sheet(band({ icon: smithyIcon, name: 'Smithy', status: '<b>You’re here</b><span>·</span><span>leaves in 2 h</span>' }),
+      smithySum + shopTabs('buy') + `<div class="sub"><span class="on">Buy</span><span>Sell</span></div>` + shopGrid(true) +
+      `<div class="card">${slot(img(ic.sword))}<div><div class="ct">Knight’s longsword</div><div class="cd">Common · +12 attack · fits Warrior, Paladin</div><div class="cd">Better than Bram’s sword</div></div></div>`,
+      btn(`Buy Knight’s longsword <small>${gold(120)}</small>`) + `<div class="sec">${btn(`Deliver 6 ${img(ic.stone)}`, 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Full · here · Order tab', markers: smithyMarkers(1), me: [300, 175], dim: 1,
+    sheet: sheet(band({ icon: smithyIcon, name: 'Smithy', status: '<b>You’re here</b><span>·</span><span>leaves in 2 h</span>' }),
+      smithySum + shopTabs('order') +
+      `<div class="card">${slot(img(ic.sword), { rare: 1 })}<div><div class="ct">Tempered blade</div><div class="cd">Only from this smithy’s order.</div></div></div>
+       <div class="bar"><i style="width:40%"></i></div>
+       <div class="sum" style="font-size:16px"><b>40%</b> <span class="m">filled · rewards at 25%, 50% and 100%</span></div>
+       <div class="grid">${tile(img(ic.gold), '25% ✓', { n: '40' })}${tile(img(ic.potion), '50%')}${tile(img(ic.sword), '100%', { rare: 1 })}</div>
+       <div class="dl"><dt>Wants</dt><dd>${gold(3)} each</dd><dt>${mini([[ic.stone]])} Stone</dt><dd>18 of 30 still needed</dd><dt>${mini([[ic.wood]])} Wood</dt><dd>6 of 10 still needed</dd></div>`,
+      btn(`Deliver 6 ${img(ic.stone)} <small>${gold(18)}</small>`) + `<div class="sec">${btn('Add to the delivery route', 'wood', { c: 1 })}</div>`) }),
+].join('');
+
+/* ---------- patrol ---------- */
+const gob = em('👺');
+const patrolMarkers = (sel) => [[110, 140, '👺', sel], [300, 300, '⚒️']];
+const patrolSum = `<div class="sum">3 goblins <span class="m">·</span> <span class="threat"><i>🪤</i>Traps 2</span> <span class="m">·</span> drops ${mini([[ic.gold], [ic.shard], [ic.hide]])}</div>`;
+const patrolTabs = (on) => `<div class="tabs"><span class="${on === 'foes' ? 'on' : ''}">Foes</span><span class="${on === 'details' ? 'on' : ''}">Details</span></div>`;
+const foes = `<div class="foe">${slot(em('👺'), { n: '×2' })}<div><div class="fn">Goblin</div><span class="tag">Goblinoid</span><span class="tag">14 HP</span></div></div>
+  <div class="foe">${slot(em('🏹'))}<div><div class="fn">Goblin slinger</div><span class="tag">Goblinoid</span><span class="tag">Ranged</span></div></div>
+  <div class="sum" style="font-size:16px"><span class="threat"><i>🪤</i>Traps 2</span> <span class="m">what the threat asks of the party, as the briefing says it today</span></div>
+  <div class="sum" style="font-size:16px"><span class="m">Drops</span></div><div class="grid">${tile(img(ic.gold), 'Gold', { n: '8–14' })}${tile(img(ic.shard), 'Shard', { badge: '1 in 4' })}${tile(img(ic.hide), 'Hide', { n: '1' })}</div>`;
+document.getElementById('patrol').innerHTML = [
+  phone({ cap: 'Peek · far · 320 m', markers: patrolMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: gob, name: 'Goblin patrol', status: '<span>Easy</span><span>·</span><span>320 m away</span><span>·</span><span>leaves in 40 min</span>', diff: 1, left: 0.35, peek: 1 }), patrolSum,
+      locked('Walk 320 m to fight')),
+    extra: `<div class="callout" style="left:150px;top:300px">If heroes may go from afar: this button becomes “Send heroes”, ember, opening the party picker.</div>` }),
+  phone({ cap: 'Peek · here', markers: patrolMarkers(1), me: [130, 165], dim: 1,
+    sheet: sheet(band({ icon: gob, name: 'Goblin patrol', status: '<span>Easy</span><span>·</span><b>You’re here</b><span>·</span><span>leaves in 40 min</span>', diff: 1, left: 0.35, peek: 1 }), patrolSum,
+      btn('Fight') ) }),
+  phone({ cap: 'Full · far · Foes tab', markers: patrolMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: gob, name: 'Goblin patrol', status: '<span>Easy</span><span>·</span><span>320 m away</span><span>·</span><span>leaves in 40 min</span>', diff: 1, left: 0.35 }),
+      patrolSum + patrolTabs('foes') + foes, locked('Walk 320 m to fight')) }),
+  phone({ cap: 'Full · here · Details tab', markers: patrolMarkers(1), me: [130, 165], dim: 1,
+    sheet: sheet(band({ icon: gob, name: 'Goblin patrol', status: '<span>Easy</span><span>·</span><b>You’re here</b><span>·</span><span>leaves in 40 min</span>', diff: 1, left: 0.35 }),
+      patrolSum + patrolTabs('details') +
+      `<dl class="dl"><dt>Tier</dt><dd>2</dd><dt>Takes</dt><dd>15 min</dd><dt>Party</dt><dd>3 heroes recommended, 4 at most</dd><dt>Ground</dt><dd>Forest</dd><dt>Odds</dt><dd>Shown when you pick the party</dd></dl>`,
+      btn('Fight')) }),
+].join('');
+
+/* ---------- building ---------- */
+const farmIcon = em('🌾');
+const bMarkers = (sel) => [[250, 150, '🌾', sel], [70, 300, '🏠'], [330, 330, '🍺']];
+const bSum = (stored) => `<div class="sum">Making 3 ${mini([['🌾']])} grain an hour <span class="m">·</span> ${stored} of 36 stored <span class="m">·</span> no worker</div>`;
+const bSumWorked = `<div class="sum">Making 3 ${mini([['🌾']])} grain an hour <span class="m">·</span> 12 of 36 stored <span class="m">·</span> the cart calls in 42 min</div>`;
+const bTabs = (on) => `<div class="tabs"><span class="${on === 'make' ? 'on' : ''}">Making</span><span class="${on === 'work' ? 'on' : ''}">Worker</span><span class="${on === 'details' ? 'on' : ''}">Details</span></div>`;
+const status = (where) => `<span>★★☆</span><span>·</span>${where}<span>·</span><span>leaves in 2 days</span>`;
+document.getElementById('building').innerHTML = [
+  phone({ cap: 'Peek · far · no worker', markers: bMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: farmIcon, name: 'Farm', status: status('<span>320 m away</span>'), left: 0.7, peek: 1 }), bSum(12),
+      btn('Post a hero') + `<div class="sec">${btn('Add to the delivery route', 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Peek · here · worked, on the route', markers: bMarkers(1), me: [270, 175], dim: 1,
+    sheet: sheet(band({ icon: farmIcon, name: 'Farm', status: status('<b>You’re here</b>'), left: 0.7, peek: 1 }), bSumWorked,
+      btn(`Collect 12 ${mini([['🌾']])}`)) }),
+  phone({ cap: 'Full · far · Making tab, last day', markers: bMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: farmIcon, name: 'Farm', status: '<span>★★☆</span><span>·</span><span>320 m away</span><span>·</span><b style="color:#F2A066">⏳ last day, 5 h</b>', left: 0.08, last: 1 }), bSumWorked + bTabs('make') +
+      `<div class="bar"><i style="width:33%"></i></div><div class="sum" style="font-size:16px">12 of 36 stored <span class="m">· full in 8 h</span></div>
+       <div class="grid">${tile(em('🌾'), 'Grain', { n: '10' })}${tile(img(ic.meat), 'Meat', { n: '2' })}</div>
+       <div class="sum" style="font-size:16px"><span class="m">Goes to</span> 🍺 the Crooked Mug’s order, then home</div>
+       <div class="card" style="background:#F2D3C2"><div><div class="ct">Leaves in 5 h</div><div class="cd">Stock the cart hasn’t taken is lost. Bram comes home.</div></div></div>`,
+      locked('Walk 320 m to collect 12') + `<div class="sec">${btn('Recall Bram', 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Full · far · Worker tab', markers: bMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: farmIcon, name: 'Farm', status: status('<span>320 m away</span>'), left: 0.7 }), bSum(12) + bTabs('work') +
+      `<div style="display:flex;gap:12px;align-items:center"><div class="portrait empty">+</div><div class="sum" style="font-size:16px">Locals work it at 50%. A hero works it at the full rate; a Farmer adds up to +20%.</div></div>
+       <div class="sum" style="font-size:16px"><span class="m">Free heroes</span></div>
+       <div style="display:flex;gap:12px;align-items:center"><div class="portrait">${img(ic.ranger)}</div><div><div style="font-size:19px">Ysolde · Ranger</div><div class="sum" style="font-size:15px"><span class="m">Farmer, level 2 · +12%</span></div></div></div>
+       <div style="display:flex;gap:12px;align-items:center"><div class="portrait">${img(ic.thief)}</div><div><div style="font-size:19px">Pip · Thief</div><div class="sum" style="font-size:15px"><span class="m">No farming trade</span></div></div></div>`,
+      btn('Post Ysolde') + `<div class="sec">${btn('Add to the delivery route', 'wood', { c: 1 })}</div>`),
+    extra: `<div class="callout" style="left:180px;top:300px">Tapping a portrait picks the hero; the main action names them.</div>` }),
+].join('');
+
+/* ---------- chooser ---------- */
+const row = (ring, name, st) => `<div class="opt">${ring}<div><div class="nm">${name}</div><div class="st">${st}</div></div><span class="go">›</span></div>`;
+const tRing = (e, left = 0.6) => `<div class="ring sm"><div class="time" style="--left:${left * 100}%"></div><div class="in"></div>${e}</div>`;
+const dRing = (e) => `<div class="ring sm"><div class="time" style="--left:35%"></div><div class="diff"></div>${e}</div>`;
+document.getElementById('chooser').innerHTML = [
+  phone({ cap: 'Three markers under one tap', markers: [[200, 330, '⚒️'], [216, 342, '👺'], [190, 356, '🌾']], me: [120, 600] }),
+  phone({ cap: 'The chooser', markers: [[200, 330, '⚒️', 1], [216, 342, '👺', 1], [190, 356, '🌾', 1]], me: [120, 600],
+    extra: `<div class="chooser" style="left:45px;top:92px;--tail:160px"><div class="hd">3 here · pick one</div>
+      ${row(tRing(img(ic.hammer)), 'Smithy', '280 m · leaves in 2 h')}
+      ${row(dRing(em('👺')), 'Goblin patrol', 'Easy · 290 m · leaves in 40 min')}
+      ${row(tRing(em('🌾'), 0.7), 'Farm', '300 m · 12 of 36 stored')}</div>` }),
+  phone({ cap: 'Picked: its peek opens', markers: [[200, 330, '⚒️'], [216, 342, '👺', 1], [190, 356, '🌾']], me: [120, 600], dim: 1,
+    sheet: sheet(band({ icon: gob, name: 'Goblin patrol', status: '<span>Easy</span><span>·</span><span>290 m away</span><span>·</span><span>leaves in 40 min</span>', diff: 1, left: 0.35, peek: 1 }), patrolSum,
+      locked('Walk 290 m to fight')) }),
+].join('');
+</script>
+</body>
+</html>
