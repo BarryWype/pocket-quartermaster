@@ -127,7 +127,7 @@ describe('buildingReach', () => {
     expect(buildingReach(save)).toEqual(supplyRules.buildings.limits[1]);
     expect(supplyRules.buildings.limits).toEqual({
       1: { count: 3, meters: 1000 },
-      2: { count: 3, meters: 1000 },
+      2: { count: 4, meters: 1000 },
       3: { count: 4, meters: 1500 },
       4: { count: 5, meters: 2000 },
       5: { count: 6, meters: 2500 },

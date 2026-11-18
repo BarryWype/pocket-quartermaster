@@ -141,3 +141,4 @@ Heavy tier 5: +14,176 → +18,647 → +21,606; casual tier 5: +1,094 → +4,542 
 - **Pace holds:** days to the end are 68 / 44 / 29 (casual / regular / heavy), against 69 / 44 / 27 before the network. Main-material spent share stays 87–151%.
 - **Losses dominate the cart and raids:** a regular player's cart meets 9 ambushes a week (0.1 won, 4.1 lost, 5.0 unguarded); raids 0.1 won, 1.6 lost, 0.9 unguarded.
 - **Other bands:** 140 fail against 144 last run. They're mostly the win odds and the gatherer's share bands, which also failed last run, and they move from run to run. The supply band at tier 2 is the only one for the network.
+- **Then:** you chose four buildings at tier 2 (was three; tier 3 keeps four, with its longer reach) to bring tier 2 toward 1.5×. To check in the next full run: regular tier 2 buildings ÷ walking.

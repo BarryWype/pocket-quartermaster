@@ -164,7 +164,7 @@ export const supplyRules = {
     /** How many buildings the player may hold at once, and how far from the hall they may stand, by tier. */
     limits: {
       1: { count: 3, meters: 1000 },
-      2: { count: 3, meters: 1000 },
+      2: { count: 4, meters: 1000 },
       3: { count: 4, meters: 1500 },
       4: { count: 5, meters: 2000 },
       5: { count: 6, meters: 2500 },

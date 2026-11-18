@@ -268,7 +268,7 @@ Prompt 2, step 2 (proposal approved as written in `quests.md`).
 | `cellPrecision` | 7 | The geohash grid of the feature. |
 | `cellStepMeters` | 35 | Step along a segment when listing the cells it crosses. |
 | `hall.movesPerWeek` | 2 | Moves of the hall in any 7 days (the first placement doesn't count). |
-| `buildings.limits` | 3/1 km (tiers 1–2), 4/1.5 km, 5/2 km, 6/2.5 km | Buildings at once, each within this distance of the hall. |
+| `buildings.limits` | 3/1 km (tier 1, debug only), 4/1 km, 4/1.5 km, 5/2 km, 6/2.5 km | Buildings at once, each within this distance of the hall. |
 | `buildings.cost` / `lifeDays` / `lastDayHours` | 60/60/90/140/200 gold by tier + 10 wood / 6 / 24 | What building costs, how long a building lasts, when its last day starts. |
 | `buildings.kinds` | see the table above | What each building makes, its base rate per star, the place kind it serves. |
 | `sites.qualityShares` | 0.5 / 0.35 / 0.15 | Chances of 1, 2 and 3 stars. |
