@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map sheets audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(../../../../assets/fonts/FantaisieArtistique.ttf) format('truetype');font-display:swap}
+:root{
+  --outline:#1E120A;--woodDeep:#2A180D;--woodDark:#3A2314;--woodMid:#5A3820;--woodSeam:#4E301B;--woodSel:#7A4A26;
+  --brass:#C9A04E;--brassDim:#8A6A34;--brassLight:#F6D98E;--parch:#F2E4C2;--parchShade:#E6D3A8;--rule:#B9A27A;
+  --ink:#3A2314;--inkMuted:#6A4A2C;--onWood:#F2E4C2;--ember:#B4471C;--emberLight:#E07A3E;--emberDark:#6E2A0E;--onEmber:#FFF1DC;
+  --good:#2F6B32;--bad:#8A2E1C;--pin:#C0262D;
+  --page:#2A180D;--pageText:#F2E4C2;--card:#3A2314;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--pageText);font-family:Alegreya,Georgia,serif;font-size:16px;line-height:1.45}
+a{color:var(--brassLight)}
+main{max-width:1180px;margin:0 auto;padding:24px 16px 80px}
+h1{font-family:Fantaisie,serif;font-weight:400;color:var(--brassLight);font-size:34px;margin:0 0 4px}
+h2{font-family:Fantaisie,serif;font-weight:400;color:var(--brassLight);font-size:26px;margin:48px 0 6px;border-bottom:2px solid var(--brassDim);padding-bottom:6px}
+h3{font-size:17px;margin:18px 0 6px;color:var(--brassLight)}
+.lede{color:#E2CFA4;max-width:780px}
+.note{background:var(--card);border:2px solid var(--outline);outline:2px solid var(--brassDim);outline-offset:-6px;padding:14px 16px;margin:16px 0;max-width:860px}
+.note b{color:var(--brassLight)}
+nav.toc{columns:3 220px;font-size:15px;margin:12px 0}
+nav.toc a{display:block;padding:2px 0}
+.pair{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
+.cap{font-size:13px;color:#C9B48A;margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em}
+/* phone */
+.phone{width:390px;max-width:100%;height:844px;position:relative;overflow:hidden;border:3px solid #000;border-radius:28px;background:#5f8f47}
+.phone .map{position:absolute;inset:0;background:
+  linear-gradient(90deg,transparent 47%,#d9cfae 47% 53%,transparent 53%),
+  linear-gradient(0deg,transparent 60%,#d9cfae 60% 64%,transparent 64%),
+  linear-gradient(120deg,transparent 30%,#cfc4a1 30% 33%,transparent 33%),#6DAE4F}
+.phone .dim{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:717px;display:flex;flex-direction:column;background:var(--parch);border:3px solid var(--outline);color:var(--ink);font-family:Fantaisie,serif;font-size:18px}
+.sheet:before{content:"";position:absolute;inset:5px;border:2px solid var(--brass);pointer-events:none}
+.band{display:flex;align-items:center;gap:10px;padding:10px 14px;background:repeating-linear-gradient(0deg,var(--woodMid) 0 13px,var(--woodSeam) 13px 14px);border-bottom:3px solid var(--outline);position:relative;z-index:1}
+.band .ic{width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--woodDeep);border:2px solid var(--brass);font-size:24px;font-family:system-ui}
+.band .t{font-size:23px;color:var(--brassLight);line-height:24px}
+.band .s{font-family:Alegreya,serif;font-size:13px;color:#E2CFA4}
+.body{overflow-y:auto;padding:10px 16px 12px;display:flex;flex-direction:column;gap:6px;flex:1 1 auto;position:relative;z-index:1}
+.foot{display:flex;gap:8px;justify-content:flex-end;padding:8px 16px 48px;position:relative;z-index:1;flex-wrap:wrap}
+.muted{color:var(--inkMuted)}
+.problem{color:var(--inkMuted);font-style:italic}
+.h{font-size:21px;margin-top:6px}
+.small{font-size:15px}
+.em{font-family:system-ui;font-style:normal}
+.btn{min-height:52px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;font-family:Fantaisie,serif;font-size:22px;border:3px solid var(--outline);position:relative;white-space:nowrap}
+.btn.c{min-height:44px;font-size:18px;padding:0 12px}
+.btn.wood{background:var(--woodMid);color:var(--brassLight)}
+.btn.wood:after{content:"";position:absolute;inset:3px;border:2px solid var(--brass)}
+.btn.ember{background:var(--ember);color:var(--onEmber);box-shadow:inset 3px 3px 0 var(--emberLight),inset -3px -3px 0 var(--emberDark)}
+.btn.off{opacity:.5}
+.btn.ember.off{background:var(--parchShade);color:var(--inkMuted);box-shadow:none;opacity:1}
+.row{display:flex;flex-direction:column;gap:4px;padding:8px 0;border-top:2px solid var(--parchShade)}
+.row .l{font-size:21px}
+.acts{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.price{font-size:21px;display:inline-flex;align-items:center;gap:4px}
+.price:before{content:"";width:14px;height:14px;border-radius:7px;background:#E8B83A;border:2px solid #7A5A24;display:inline-block}
+.price.short{color:var(--bad)}
+.timer{display:flex;align-items:center;gap:6px;padding:6px 10px;border:2px solid var(--outline);background:var(--parchShade)}
+.timer.last{background:var(--ember);color:var(--onEmber);border-color:var(--bad)}
+.tabs{display:flex;gap:8px}
+.tabs .btn{flex:none}
+.tabs .btn.offtab{background:var(--woodDark);opacity:.7}
+.section{display:flex;flex-direction:column;gap:4px;padding:10px 0;border-top:2px solid var(--parchShade)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2px solid var(--woodDark);padding:6px 10px;font-size:17px}
+.chip.on{border-color:var(--ink);background:#F6D98E}
+.diff{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;padding:3px 10px;border:2px solid var(--outline);font-size:16px}
+.diff i{width:12px;height:12px;border-radius:6px;display:inline-block}
+.threat{display:inline-flex;align-self:flex-start;gap:6px;padding:3px 8px;background:#F2D3C2;border:2px solid var(--bad);font-size:16px}
+.foe{display:flex;gap:8px;align-items:center;font-size:17px}
+.tag{font-family:Alegreya,serif;font-size:12px;border:1px solid var(--rule);padding:0 5px}
+.tiles{display:flex;gap:6px;flex-wrap:wrap}
+.tile{width:40px;height:40px;border:2px solid var(--outline);background:var(--woodDark);display:flex;align-items:center;justify-content:center;font-family:system-ui;font-size:20px;position:relative}
+.tile.big{width:64px;height:64px;font-size:34px}
+.tile small{position:absolute;right:1px;bottom:-1px;font-size:10px;color:#fff;font-family:Alegreya,serif}
+.bar{height:14px;border:2px solid var(--outline);background:var(--woodDeep);position:relative}
+.bar>i{position:absolute;left:0;top:0;bottom:0;background:var(--emberLight)}
+.pcard{border:2px solid var(--outline);background:#F7ECCF;padding:10px;display:flex;flex-direction:column;gap:6px;box-shadow:inset 0 0 0 2px var(--parch),inset 0 0 0 4px var(--rule)}
+.pcard .pt{font-size:19px}
+.banner{border:2px solid var(--outline);padding:8px 10px;background:#DDE8C8}
+.banner.block{background:#F2D3C2}
+.flow{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:15px}
+.flow .n{border:2px solid var(--rule);padding:4px 6px;background:#F7ECCF}
+.pin{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:11px;background:var(--pin);color:#fff;font:700 13px/1 Alegreya,sans-serif;padding:0 5px;border:2px solid #fff;vertical-align:middle;flex:none;font-style:normal}
+.pinrow{display:flex;gap:6px;align-items:center}
+.find{flex:1 1 300px;min-width:280px}
+table.facts{border-collapse:collapse;width:100%;font-size:15px}
+table.facts th{text-align:left;vertical-align:top;color:var(--brassLight);width:150px;padding:6px 10px 6px 0;font-weight:700}
+table.facts td{padding:6px 0;vertical-align:top;border-top:1px solid var(--woodSel)}
+table.facts th{border-top:1px solid var(--woodSel)}
+ol.dead{margin:4px 0 0;padding-left:0;list-style:none}
+ol.dead li{display:flex;gap:8px;margin:6px 0}
+.src{font-family:ui-monospace,monospace;font-size:13px;color:#C9B48A}
+ol.worst li{margin:8px 0}
+.sev{font-size:12px;font-weight:700;padding:1px 6px;border:1px solid;margin-right:6px;text-transform:uppercase;letter-spacing:.05em}
+.sev.hi{color:#FFB09A;border-color:#FFB09A}.sev.md{color:var(--brassLight);border-color:var(--brassLight)}.sev.lo{color:#C9B48A;border-color:#C9B48A}
+table.matrix{border-collapse:collapse;font-size:14px;width:100%;margin-top:8px}
+table.matrix th,table.matrix td{border:1px solid var(--woodSel);padding:5px 7px;text-align:left;vertical-align:top}
+table.matrix th{color:var(--brassLight)}
+.scroll{overflow-x:auto}
+@media (max-width:440px){.phone{border-radius:0;border-width:0}}
+</style>
+</head>
+<body>
+<main>
+<h1>Map sheets, as they are today</h1>
+<p class="lede">Prompt 1, step 1 of the map UI pass. Every sheet that opens from a map tap on <code>feat/supply-lines</code> (at 9b24e24), far (320 m away) and here, with what it answers at a glance, where its main action is, what it hides when far, and what does nothing or says nothing. No code changed.</p>
+
+<div class="note">
+<b>How these were made.</b> These are <b>drawings from the component code, not screenshots.</b> This session had no simulator or phone to run the debug build on, and the map can't run on the web (MapLibre native, no <code>react-native-web</code>), so there's no way to capture the real screens here. Each frame follows its component line by line: the same blocks in the same order, the English strings from <code>src/i18n/en.ts</code>, the theme's colours and button sizes, and the sheet's real height cap (85% of an 844 pt screen, the body scrolls past that). Example data stands in for the save (412 gold, a three-hero roster). Emoji stand in for the game's icon art. Fonts and exact spacing are close, not pixel-true. The red pins <span class="pin">1</span> point at the numbered problems listed beside each pair.<br><br>
+<b>Assumed:</b> the network is on (it is on for everyone on this branch), so the time strip and the order show where the code gates them on it.
+</div>
+
+<nav class="toc" id="toc"></nav>
+
+<div id="sheets"></div>
+
+<h2 id="why-hidden">Why shops hide their contents when far</h2>
+<p>One commit added it, everywhere at once: <span class="src">fa8cee8</span>, 2 Nov 2026, “prevent showing what each event does when tapping on it if the event is not reachable”. It touched the place, tavern, patrol, place fight, Sanctum, secret and traveller sheets in one go and added the single string “You are too far to see what is here.” No design doc, idea or issue gives a reason, and the commit hides the same way for every kind, so it reads as a blanket “not reachable means not shown” rule rather than a choice made for any one place.</p>
+<p>Where hiding still earns its place, because something else in the game depends on not knowing:</p>
+<ul>
+  <li><b>Secret places before they are entered.</b> The hidden den's and black market's offers stay behind the key (<code>isEntered</code>), not behind distance. That is the real secret, and it must stay. Distance adds nothing to it: the tip already told the player the place exists.</li>
+  <li><b>Undiscovered network places.</b> “Walk here to discover it” is a game rule (discovery makes the order and the stop exist). The order must stay hidden until discovery; the place's own stock doesn't need to.</li>
+  <li><b>Undiscovered sites.</b> The ground's quality is learnt by walking there (“You'll see how good it is and what you can build.”). Keep.</li>
+  <li><b>Traveller rewards.</b> What a traveller gives is a surprise by design (the reward shows only after helping). Their ask (“a healing potion”) isn't a secret and can show from afar.</li>
+</ul>
+<p>Everything else (shop stock and prices, recruits, care, the fight's foes and threats, the Sanctum's guardian) has no stated reason to hide, and hiding it makes the player walk 300 m to learn whether the walk was worth it.</p>
+
+<h2 id="worst">Inconsistencies, worst first</h2>
+<ol class="worst">
+  <li><span class="sev hi">High</span><b>The main action is in a different place on every sheet, and is usually not in the footer.</b> Ten of the twenty sheets have nothing in the footer but Close: every place kind, the tavern, the secret place, the site, the building, the cart and the cell. Their actions sit in the body, one per row or card, often below a full screen of order (tavern, smithy). Fight sheets put Fight in the footer; the traveller puts Help there but Trade in the body; the Sanctum swaps Close for Skip during the fight.</li>
+  <li><span class="sev hi">High</span><b>Far, most sheets show almost nothing.</b> A shop, tavern, fight or Sanctum at 320 m is a title, a distance and “You are too far to see what is here.” The player can't tell whether the walk is worth it. Meanwhile the network order, which has its own walk rule, is shown in full from afar, above that line.</li>
+  <li><span class="sev hi">High</span><b>The network order pushes the place's own content down.</b> On the tavern, smithy, apothecary and market, <code>OrderSection</code> comes first: a 64 pt headline tile, a progress bar, three step tiles, a wants list, “Add to the cart's route” and a disabled “Deliver from my bag”. On a 844 pt phone the tavern's first recruit starts below the fold.</li>
+  <li><span class="sev hi">High</span><b>“Send heroes” has nowhere to go yet: every fight needs the player within range.</b> <code>patrolFightProblem</code> and <code>placeFightProblem</code> return <code>tooFar</code> beyond 80 m (patrols) and 50 m (places), and the Sanctum beyond 50 m. Step 4's “Send heroes appears only where heroes can actually go today (fights)” would therefore show nowhere. Sending heroes from afar would be a game rule change; it needs your call before step 4.</li>
+  <li><span class="sev md">Medium</span><b>Locked actions don't say why in their own label.</b> Fight, Challenge, Buy, Recruit, Build, Deliver, Collect and Heist are greyed with the reason (if any) in a separate grey line, sometimes far below (Fight in the footer, reason in the body), sometimes repeated under every card (the site's four “Walk to the site to build”), sometimes absent (Buy short of gold only turns the price red; the pilgrim's sheet simply has no button when you carry neither a meal nor enough supply).</li>
+  <li><span class="sev md">Medium</span><b>Five ways to say “walk closer”, and two ways to say how long it stays.</b> “Walk closer to use it (320 m away).”, “Walk closer (320 m)”, “Get within 50 m to recruit (320 m away).”, “Walk to the site to build (320 m).”, “Walk to the Smithy to deliver (320 m).” Time: the strip says “Leaves in 2h 14m”, the line under it says “Leaves in 2 h”, the secret place says “5h 10m left”, and patrols and the Sanctum say nothing (their time is only on the marker).</li>
+  <li><span class="sev md">Medium</span><b>One vocabulary, not yet.</b> “the cart's route” (sheets) and “delivery route” (the target word); “Deliver from my bag” and “Hand over” (quests); “Blueprint” and “recipe”; “Close”, “Walk on” and “Skip”; Fight, Challenge, Dive in and Send on a heist for the same act; durations as “15m 00s” on fight sheets (seconds on a quarter hour) and “15m” elsewhere.</li>
+  <li><span class="sev md">Medium</span><b>An empty map tap opens a sheet.</b> With the network on, any tap that misses a marker opens the cell sheet (terrain name and a hall button). A near miss on a small marker lands here. The cell sheet's only other use, placing or moving the hall, is rare.</li>
+  <li><span class="sev md">Medium</span><b>Accessibility labels are missing on most markers.</b> Shops, taverns and secret places only get a spoken label when a flag (unvisited, last day, locked) is set: <code>SanctumMarker</code> passes <code>accessibilityLabel</code> through as undefined otherwise. The cart, the hall, sites without flags, gather spots, quest pins and dig spots have none.</li>
+  <li><span class="sev lo">Low</span><b>Three ways to confirm.</b> The Sanctum asks through a system <code>Alert</code>; the hall move through a centred <code>Panel</code> dialog with plain <code>Button</code>s (not Wood or Ember); everything else through <code>PartyDialog</code> or not at all.</li>
+  <li><span class="sev lo">Low</span><b>Two tab styles.</b> Buy · Sell are two compact wood buttons, one dimmed; the network screens use no tabs. Nothing else in the sheets has tabs yet.</li>
+  <li><span class="sev lo">Low</span><b>Emoji mixed with words in strings</b> that reach a Text: the Sanctum warning (“⚠️ One attempt only…”), the secret key lines (“🔒 No mysterious key…”, “🗝️ You have…”, “🔓 Unlocked…”). They come through <code>t()</code>, so the mixed-emoji test, which reads the source, can't see them.</li>
+</ol>
+
+<h2 id="matrix">At a glance, all sheets</h2>
+<div class="scroll"><table class="matrix" id="matrix"></table></div>
+
+<p class="small" style="color:#C9B48A;margin-top:40px">Sources: <span class="src">src/components/MapPanels.tsx</span> and the sheets it opens, <span class="src">src/store/mapPanelsStore.ts</span>, <span class="src">src/components/MapMarkers.tsx</span>, <span class="src">SupplyMarkers.tsx</span>, <span class="src">CartMarker.tsx</span>, <span class="src">src/app/index.tsx</span> (map tap), <span class="src">src/i18n/en.ts</span>, <span class="src">doc/ideas.md</span> line 52 (overlapping icons), and the full history for <span class="src">tooFarToSee</span>.</p>
+</main>
+
+<script>
+/* ---------- tiny renderer: each block is HTML built from the component's own order ---------- */
+const P = (n) => `<span class="pin">${n}</span>`;
+const em = (e) => `<span class="em">${e}</span>`;
+const txt = (s, cls = '') => `<div class="${cls}">${s}</div>`;
+const pinned = (html, n) => `<div class="pinrow">${html}${P(n)}</div>`;
+const btn = (label, kind = 'wood', o = {}) => `<span class="btn ${kind}${o.c ? ' c' : ''}${o.off ? ' off' : ''}">${label}</span>`;
+const price = (n, short) => `<span class="price${short ? ' short' : ''}">${n}</span>`;
+const timer = (t, last) => `<div class="timer${last ? ' last' : ''}">${em('⏳')}<span style="flex:1">Leaves in ${t}</span>${last ? '<b>LAST DAY</b>' : ''}</div>`;
+const stock = (icon, name, left, p, o = {}) => `<div class="row"><div class="l">${em(icon)} ${name}</div><div class="acts"><span class="muted">${left}</span>${price(p, o.short)}${btn('Buy', 'wood', { c: 1, off: o.off })}</div></div>`;
+const diff = (name, col) => `<span class="diff"><i style="background:${col}"></i>${name}</span>`;
+const foe = (icon, name, tags) => `<div class="foe">${em(icon)} ${name} ${tags.map((t) => `<span class="tag">${t}</span>`).join(' ')}</div>`;
+const tiles = (list, big) => `<div class="tiles">${list.map(([e, n]) => `<span class="tile${big ? ' big' : ''}">${e}${n ? `<small>${n}</small>` : ''}</span>`).join('')}</div>`;
+const walkHere = () => txt(`${em('👣')} Walk here to discover it.`);
+const tooFar = (line) => txt(line, 'problem') + txt('You are too far to see what is here.', 'muted');
+
+/** OrderSection, as it renders on a discovered network place. */
+function order(o) {
+  return `<div class="section" style="border-top:0;padding-top:0">
+    <div style="display:flex;gap:10px">${tiles([[o.head]], true)}<div><div class="l" style="font-size:21px">${o.headName}</div>
+    <div class="small">${o.headDesc} <b>Only from orders.</b></div><div class="muted small">For filling the order</div></div></div>
+    <div class="bar"><i style="width:${o.pct}%"></i></div>
+    <div style="display:flex;gap:10px;align-items:flex-start"><b>${o.pct}%</b>${['25%', '50%', '100%'].map((s, i) => `<div style="text-align:center"><div class="small">${s}</div>${tiles([o.steps[i]])}</div>`).join('')}</div>
+    <div class="acts"><span style="font-size:21px">Wants</span><span>${price(o.each)} <span class="muted">each</span></span></div>
+    ${o.wants.map(([e, n, l]) => `<div class="acts"><span>${em(e)} ${n}</span><span>${l}</span></div>`).join('')}
+    ${o.onRoute ? '' : (o.pinRoute ? pinned(btn('Add to the cart’s route', 'wood', { c: 1 }), o.pinRoute) : btn('Add to the cart’s route', 'wood', { c: 1 }))}
+    ${o.here
+      ? `<div class="small" style="display:flex;gap:8px;align-items:center">Hands over ${em(o.wants[0][0])} ×6 ${price(18)}</div>${btn('Deliver from my bag', 'ember', { c: 1 })}`
+      : `${btn('Deliver from my bag', 'wood', { c: 1, off: 1 })}<div class="problem small">Walk to the ${o.place} to deliver (320 m).</div>`}
+  </div>`;
+}
+const tavernOrder = (here) => order({ head: '🍖', headName: 'Hunter’s feast', headDesc: 'A meal only this tavern cooks.', pct: 15, steps: [['🪙', '30'], ['🍺'], ['🍖']], each: 2, wants: [['🌾', 'Grain', '26 of 30 still needed'], ['🥩', 'Meat', '8 of 10 still needed']], place: 'Crooked Mug', here });
+const smithyOrder = (here) => order({ head: '🗡️', headName: 'Tempered blade', headDesc: 'A sword only this smithy forges.', pct: 40, steps: [['🪙', '40'], ['⚒️'], ['🗡️']], each: 3, wants: [['🪨', 'Stone', '18 of 30 still needed'], ['🪵', 'Wood', '6 of 10 still needed']], place: 'Smithy', here, pinRoute: here ? null : 2 });
+
+/* ---------- the sheets ---------- */
+const sheets = [
+{
+  id: 'smithy', name: 'Smithy', file: 'PlacePanel.tsx (smithy)', icon: '⚒️',
+  far: { title: 'Smithy', blocks: [timer('2h 14m'), pinned(txt('<span class="muted small">(order starts here)</span>'), 1), smithyOrder(false), tooFar('Walk closer to use it (320 m away).')], foot: [btn('Close')] },
+  here: { title: 'Smithy', blocks: [timer('2h 14m'), smithyOrder(true), txt('Sells and buys gear, and one blueprint.', 'muted'), pinned(txt(`Leaves in 2 h · Gold: ${price(412)}`, 'muted'), 3), `<div class="tabs">${btn('Buy', 'wood', { c: 1 })}${btn('Sell', 'wood', { c: 1 }).replace('wood', 'wood offtab')}</div>`, stock('🗡️', 'Iron sword', '×1 left', 120), stock('🪖', 'Leather cap', '×1 left', 60), pinned(stock('📜', 'Blueprint: Steel helm', '×1 left', 480, { short: 1, off: 1 }), 4)], foot: [pinned(btn('Close'), 5)] },
+  glance: 'What: the title. How far: only in the “walk closer” line when far; nothing when here. How long: the strip, then again as “Leaves in 2 h” under the order. What can I do: Buy rows, below a full order.',
+  action: 'In the body, one Buy per row, below the order. The order adds a second action (Deliver). Footer: Close only.',
+  hidden: 'Description, stock and prices, Sell, gold. Only the order shows from afar.',
+  dead: ['The order sits above everything, including above “too far to see”, so far the sheet is mostly order.', '“Add to the cart’s route” opens the route planner from inside a shop (it now closes the shop first, since 9b24e24).', 'The time left, twice in two formats: “2h 14m” in the strip, “2 h” in the line.', 'Buy greyed when short of gold: only the price turns red, no words.', 'Close is the only footer button.'],
+},
+{
+  id: 'market', name: 'Market', file: 'PlacePanel.tsx (market)', icon: '🏪',
+  far: { title: 'Market', blocks: [timer('5h 40m'), order({ head: '🧺', headName: 'Trader’s basket', headDesc: 'A basket only this market fills.', pct: 0, steps: [['🪙', '30'], ['🧪'], ['🧺']], each: 2, wants: [['🌾', 'Any good 🌾🪨🪵🌿', '0 of 40 still needed']], place: 'Market' }), tooFar('Walk closer to use it (320 m away).')], foot: [btn('Close')] },
+  here: { title: 'Market', blocks: [timer('5h 40m'), txt('<span class="muted small">(the order, as far, about 420 pt)</span>'), txt('Rotating stock; buys surplus materials.', 'muted'), txt(`Leaves in 5 h · Gold: ${price(412)}`, 'muted'), `<div class="tabs">${btn('Buy', 'wood', { c: 1 }).replace('wood', 'wood offtab')}${btn('Sell', 'wood', { c: 1 })}</div>`,
+    `<div class="row"><div class="l">${em('🪵')} Wood ×14</div><div class="acts">${price(2)}${btn('Sell', 'wood', { c: 1 })}${btn('Sell all', 'wood', { c: 1 })}</div></div>`,
+    pinned(`<div class="row" style="flex:1"><div class="l">${em('🦴')} Bone ×3</div><div class="acts">${price(3)}${btn('Sell', 'wood', { c: 1 })}${btn('Sell all', 'wood', { c: 1 })}</div></div>`, 1)], foot: [btn('Close')] },
+  glance: 'As the smithy. The Sell tab shows every held material it buys, one row each, two buttons per row.',
+  action: 'Body rows (Buy, or Sell and Sell all). Footer: Close.',
+  hidden: 'Stock, prices and what it buys. The order still shows.',
+  dead: ['Sell and Sell all side by side on every row, no quantity: selling 7 of 14 is seven taps.', 'The order wants “any good” and lists the goods as icons only (no words), and the wants say “0 of 40 still needed”.'],
+},
+{
+  id: 'apothecary', name: 'Apothecary', file: 'PlacePanel.tsx (apothecary)', icon: '⚗️',
+  far: { title: 'Apothecary', blocks: [timer('1h 05m'), txt('<span class="muted small">(the order, as on the smithy)</span>'), tooFar('Walk closer to use it (320 m away).')], foot: [btn('Close')] },
+  here: { title: 'Apothecary', blocks: [timer('1h 05m'), txt('<span class="muted small">(the order, as on the smithy, about 420 pt)</span>'), txt('Potions, salves and herbs; heals heroes for gold.', 'muted'), txt(`Leaves in 1 h · Gold: ${price(412)}`, 'muted'), `<div class="tabs">${btn('Buy', 'wood', { c: 1 })}${btn('Sell', 'wood', { c: 1 }).replace('wood', 'wood offtab')}</div>`, stock('🧪', 'Healing potion', '×3 left', 25), stock('🌿', 'Herb', '×5 left', 4),
+    `<div class="section"><div class="l" style="font-size:21px">Care for a hero at home</div>${pinned(`<div class="row" style="flex:1"><div class="l">Bram 34/80 HP · exhausted</div><div class="acts">${price(25)}${btn('Heal fully', 'wood', { c: 1 })}${price(15)}${btn('End exhaustion', 'wood', { c: 1 })}</div></div>`, 1)}</div>`], foot: [btn('Close')] },
+  glance: 'As the smithy, plus a care section at the bottom, under the stock.',
+  action: 'Body rows: Buy, Sell, Heal fully, End exhaustion. Footer: Close.',
+  hidden: 'Stock, care, and which heroes need it.',
+  dead: ['Care is under the stock and the order: the reason most players come here is the last thing on the sheet. Two priced buttons per hero on one wrapping row.'],
+},
+{
+  id: 'chapel', name: 'Chapel', file: 'PlacePanel.tsx (chapel)', icon: '⛪',
+  far: { title: 'Chapel', blocks: [timer('4h 10m'), pinned(tooFar('Walk closer to use it (320 m away).'), 1)], foot: [btn('Close')] },
+  here: { title: 'Chapel', blocks: [timer('4h 10m'), txt('Free care once per visit, blessings for holy symbols and the next expedition.', 'muted'), txt(`Leaves in 4 h · Gold: ${price(412)}`, 'muted'),
+    `<div class="section"><div class="l" style="font-size:21px">Care for a hero at home</div><div class="row"><div class="l">Bram 34/80 HP</div><div class="acts"><span class="muted">Free</span>${btn('Heal fully', 'wood', { c: 1 })}<span class="muted">Free</span>${btn('End exhaustion', 'wood', { c: 1, off: 1 })}</div></div></div>`,
+    `<div class="section">${txt(`${em('🙏')} Blessing for the next expedition`, 'l')}${txt('+10% party damage on your next expedition.', 'muted')}${pinned(btn('Blessing for the next expedition', 'ember', { c: 1 }), 2)}</div>`], foot: [btn('Close')] },
+  glance: 'Not a network place, so no order; the time strip still shows (every place kind gets it). Far: nothing else.',
+  action: 'Body: per-hero care, then the blessing (ember). Footer: Close.',
+  hidden: 'Everything but the title.',
+  dead: ['Far: the time and two lines. No hint that care here is free.', 'The blessing button repeats its section title word for word as its label.'],
+},
+{
+  id: 'ruins', name: 'Ruins', file: 'PlacePanel.tsx (ruins)', icon: '🏛️',
+  far: { title: 'Ruins', blocks: [timer('3h 05m'), tooFar('Walk closer to use it (320 m away).')], foot: [btn('Close')] },
+  here: { title: 'Ruins', blocks: [timer('3h 05m'), txt('One dig for materials, maybe a key fragment.', 'muted'), txt(`Leaves in 3 h · Gold: ${price(412)}`, 'muted'), pinned(txt('', ''), 1),
+    `<div class="section"><div class="l" style="font-size:21px">Ruins dug: ●●●○○</div>${txt('One dig per ruin; another appears elsewhere a day later. Every 5th dig turns up a relic.', 'muted')}${btn('Dig', 'ember', { c: 1 })}</div>`,
+    txt('After a dig:', 'muted small'), tiles([['🪨', '3'], ['🦴', '1'], ['🗝️', '']])], foot: [btn('Close')] },
+  glance: 'Dig is the only thing to do, in the body. “Leaves in” and gold sit above it though nothing here costs gold.',
+  action: 'Body (Dig, ember, compact). Footer: Close.',
+  hidden: 'The dig count and what it may give.',
+  dead: ['“Gold: 412” on a sheet where nothing costs gold (the gold line is shared by every place kind).'],
+},
+{
+  id: 'library', name: 'Library', file: 'PlacePanel.tsx (library)', icon: '📜',
+  far: { title: 'Library', blocks: [timer('6h 30m'), tooFar('Walk closer to use it (320 m away).')], foot: [btn('Close')] },
+  here: { title: 'Library', blocks: [timer('6h 30m'), txt('Trains heroes for gold, and sells one recipe.', 'muted'), txt(`Leaves in 6 h · Gold: ${price(412)}`, 'muted'), pinned(stock('📜', 'Blueprint: Trail stew', '×1 left', 60), 1), stock('📕', 'An old ledger (Hidden den)', '×1 left', 90),
+    `<div class="section">${txt(`${em('📖')} Train`, 'l')}${txt('+120 XP for one hero at home.', 'muted')}<div class="acts row"><span class="l">Bram · Lv 4</span>${price(80)}${btn('Train', 'wood', { c: 1 })}</div><div class="acts row"><span class="l">Ysolde · Lv 9</span><span class="muted">Max level</span></div></div>`], foot: [btn('Close')] },
+  glance: 'Recipe and ledger first, then one Train row per hero at home.',
+  action: 'Body (Buy, Train). Footer: Close.',
+  hidden: 'Stock and training.',
+  dead: ['“sells one recipe” in the description, “Blueprint:” on the row: two words for one thing.'],
+},
+{
+  id: 'fishingDock', name: 'Fishing dock', file: 'PlacePanel.tsx (fishingDock)', icon: '🎣',
+  far: { title: 'Fishing dock', blocks: [timer('2h 15m'), tooFar('Walk closer to use it (320 m away).')], foot: [btn('Close')] },
+  here: { title: 'Fishing dock', blocks: [timer('2h 15m'), txt('Fish for the kitchen.', 'muted'), txt(`Leaves in 2 h · Gold: ${price(412)}`, 'muted'), `<div class="section">${txt('One catch per dock.', 'muted')}${btn('Fish', 'ember', { c: 1 })}</div>`, txt('After a catch:', 'muted small'), tiles([['🐟', '2']])], foot: [btn('Close')] },
+  glance: 'Fine when here; nothing when far.',
+  action: 'Body (Fish, compact). Footer: Close.',
+  hidden: 'That it gives one catch.',
+  dead: [],
+},
+{
+  id: 'thievesGuild', name: 'Thieves’ guild', file: 'PlacePanel.tsx (thievesGuild)', icon: '🗡️',
+  far: { title: 'Thieves’ guild', blocks: [timer('2h 40m'), tooFar('Walk closer to use it (320 m away).')], foot: [btn('Close')] },
+  here: { title: 'Thieves’ guild', blocks: [timer('2h 40m'), txt('Small heists for one hero.', 'muted'), txt(`Leaves in 2 h · Gold: ${price(412)}`, 'muted'),
+    `<div class="section">${txt(`${em('🗝️')} Send on a heist`, 'l')}${txt('One hero, 20–40 min, against Traps 3: needs 3 Cunning. Success pays gold or a gear piece; failure pays nothing.', 'muted')}
+    ${pinned(`<div class="chips"><span class="chip on">${em('🗡️')} Bram · 100%</span><span class="chip">${em('🏹')} Ysolde · working · 80%</span></div>`, 1)}
+    <div style="font-size:21px">Chance: 62%</div>${btn('Send on a heist', 'ember', { c: 1 })}</div>`], foot: [btn('Close')] },
+  glance: 'The heist is the whole sheet; its hero is picked with home-made chips.',
+  action: 'Body (Send on a heist). Footer: Close.',
+  hidden: 'The heist, its threat and its odds.',
+  dead: ['Its own hero chips instead of PartyDialog, so no portraits, no gear, no threat check per hero like every other fight.'],
+},
+{
+  id: 'tavern', name: 'Tavern', file: 'TavernPanel.tsx', icon: '🍺',
+  far: { title: 'The Crooked Mug', blocks: [timer('3h 20m'), tavernOrder(false), tooFar('Get within 50 m to recruit (320 m away).')], foot: [btn('Close')] },
+  here: { title: 'The Crooked Mug', blocks: [timer('3h 20m'), pinned(txt('<span class="muted small">The order, first:</span>'), 1), tavernOrder(true), txt(`Gold: ${price(412)} · Roster 5/8 · new recruits every day`, 'muted'), txt(`${em('🐺')} Wanted this week: Beasts. The first offer is one of its classes.`, 'small'),
+    `<div class="row"><div class="l">${em('🏹')} Maren · Ranger · level 3</div><div class="small">Grade B ▮▮▮▯</div><div class="small">Keen eye: +5% crit</div><div class="small muted">Trade: Teamster</div><div class="small muted">Special · class summary…</div><div class="acts">${price(140)}${btn('Recruit', 'ember', { c: 1 })}</div></div>`,
+    `<div class="row"><div class="l">${em('🛡️')} Odo · Paladin · level 2</div><div class="small muted">…</div><div class="acts">${price(520, 1)}${btn('Recruit', 'ember', { c: 1, off: 1 })}</div>${pinned(txt('Not enough gold.', 'problem'), 2)}</div>`,
+    `<div class="row"><div class="l">${em('🥓')} Emergency supply</div><div class="muted small">Jerky (3 supply points) at a steep price, for when the kitchen is empty. You have 0.</div><div class="acts">${price(30)}${btn('Buy', 'wood', { c: 1 })}</div></div>`], foot: [btn('Close')] },
+  glance: 'Name and time; then the order; recruits (the reason to come) start below the fold.',
+  action: 'Body, one Recruit per offer (ember, compact), each a tall card. Footer: Close.',
+  hidden: 'Recruits, gold, the wanted family, emergency supply, stock.',
+  dead: ['The order comes before the recruits.', 'A locked Recruit says why on the line under it (good), but in a different sentence from every other sheet.'],
+},
+{
+  id: 'patrol', name: 'Patrol', file: 'PatrolPanel.tsx', icon: '👺',
+  far: { title: 'Goblin patrol', blocks: [pinned(txt(`Tier 2 · ${em('⏳')} 15m 00s · Recommended party: 3`, 'muted'), 1), diff('Easy', '#4E9A3E'), tooFar('Walk closer (320 m)')], foot: [pinned(btn('Fight', 'ember', { off: 1 }), 2), btn('Close')] },
+  here: { title: 'Goblin patrol', blocks: [txt(`Tier 2 · ${em('⏳')} 15m 00s · Recommended party: 3`, 'muted'), diff('Easy', '#4E9A3E'), txt('A little gold, sometimes a shard', 'muted'), `<span class="threat">Traps 2</span>`, txt(`${em('🌲')} Forest · ${em('🐾')} Beasts`, 'muted'), txt('Foes', 'h'), foe('👺', 'Goblin ×2', ['Beasts', 'Swarm']), foe('👺', 'Goblin archer', ['Ranged']), pinned(txt('', ''), 3)], foot: [btn('Fight', 'ember'), btn('Close')] },
+  glance: 'Tier, duration, party size and difficulty, even far. Not how long until it moves on (only the marker shows that).',
+  action: 'Footer (Fight, opens PartyDialog). The first sheet in this list with its action in the footer.',
+  hidden: 'Reward, threat, terrain tags, foes.',
+  dead: ['Duration with seconds on a quarter hour: “15m 00s”.', 'Far, Fight is greyed in the footer and the reason (“Walk closer (320 m)”) is in the body; nothing says heroes can’t be sent from here.', 'Rewards are a sentence (“A little gold, sometimes a shard”), not tiles; no time left.'],
+},
+{
+  id: 'placeFight', name: 'Place fight', file: 'PlaceFightPanel.tsx', icon: '⛺',
+  far: { title: 'Bandit camp', blocks: [diff('Easy', '#4E9A3E'), txt(`Tier 2 · ${em('⏳')} 15m 00s · Party of 1 to 3`, 'muted'), pinned(txt('Leaves in 3 h', 'muted'), 1), tooFar('Walk closer (320 m)')], foot: [btn('Fight', 'ember', { off: 1 }), btn('Close')] },
+  here: { title: 'Bandit camp', blocks: [diff('Easy', '#4E9A3E'), txt('Bandits with stolen goods.', 'muted'), txt(`Tier 2 · ${em('⏳')} 15m 00s · Party of 1 to 3`, 'muted'), txt('Leaves in 3 h', 'muted'), `<span class="threat">Traps 2</span>`, txt('Foes', 'h'), foe('🗡️', 'Bandit ×2', ['Humanoid']), foe('🏹', 'Bandit archer ×2', ['Ranged']), pinned(txt(`Trophy: ${em('🏅')} bandit’s mark`, 'small'), 2)], foot: [btn('Fight', 'ember'), btn('Close')] },
+  glance: 'Like the patrol, plus “Leaves in”. The monster lair also gets the time strip.',
+  action: 'Footer (Fight).',
+  hidden: 'Description, threats, opportunity, foes, trophy.',
+  dead: ['Time as a plain grey line here, as the strip on the lair, as nothing on patrols.', 'What it drops is the trophy line only; the loot isn’t shown.'],
+},
+{
+  id: 'sanctum', name: 'Sanctum', file: 'SanctumPanel.tsx', icon: '🔥',
+  far: { title: 'Ember Sanctum', blocks: [diff('Hard', '#C0392B'), pinned(txt(`⚠️ One attempt only. Win or lose, the Sigil is spent and this Sanctum closes for you until it refreshes.`, 'small'), 1), txt('Get within 50 m to open it (320 m away).', 'problem'), txt('You are too far to see what is here.', 'muted')], foot: [btn('Challenge', 'ember', { off: 1 }), btn('Close')] },
+  here: { title: 'Ember Sanctum', blocks: [diff('Hard', '#C0392B'), txt(`${em('🔥')} Fire · A furnace that never cools.`, 'muted'), txt('Guardian: Cinder Warden', 'h'), foe('🔥', 'Cinder Warden', ['Fire', 'Boss']), txt('Its hammer melts shields.', 'muted'), txt('Sigil', 'h'), `<div class="chips"><span class="chip on">Tier 2 ×1</span><span class="chip">Tier 3 ×2</span></div>`, txt('⚠️ One attempt only. Win or lose, the Sigil is spent and this Sanctum closes for you until it refreshes.', 'small'), pinned(txt('<span class="muted small">Challenge → party → system Alert to confirm → fight log in this sheet, footer becomes Skip</span>'), 2)], foot: [btn('Challenge', 'ember'), btn('Close')] },
+  glance: 'Difficulty and the one-attempt warning even far; no time left, no element.',
+  action: 'Footer (Challenge). Confirm is a native Alert, unlike any other sheet.',
+  hidden: 'Element, guardian, its tags, the sigil choice.',
+  dead: ['The warning string mixes an emoji with words in one Text (it comes through t(), so the mixed-emoji test misses it).', 'Confirmation is a system Alert; after the fight the footer’s Close turns into Skip while the log plays.'],
+},
+{
+  id: 'secret', name: 'Secret place', file: 'SecretPanel.tsx', icon: '🎭',
+  far: { title: 'Black market', blocks: [pinned(txt('🔒 No mysterious key: you can’t get in yet. Fragments: ●●○', ''), 1), txt('Walk closer to use it (320 m away).', 'problem'), txt('You are too far to see what is here.', 'muted')], foot: [btn('Close')] },
+  here: { title: 'Black market', blocks: [txt('🗝️ You have a mysterious key (1): going in uses one up.', ''), txt('A rare hero and goods no shop sells.', 'muted'), pinned(txt(`12 m away · 5h 10m left · Gold: ${price(412)}`, 'muted'), 2), pinned(btn('Enter (uses a key)', 'wood', { c: 1 }), 3), txt('After entering: one recruit card (Recruit, ember) and a Goods list (Buy per line).', 'muted small')], foot: [btn('Close')] },
+  glance: 'The key state first, which is the right question. Time left only when here.',
+  action: 'Body (Enter, a compact wood button), then Recruit and Buy rows. Underwater: “Dive in (uses a key)”, opening ExpeditionDialog. Footer: Close.',
+  hidden: 'Description, time left, gold. The offer behind the key is hidden on purpose (see below) and must stay.',
+  dead: ['Emoji mixed with words in the key lines.', '“{distance} away · {time} left”: a third wording for time, and the distance shows only when you’re already here.', 'The main step, Enter, is a small wood button in the body.'],
+},
+{
+  id: 'traveller', name: 'Traveller', file: 'TravellerPanel.tsx', icon: '🧕',
+  far: { title: 'Pilgrim', blocks: [tooFar('Walk closer (320 m)')], foot: [pinned(btn('Walk on'), 1)] },
+  here: { title: 'Pilgrim', blocks: [txt('“The road is long and my bag is empty.”', 'muted'), txt('Asks for a meal, or 4 supply points instead.', 'muted'), pinned(txt('Meals held: 0 · Supply points: 1', 'muted'), 2)], foot: [btn('Walk on')] },
+  glance: 'Here: what they ask and what you hold. Far: nothing.',
+  action: 'Footer for Help / Give a meal / Give supply; body for the trader’s Trade rows.',
+  hidden: 'Who they are and what they ask.',
+  dead: ['Close is called “Walk on” here.', 'With neither a meal nor 4 supply points the footer has no action and nothing says what’s missing (the buttons are simply left out).'],
+},
+{
+  id: 'siteNew', name: 'Network site, not visited', file: 'SupplySitePanel.tsx', icon: '🪧',
+  far: { title: 'Empty site', sub: 'Not visited', blocks: [timer('1d 4h'), `<div class="banner">${em('👣')} Walk here to discover it.<div class="small">You’ll see how good it is and what you can build.</div></div>`, txt('320 m from you · 540 m from your hall', '')], foot: [btn('Close')] },
+  here: null,
+  glance: 'All four answers, plainly. The best of the network sheets.',
+  action: 'None (walking there discovers it). Footer: Close.',
+  hidden: 'Quality and buildings, on purpose (discovery rule). Keep.',
+  dead: [],
+},
+{
+  id: 'site', name: 'Network site', file: 'SupplySitePanel.tsx', icon: '🪧',
+  far: { title: 'Site ★★☆', sub: 'Good ground: 2 stars of 3', blocks: [timer('1d 4h'), txt('320 m from you · 540 m from your hall'), txt('Buildings near the hall: 2 of 4 within 600 m'),
+    `<div class="pcard"><div class="pt">${em('🌾')} Farm <span class="muted">Makes</span></div><div class="small">${em('🌾')} 1.2/h ${em('🥕')} 0.6/h <span class="muted">with a hero</span></div><div class="small"><span class="muted">for</span> ${em('🍺')} taverns</div><div class="acts">${btn('Build', 'ember', { c: 1, off: 1 })}${price(60)} ${em('🪵')} 10</div>${pinned(txt('Walk to the site to build (320 m).', 'problem small'), 1)}</div>`,
+    `<div class="pcard"><div class="pt">${em('🪨')} Quarry <span class="muted">Makes</span></div><div class="acts">${btn('Build', 'wood', { c: 1, off: 1 })}${price(60)} ${em('🪵')} 10</div>${txt('Walk to the site to build (320 m).', 'problem small')}</div>`, txt('<span class="muted small">… two more cards</span>')], foot: [btn('Close')] },
+  here: { title: 'Site ★★☆', sub: 'Good ground: 2 stars of 3', blocks: [timer('1d 4h'), txt('You are here · 540 m from your hall'), txt('Buildings near the hall: 2 of 4 within 600 m'), `<div class="pcard"><div class="pt">${em('🌾')} Farm</div><div class="acts">${btn('Build', 'ember', { c: 1 })}${price(60)} ${em('🪵')} 10</div></div>`, `<div class="pcard"><div class="pt">${em('🪨')} Quarry</div><div class="acts">${btn('Build', 'wood', { c: 1 })}${price(60)} ${em('🪵')} 10</div></div>`, txt('<span class="muted small">…</span>')], foot: [btn('Close')] },
+  glance: 'Quality in the title as stars and as words; distance from you and from the hall. Four cards, one Build each.',
+  action: 'In each card (one ember, the rest wood). Footer: Close.',
+  hidden: 'Nothing. Good: the site already works “visible from afar”.',
+  dead: ['The same reason repeated under all four disabled Build buttons.'],
+},
+{
+  id: 'building', name: 'Building', file: 'SupplyCampPanel.tsx', icon: '🌾',
+  far: { title: 'Farm ★★☆', sub: '2-star site · 540 m from your hall', blocks: [timer('2d 6h'), `<div class="flow"><span class="n">${em('🧑‍🌾')} Locals 50%</span>→<span class="n">${em('🌾🥕')} 0.9/h</span>→<span class="n"><b>12</b> of 36</span>→<span class="n">${em('🏠')} You collect</span></div>`,
+    `<div class="pcard"><div class="pt">Worked by</div><div class="acts"><span class="tile">+</span><span class="small" style="flex:1">Locals work it at 50%. A hero works it at the full rate; a Farmer adds up to +20%.</span>${btn('Post a hero', 'ember', { c: 1 })}</div></div>`,
+    `<div class="pcard"><div class="pt">Stock <span class="muted small">Full in 26h 40m</span></div><div class="bar"><i style="width:33%"></i></div><div>${em('🌾')} 8 ${em('🥕')} 4</div>${pinned(txt('Walk to the farm to collect (320 m).', 'small'), 1)}</div>`,
+    `<div class="pcard"><div class="pt">Cart</div><div class="acts"><span class="small" style="flex:1">Not on the cart’s route. Add it, and the cart carries its stock home.</span>${pinned(btn('Add to the cart’s route', 'wood', { c: 1 }), 2)}</div></div>`], foot: [btn('Close')] },
+  here: null,
+  glance: 'All of it, at any distance: who works it, rate, stock, where it goes. Good. Time left is a strip; the last day adds a warning box at the bottom.',
+  action: 'Three cards, three actions (Post, Collect, Add to route); one of them is ember by a priority rule. Footer: Close.',
+  hidden: 'Nothing; Collect is locked with the walk distance as a line, not as its label.',
+  dead: ['Collect’s reason replaces the button entirely (a line of text where the button was), so far there is no Collect button at all.', 'Three actions in three cards: the “next step” ember moves between cards as the situation changes.'],
+},
+{
+  id: 'cart', name: 'Cart', file: 'SupplyCartPanel.tsx', icon: '🐴',
+  far: { title: 'The cart', blocks: [txt('On its way to Farm, back at the hall in 32m'), txt(`<span class="muted">Aboard:</span> ${em('🌾')} 6`), `<div class="section"><div class="l" style="font-size:21px">Route</div>${txt('2 buildings · 1.8 km · 42 min a loop')}${txt('Ambush risk: 8% a loop')}${btn('Set the route')}</div>`,
+    `<div class="section"><div class="l" style="font-size:21px">Crew</div>${txt('4.5 km/h · carries 20', 'muted')}${txt('The crew can change once the cart is parked.', 'muted')}<div class="small"><span class="muted">Driver</span> Bram · Warrior</div><div class="small"><span class="muted">Escort</span> Empty</div></div>`,
+    pinned(btn('Stop after this loop'), 1), `<div class="section"><div class="l" style="font-size:21px">Last loops</div>${txt('Loop 3: 12 grain home, 4 to the Crooked Mug.', 'small')}</div>`], foot: [btn('Close')] },
+  here: null,
+  glance: 'Status first, then route, crew, start/stop and the log, all in one long scroll. Distance doesn’t matter for the cart.',
+  action: 'In the body, after the crew (Start / Stop after this loop). “Set the route” earlier in the body. Footer: Close.',
+  hidden: 'Nothing.',
+  dead: ['Start or Stop, the cart’s main action, sits mid-sheet between the crew and the log.'],
+},
+{
+  id: 'cell', name: 'Cell (empty map tap)', file: 'SupplyCellPanel.tsx', icon: '🌳',
+  far: { title: 'Woodland', blocks: [txt('320 m'), pinned(btn('Place the hall here'), 1), txt('<span class="muted small">(or “Move the hall here” → centred dialog with plain Cancel / Move buttons)</span>')], foot: [btn('Close')] },
+  here: null,
+  glance: 'A terrain name and a distance with no words (“320 m”).',
+  action: 'Body (place or move the hall). Footer: Close.',
+  hidden: 'Nothing.',
+  dead: ['Opens on any tap that misses a marker while the network is on, so near-misses land here; prompt 1 step 6 removes it.'],
+},
+];
+
+/* ---------- page assembly ---------- */
+function phone(v, label) {
+  if (!v) return '';
+  return `<div><p class="cap">${label}</p><div class="phone" role="img" aria-label="${label}"><div class="map"></div><div class="dim"></div>
+    <div class="sheet"><div class="band"><span class="ic">${v.icon}</span><div><div class="t">${v.title}</div>${v.sub ? `<div class="s">${v.sub}</div>` : ''}</div></div>
+    <div class="body">${v.blocks.join('')}</div><div class="foot">${v.foot.join('')}</div></div></div></div>`;
+}
+const toc = document.getElementById('toc');
+const root = document.getElementById('sheets');
+toc.innerHTML = sheets.map((s) => `<a href="#${s.id}">${s.name}</a>`).join('') + '<a href="#why-hidden">Why far hides</a><a href="#worst">Inconsistencies, worst first</a><a href="#matrix">All sheets at a glance</a>';
+root.innerHTML = sheets.map((s) => {
+  const far = { ...s.far, icon: s.icon }, here = s.here && { ...s.here, icon: s.icon };
+  const solo = !s.here;
+  return `<h2 id="${s.id}">${s.name}</h2><p class="src">${s.file}</p>
+  <div class="pair">${phone(far, solo ? 'Any distance' : 'Far · 320 m')}${phone(here, 'Here · within range')}
+  <div class="find"><table class="facts">
+    <tr><th>At a glance</th><td>${s.glance}</td></tr>
+    <tr><th>Main action</th><td>${s.action}</td></tr>
+    <tr><th>Hidden when far</th><td>${s.hidden}</td></tr>
+    <tr><th>Does or says nothing</th><td>${s.dead.length ? `<ol class="dead">${s.dead.map((d, i) => `<li>${P(i + 1)}<span>${d}</span></li>`).join('')}</ol>` : 'Nothing found.'}</td></tr>
+  </table></div></div>`;
+}).join('');
+document.getElementById('matrix').innerHTML = '<tr><th>Sheet</th><th>Main action</th><th>Footer</th><th>Far shows</th><th>Time left</th></tr>' + [
+  ['Smithy, market, apothecary', 'Body rows', 'Close', 'Order only', 'Strip + line'],
+  ['Chapel, ruins, library, dock, thieves’ guild', 'Body', 'Close', 'Time only', 'Strip + line'],
+  ['Tavern', 'Body cards', 'Close', 'Order only', 'Strip'],
+  ['Patrol', 'Footer', 'Fight · Close', 'Tier, duration, party, difficulty', 'None'],
+  ['Place fight', 'Footer', 'Fight · Close', 'Same + leaves in', 'Line (lair: strip)'],
+  ['Sanctum', 'Footer', 'Challenge · Close / Skip', 'Difficulty, warning', 'None'],
+  ['Secret place', 'Body', 'Close', 'Key state', 'Line, here only'],
+  ['Traveller', 'Footer (trader: body)', 'Help · Walk on', 'Title', 'None'],
+  ['Site', 'Card per building', 'Close', 'Everything', 'Strip'],
+  ['Building', 'Three cards', 'Close', 'Everything', 'Strip + last-day box'],
+  ['Cart', 'Mid-body', 'Close', 'Everything', 'n/a'],
+  ['Cell', 'Body', 'Close', 'Everything', 'n/a'],
+].map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('');
+</script>
+</body>
+</html>
