@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network Sheets and Route Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'Fantaisie';src:url(../../../../assets/fonts/FantaisieArtistique.ttf) format('truetype');font-display:swap}
+:root{
+  --outline:#1E120A;--woodDeep:#2A180D;--woodDark:#3A2314;--woodMid:#5A3820;--woodSeam:#4E301B;--woodSel:#7A4A26;
+  --brass:#C9A04E;--brassDim:#8A6A34;--brassLight:#F6D98E;--parch:#F2E4C2;--parchShade:#E6D3A8;--rule:#B9A27A;
+  --ink:#3A2314;--inkMuted:#6A4A2C;--onWood:#F2E4C2;--onWoodMuted:#C9B48A;--ember:#B4471C;--emberLight:#E07A3E;--emberDark:#6E2A0E;--onEmber:#FFF1DC;
+  --good:#2F6B32;--goodBg:#DDE8C8;--bad:#8A2E1C;--badBg:#F2D3C2;--easy:#4E9A3E;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--woodDeep);color:var(--onWood);font-family:Alegreya,Georgia,serif;font-size:16px;line-height:1.45}
+main{max-width:1720px;margin:0 auto;padding:24px 16px 80px}
+h1{font-family:Fantaisie,serif;font-weight:400;color:var(--brassLight);font-size:34px;margin:0 0 4px}
+h2{font-family:Fantaisie,serif;font-weight:400;color:var(--brassLight);font-size:28px;margin:52px 0 6px;border-bottom:2px solid var(--brassDim);padding-bottom:6px}
+h3{color:var(--brassLight);font-size:17px;margin:18px 0 4px}
+.lede{color:#E2CFA4;max-width:860px}
+.note{background:var(--woodDark);border:2px solid var(--outline);outline:2px solid var(--brassDim);outline-offset:-6px;padding:14px 18px;margin:16px 0;max-width:900px}
+.note b{color:var(--brassLight)}
+.row4{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-top:12px}
+.cap{font-size:13px;color:var(--onWoodMuted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em}
+.why{max-width:900px;color:#E2CFA4}
+.why li{margin:4px 0}
+ul.q li{margin:8px 0}
+code{font-size:14px}
+
+/* ---------- phone and map ---------- */
+.phone{width:390px;max-width:100%;height:844px;position:relative;overflow:hidden;border:3px solid #000;border-radius:28px;background:#6DAE4F;flex:none}
+.map{position:absolute;inset:0;background:
+  linear-gradient(90deg,transparent 46%,#d9cfae 46% 52%,transparent 52%),
+  linear-gradient(0deg,transparent 58%,#d9cfae 58% 62%,transparent 62%),
+  linear-gradient(118deg,transparent 28%,#cfc4a1 28% 31%,transparent 31%),
+  radial-gradient(circle at 20% 20%,#5d9a43 0 60px,transparent 61px),
+  radial-gradient(circle at 80% 75%,#5d9a43 0 70px,transparent 71px),#6DAE4F}
+.dim{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+.mk{position:absolute;width:44px;height:44px;transform:translate(-50%,-50%)}
+.mk .d{position:absolute;inset:4px;transform:rotate(45deg);background:var(--parch);border:3px solid var(--outline)}
+.mk .e{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-family:system-ui}
+.mk.sel .d{outline:3px solid var(--brassLight);outline-offset:3px}
+.me{position:absolute;width:20px;height:20px;border-radius:10px;background:#2E6FD8;border:3px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 0 8px rgba(46,111,216,.25)}
+.island{position:absolute;left:12px;right:12px;bottom:26px;height:64px;background:repeating-linear-gradient(0deg,var(--woodMid) 0 13px,var(--woodSeam) 13px 14px);border:2px solid var(--outline);outline:2px solid var(--brass);outline-offset:-5px;border-radius:2px}
+
+/* ---------- the sheet ---------- */
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:717px;display:flex;flex-direction:column;background:var(--parch);border:3px solid var(--outline);color:var(--ink);font-family:Fantaisie,serif;font-size:18px}
+.sheet:before{content:"";position:absolute;inset:5px;border:2px solid var(--brass);pointer-events:none;z-index:2}
+.grab{position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:44px;height:5px;background:var(--brass);border:1px solid var(--outline);z-index:3}
+.band{display:flex;align-items:center;gap:12px;padding:12px 14px 10px;background:repeating-linear-gradient(0deg,var(--woodMid) 0 13px,var(--woodSeam) 13px 14px);border-bottom:3px solid var(--outline);position:relative;z-index:1}
+.band .t{font-size:23px;color:var(--brassLight);line-height:25px}
+.band .s{font-family:Alegreya,serif;font-size:14px;color:#E2CFA4;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.band .s b{color:var(--brassLight);font-weight:700}
+.band .more{margin-left:auto;white-space:nowrap;flex:none;align-self:flex-start;font-family:Alegreya,serif;font-size:13px;color:var(--brassLight);border:2px solid var(--brass);padding:3px 8px;min-height:30px;display:flex;align-items:center}
+/* header icon inside its ring */
+.ring{position:relative;width:56px;height:56px;flex:none}
+.ring .time{position:absolute;inset:4px;transform:rotate(45deg);background:conic-gradient(from -45deg,var(--brass) 0 var(--left),rgba(30,18,10,.45) var(--left) 100%)}
+.ring .time.last{background:conic-gradient(from -45deg,var(--emberLight) 0 var(--left),rgba(30,18,10,.45) var(--left) 100%)}
+.ring .in{position:absolute;inset:11px;transform:rotate(45deg);background:var(--woodDeep);border:2px solid var(--outline)}
+.ring .diff{position:absolute;inset:8px;transform:rotate(45deg);border:4px solid var(--easy);background:var(--woodDeep)}
+.ring img,.ring .em{position:absolute;inset:0;margin:auto;width:28px;height:28px;image-rendering:pixelated;font-size:22px;display:flex;align-items:center;justify-content:center;font-family:system-ui}
+.ring .pip{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);display:flex;gap:2px}
+.ring .pip i{width:7px;height:7px;background:var(--easy);border:1px solid var(--outline);transform:rotate(45deg)}
+.body{overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;position:relative;z-index:1;flex:1 1 auto}
+.sum{font-size:19px;line-height:1.3}
+.sum .m{color:var(--inkMuted)}
+.foot{padding:10px 16px 34px;display:flex;flex-direction:column;gap:8px;position:relative;z-index:1;border-top:2px solid var(--parchShade)}
+.sec{display:flex;gap:8px}
+.sec .btn{flex:1}
+
+/* ---------- pieces ---------- */
+.btn{min-height:52px;padding:0 14px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:Fantaisie,serif;font-size:22px;border:3px solid var(--outline);position:relative;text-align:center;line-height:1.1}
+.btn.c{min-height:44px;font-size:18px}
+.btn.wood{background:var(--woodMid);color:var(--brassLight)}
+.btn.wood:after{content:"";position:absolute;inset:3px;border:2px solid var(--brass);pointer-events:none}
+.btn.ember{background:var(--ember);color:var(--onEmber);box-shadow:inset 3px 3px 0 var(--emberLight),inset -3px -3px 0 var(--emberDark)}
+.btn.locked{background:var(--parchShade);color:var(--ink);box-shadow:none;border-style:solid}
+.btn .lk{font-family:system-ui;font-size:16px}
+.btn small{font-family:Alegreya,serif;font-size:14px;opacity:.9}
+.btn img{width:18px;height:18px;image-rendering:pixelated}
+.tabs{display:flex;border:3px solid var(--outline);background:var(--woodDark)}
+.tabs span{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;color:var(--onWoodMuted);font-size:17px;border-right:2px solid var(--outline);text-align:center;padding:0 4px}
+.tabs span:last-child{border-right:0}
+.tabs span.on{background:var(--woodSel);color:var(--brassLight);box-shadow:inset 0 -3px 0 var(--brass)}
+.sub{display:flex;gap:6px}
+.sub span{min-height:36px;padding:0 12px;display:flex;align-items:center;border:2px solid var(--rule);font-size:16px}
+.sub span.on{border-color:var(--ink);background:#F7ECCF}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:3px}
+.slot{width:100%;aspect-ratio:1;min-height:60px;background:var(--woodDeep);border:2px solid var(--outline);box-shadow:inset 2px 2px 0 #160C06;display:flex;align-items:center;justify-content:center;position:relative}
+.slot img{width:62%;height:62%;image-rendering:pixelated}
+.slot .em{font-size:28px;font-family:system-ui}
+.slot.rare{border-color:#3C6FD0;box-shadow:inset 2px 2px 0 #160C06,inset 0 0 0 2px #3C6FD0}
+.slot.sel{background:var(--woodSel);outline:3px solid var(--brassLight);outline-offset:1px}
+.slot.dim img,.slot.dim .em{opacity:.5}
+.slot .n{position:absolute;right:3px;bottom:1px;font-size:13px;color:#fff;font-family:Alegreya,serif;font-weight:700;text-shadow:0 1px 0 #000}
+.slot .badge{position:absolute;left:-4px;top:-6px;font-family:Alegreya,serif;font-size:11px;background:var(--parch);border:1px solid var(--outline);padding:0 4px;color:var(--ink)}
+.price{display:inline-flex;align-items:center;gap:3px;font-size:16px}
+.price img{width:16px;height:16px;image-rendering:pixelated}
+.price.short{color:var(--bad)}
+.mini{display:inline-flex;gap:4px;vertical-align:middle}
+.mini .slot{width:30px;min-height:30px;height:30px}
+.mini .slot img{width:22px;height:22px}
+.mini .slot .em{font-size:16px}
+.card{border:3px solid var(--outline);background:#F7ECCF;padding:10px;display:flex;gap:10px;align-items:flex-start;box-shadow:inset 0 0 0 2px var(--parch),inset 0 0 0 4px var(--rule)}
+.card .slot{width:64px;min-height:64px;flex:none}
+.card .ct{font-size:20px}
+.card .cd{font-family:Alegreya,serif;font-size:14px;color:var(--inkMuted)}
+.threat{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;background:var(--badBg);border:2px solid var(--bad);font-size:16px}
+.threat i{font-family:system-ui;font-style:normal}
+.foe{display:flex;gap:10px;align-items:center;padding:6px 0;border-top:2px solid var(--parchShade)}
+.foe .slot{width:44px;min-height:44px;height:44px;flex:none}
+.foe .fn{font-size:19px}
+.tag{font-family:Alegreya,serif;font-size:13px;border:1px solid var(--rule);padding:0 6px;margin-right:4px;color:var(--inkMuted)}
+.bar{height:16px;border:2px solid var(--outline);background:var(--woodDeep);position:relative}
+.bar>i{position:absolute;left:0;top:0;bottom:0;background:var(--emberLight);box-shadow:inset 0 3px 0 #F2A066}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:17px}
+.dl dt{color:var(--inkMuted)}
+.dl dd{margin:0}
+.callout{position:absolute;z-index:5;font-family:Alegreya,serif;font-size:13px;background:#FFF7DD;color:var(--ink);border:2px solid var(--ember);padding:5px 8px;max-width:210px;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.portrait{width:56px;height:56px;border:2px solid var(--outline);background:var(--woodDeep);display:flex;align-items:center;justify-content:center;flex:none}
+.portrait img{width:40px;height:40px;image-rendering:pixelated}
+.portrait.empty{border-style:dashed;border-color:var(--brassDim);background:#E9D9B2;font-size:28px;color:var(--brassDim)}
+/* chooser */
+.chooser{position:absolute;width:300px;background:var(--parch);border:3px solid var(--outline);color:var(--ink);font-family:Fantaisie,serif;box-shadow:inset 0 0 0 2px var(--parch),inset 0 0 0 4px var(--brass),0 5px 0 var(--outline);padding:8px 8px 6px}
+.chooser .hd{font-family:Alegreya,serif;font-size:13px;color:var(--inkMuted);padding:0 6px 4px}
+.chooser .opt{display:flex;align-items:center;gap:10px;min-height:56px;padding:4px 6px;border-top:2px solid var(--parchShade)}
+.chooser .opt .nm{font-size:19px;line-height:1.1}
+.chooser .opt .st{font-family:Alegreya,serif;font-size:13px;color:var(--inkMuted)}
+.chooser .opt .go{margin-left:auto;font-size:20px;color:var(--brassDim)}
+.chooser:after{content:"";position:absolute;left:var(--tail,50%);bottom:-13px;width:18px;height:18px;background:var(--parch);border-right:3px solid var(--outline);border-bottom:3px solid var(--outline);transform:translateX(-50%) rotate(45deg)}
+.ring.sm{width:44px;height:44px}
+.ring.sm .in{inset:9px}.ring.sm .diff{inset:7px;border-width:3px}
+.ring.sm img,.ring.sm .em{width:22px;height:22px;font-size:17px}
+.legend{font-size:14px;color:var(--onWoodMuted)}
+/* ---------- network additions ---------- */
+.phone svg.town{position:absolute;left:0;right:0;top:44px;width:100%;height:520px}
+.topbar{position:absolute;left:0;right:0;top:0;height:44px;background:repeating-linear-gradient(0deg,var(--woodMid) 0 13px,var(--woodSeam) 13px 14px);border-bottom:3px solid var(--outline);display:flex;align-items:center;padding:0 12px;font-family:Fantaisie,serif;font-size:19px;color:var(--brassLight);gap:8px}
+.topbar .tg{margin-left:auto;font-family:Alegreya,serif;font-size:13px;border:2px solid var(--brass);padding:2px 8px;color:var(--brassLight)}
+.topbar .tg.on{background:var(--woodSel)}
+.rhint{position:absolute;left:12px;right:12px;top:52px;padding:4px 10px;background:rgba(30,18,10,.88);border:2px solid var(--brassDim);color:var(--parch);font-size:14px;text-align:center}
+.rbar{position:absolute;left:0;right:0;bottom:98px;background:var(--parch);color:var(--ink);border-top:3px solid var(--outline);padding:8px 0}
+.rbar:before{content:"";position:absolute;inset:4px;border:2px solid var(--brass);pointer-events:none}
+.rbar .chips{display:flex;gap:6px;overflow:hidden;padding:10px 12px 6px}
+.rbar .chip{flex:none;display:flex;align-items:center;gap:6px;min-height:48px;padding:4px 10px 4px 6px;background:#F7ECCF;border:2px solid var(--outline);font-family:Fantaisie,serif;font-size:16px;line-height:1.05;position:relative}
+.rbar .chip .no{width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--woodMid);color:var(--brassLight);border:2px solid var(--outline);font-family:Alegreya,serif;font-weight:700;font-size:14px}
+.rbar .chip .ic{font-family:system-ui;font-size:18px}
+.rbar .chip .ld{display:flex;flex-direction:column}
+.rbar .chip small{font-family:Alegreya,serif;font-size:13px;color:var(--inkMuted)}
+.rbar .chip .up{color:var(--good)}.rbar .chip .down{color:var(--bad)}
+.rbar .chip.hall{background:var(--woodMid);color:var(--brassLight)}.rbar .chip.hall small{color:var(--onWoodMuted)}
+.rbar .chip.late{border-color:var(--ember)}
+.rbar .chip .lt{position:absolute;top:-9px;right:-6px;font-family:system-ui;font-size:12px;background:var(--ember);border:2px solid var(--outline);padding:0 3px;line-height:16px}
+.rbar .chip.lift{transform:translateY(-5px) scale(1.06);box-shadow:0 6px 0 rgba(30,18,10,.35);background:#FFF6DF}
+.rbar .ar{align-self:center;color:var(--inkMuted)}
+.rbar .stats{display:flex;align-items:center;gap:8px;padding:2px 12px 6px;font-size:15px;line-height:1.25}
+.rbar .stats .s{flex:1}.rbar .stats .risk{color:#C2412A;font-weight:700}
+.rbar .btns{display:flex;gap:6px;padding:0 12px}
+.rbar .btn{min-height:46px;font-size:17px;padding:0 6px;white-space:nowrap}
+.rbar .btns .btn{flex:1}.rbar .btns .btn.x{flex:.8}.rbar .btns .btn.sg{flex:1.35}
+.rbar .btn.small{min-height:40px;font-size:15px;flex:none}
+.rbar .btn.on{background:var(--woodSel);outline:3px solid var(--brassLight);outline-offset:1px}
+.island.r{bottom:26px}
+.ask{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:6}
+.ask .card{flex-direction:column;gap:12px;color:var(--ink);font-family:Alegreya,serif;font-size:16px;max-width:330px}
+.ask .card h4{margin:0;font-family:Fantaisie,serif;font-weight:400;font-size:22px}
+.ask .card .btn{width:100%}
+.toastx{position:absolute;left:50%;top:52px;transform:translateX(-50%);background:var(--parch);color:var(--ink);border:3px solid var(--outline);font-family:Fantaisie,serif;font-size:17px;padding:8px 12px;white-space:nowrap;display:flex;gap:10px;align-items:center;z-index:4}
+.toastx u{font-family:Alegreya,serif;font-size:15px;color:var(--ember);text-decoration:none;font-weight:700;border-left:2px solid var(--rule);padding-left:10px}
+/* badges on markers */
+.nm{position:absolute;transform:translate(-50%,-50%);width:48px;height:48px}
+.nm .d{position:absolute;inset:6px;transform:rotate(45deg);background:var(--parch);border:3px solid var(--outline)}
+.nm .e{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-family:system-ui}
+.nm .bd{position:absolute;right:-8px;top:-8px;min-width:24px;height:24px;padding:0 3px;display:flex;align-items:center;justify-content:center;border:2px solid var(--outline);font-family:system-ui;font-size:13px;line-height:1}
+.bd.raid{background:#8A2E1C;color:#fff}.bd.last{background:var(--ember)}.bd.full{background:var(--brassLight)}.bd.idle{background:#E9D9B2}.bd.nowork{background:#E9D9B2}
+.nm .lbl{position:absolute;top:46px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:Alegreya,serif;font-weight:700;font-size:12px;color:#1E120A;text-shadow:0 0 3px #F2E4C2,0 0 3px #F2E4C2}
+.nm.faded{opacity:.35}
+.btable{border-collapse:collapse;max-width:900px;width:100%;font-size:15px}
+.btable th,.btable td{border-bottom:1px solid var(--brassDim);padding:8px 10px;text-align:left;vertical-align:middle}
+.btable th{color:var(--brassLight);font-weight:700}
+.btable .nm{position:relative;transform:none;display:inline-block}
+.tablewrap{overflow-x:auto;max-width:100%}
+/* the Network tab */
+.screen{position:absolute;inset:0;background:repeating-linear-gradient(0deg,#3A2314 0 15px,#33200F 15px 16px);display:flex;flex-direction:column;font-family:Alegreya,serif;color:var(--onWood)}
+.screen .hd{padding:12px 14px 8px;font-family:Fantaisie,serif;font-size:26px;color:var(--brassLight);border-bottom:3px solid var(--outline);display:flex;gap:10px;align-items:baseline}
+.screen .hd small{font-family:Alegreya,serif;font-size:14px;color:var(--onWoodMuted)}
+.screen .tabsx{display:flex;border-bottom:3px solid var(--outline);background:var(--woodDark)}
+.screen .tabsx span{flex:1;text-align:center;padding:8px 0;font-family:Fantaisie,serif;font-size:17px;color:var(--onWoodMuted)}
+.screen .tabsx span.on{color:var(--brassLight);background:var(--woodSel);box-shadow:inset 0 -3px 0 var(--brass)}
+.screen .sc{flex:1;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:12px}
+.next{background:var(--parch);color:var(--ink);border:3px solid var(--outline);padding:10px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 0 0 2px var(--parch),inset 0 0 0 4px var(--brass)}
+.next .l{font-size:17px}.next .l b{font-family:Fantaisie,serif;font-weight:400;color:var(--ember)}
+.flow{position:relative;height:300px;background:#F7ECCF;border:3px solid var(--outline);color:var(--ink)}
+.flow svg{position:absolute;inset:0;width:100%;height:100%}
+.fi{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:1px;width:92px;text-align:center}
+.fi .t{width:42px;height:42px;background:var(--parch);border:3px solid var(--outline);display:flex;align-items:center;justify-content:center;font-family:system-ui;font-size:20px;position:relative}
+.fi.cart .t{width:52px;height:52px;background:var(--woodMid);font-size:24px}
+.fi .n{font-family:Fantaisie,serif;font-size:14px;line-height:1.05}
+.fi .m{font-size:11.5px;color:var(--inkMuted);line-height:1.1}
+.fi .bd{position:absolute;right:-12px;top:-10px;min-width:22px;height:22px;padding:0 2px;display:flex;align-items:center;justify-content:center;border:2px solid var(--outline);font-family:system-ui;font-size:12px}
+.fl{position:absolute;font-size:11.5px;background:#F7ECCF;padding:0 3px;color:var(--ink);transform:translate(-50%,-50%);white-space:nowrap}
+.colh{position:absolute;top:6px;font-size:12px;color:var(--inkMuted);text-transform:uppercase;letter-spacing:.06em}
+.ncard{background:var(--parch);color:var(--ink);border:3px solid var(--outline);padding:8px 10px;display:flex;gap:10px;align-items:center}
+.ncard .e{font-family:system-ui;font-size:22px}
+.ncard .tt{font-family:Fantaisie,serif;font-size:18px;line-height:1.1}
+.ncard .ss{font-size:14px;color:var(--inkMuted)}
+.ncard .lastday{margin-left:auto;font-size:13px;background:var(--ember);color:var(--onEmber);padding:1px 6px;border:2px solid var(--outline)}
+.secth{font-size:13px;color:var(--onWoodMuted);text-transform:uppercase;letter-spacing:.06em}
+.proto{display:inline-block;margin-top:6px;font-weight:700;color:var(--brassLight)}
+</style>
+</head>
+<body>
+<main>
+<h1>The network, made easy</h1>
+<p class="lede">Prompt 2, step 1 of the map UI pass. Route mode on the map, the building, site and cart sheets on the template, the network's map markers with their state badges, and the Network tab as a flow picture. For review before any code. The riskiest piece, route mode, also has a <b>clickable prototype</b>: <code>route-prototype.html</code>, beside this file.</p>
+
+<div class="note">
+<b>The words.</b> “Delivery route” everywhere (never “cart route” or “loop plan”); a <i>stop</i> is a building or place on it; the cart <i>calls</i> at a building and <i>delivers</i> to a place. Every number carries its unit and meaning: “12 of 36 stored”, “Loop 42 min”, “1 risky street”, never “12/36”.<br><br>
+<b>Same example everywhere.</b> A hall in the middle of town; a Farm, a Quarry and a Herb garden; the Crooked Mug (a tavern that wants grain, leaving in 30 minutes), a Smithy (wants stone) and an Apothecary (wants herbs). The cart drives at 3 km/h and carries 100.
+</div>
+
+<!-- ======================= ROUTE MODE ======================= -->
+<h2>Route mode</h2>
+<p class="why">Opened from the Network tab, the cart's sheet, or “Add to the delivery route” on any building or place (that sheet closes and the stop is added). Everything that can't be a stop is dimmed; the hall, the buildings and the discovered places that want something become large pins. Tapping a pin adds it as the next numbered stop; tapping a numbered stop takes it off. The route redraws along the streets after every change. The slim bar sits above the island menu.</p>
+<div class="row4" id="route"></div>
+
+<!-- ======================= BUILDING ======================= -->
+<h2>Building</h2>
+<p class="why">The summary line says the three things that matter: what it makes, how full it is, how often the cart calls. The main action follows the next useful step: post a hero, then add it to the delivery route, then collect when you're there. Tabs: Making, People, Details. The posted hero is a portrait slot; tapping it opens the hero picker.</p>
+<div class="row4" id="building"></div>
+
+<!-- ======================= SITE ======================= -->
+<h2>Site</h2>
+<p class="why">A site shows its ground and what each building would make there from afar, once discovered; building still needs you there, as today. The Build tab lists the kinds as tiles with their rate and who wants the goods nearby; picking one turns the main action into “Build a Farm · price”.</p>
+<div class="row4" id="site"></div>
+
+<!-- ======================= CART ======================= -->
+<h2>Cart</h2>
+<p class="why">The cart's peek says where it is on the loop and what it carries. The main action is the next useful step: plan the delivery route, choose a driver, start, or, when it runs, edit the route. Tabs: Route (the stops in order with what is loaded and delivered), Crew (driver and escort as portrait slots), Last loops.</p>
+<div class="row4" id="cart"></div>
+
+<!-- ======================= MARKERS ======================= -->
+<h2>Map markers and badges</h2>
+<p class="why">At most one badge per network marker, the most urgent, small enough not to hide the icon and readable at map zoom. Each has its own icon and an accessibility label, so colour is never the only signal. The route line gets direction arrows and opens the cart's sheet when tapped; the cart shows its cargo as one icon. The “Network” toggle in the top bar dims everything else.</p>
+<div class="tablewrap"><table class="btable" id="badges"></table></div>
+<div class="row4" id="markers"></div>
+
+<!-- ======================= NETWORK TAB ======================= -->
+<h2>The Network tab as a picture</h2>
+<p class="why">The top keeps the one “next step” line and its button. Under it, the network as a picture: buildings on the left, places on the right, the cart in the middle, a line for each good from where it's made to where it's wanted, badges on the item they concern. Tapping an item opens its sheet on the map; tapping the cart opens route mode. The cards stay below, anything in its last day first.</p>
+<div class="row4" id="tab"></div>
+
+<h2>What to decide before step 2</h2>
+<ul class="q">
+  <li><b>Reordering in the bar.</b> The prototype tries both: long-press a chip and drag it sideways, or tap a chip for “◀ Earlier / Later ▶ / Remove”. If the drag feels right on your phone, the buttons stay as the accessible way; if it fights the scroll, the buttons become the way.</li>
+  <li><b>Routing through a street.</b> Dragging the drawn line onto another street is hard to get right on a phone map (the map pans under the finger). Proposed: the “Route through…” button, then one tap on the street, as the prototype does. A via point shows as a small brass diamond; tapping it takes it off.</li>
+  <li><b>Expiring stops.</b> A stop that leaves before the loop ends gets ⏳ on its pin and its chip and a line under the stats. The prototype also shows “gone by then” when the cart would arrive after it leaves.</li>
+  <li><b>Auto-added stops (step 2).</b> The toast “Farm added to the delivery route · Undo · Edit”, shown above; Edit opens route mode with the new stop highlighted.</li>
+  <li><b>Badge order.</b> Raid coming, then last day, then full, then nothing collecting it, then no worker.</li>
+</ul>
+</main>
+
+<script>
+
+const I = (p) => `../../../../assets/icons/${p}`;
+const ic = {
+  gold: I('tavern/coins-gold.png'), sword: I('rpg/sword-knight-longsword.png'), helm: I('rpg/helmet-bronze-nasal.png'),
+  blue: I('magic/scroll-rune-blue-1.png'), stone: I('scaled/stone.png'), wood: I('scaled/wood.png'), meat: I('alchemy/food-raw-meat.png'),
+  hide: I('relics/pelt-hide.png'), shard: I('magic/charm-sun-crystal.png'), hammer: I('rpg/tool-hammer.png'), potion: I('rpg/potion-green-flask.png'),
+  warrior: I('class/warrior.png'), ranger: I('class/ranger.png'), thief: I('class/thief.png'), dagger: I('rpg/dagger-emerald-blade.png'),
+};
+const img = (src) => `<img src="${src}" alt="">`;
+const em = (e) => `<span class="em">${e}</span>`;
+const gold = (n, short) => `<span class="price${short ? ' short' : ''}">${img(ic.gold)}${n}</span>`;
+const slot = (inner, o = {}) => `<div class="slot${o.rare ? ' rare' : ''}${o.sel ? ' sel' : ''}${o.dim ? ' dim' : ''}">${inner}${o.n ? `<span class="n">${o.n}</span>` : ''}${o.badge ? `<span class="badge">${o.badge}</span>` : ''}</div>`;
+const tile = (inner, label, o = {}) => `<div class="tile">${slot(inner, o)}${label}</div>`;
+const mini = (list) => `<span class="mini">${list.map(([src, n]) => slot(src.startsWith('.') ? img(src) : em(src), { n })).join('')}</span>`;
+const btn = (label, kind = 'ember', o = {}) => `<div class="btn ${kind}${o.c ? ' c' : ''}">${label}</div>`;
+const locked = (label) => `<div class="btn locked"><span class="lk">👣</span>${label}</div>`;
+
+/** The header: icon in its time ring (or difficulty ring), name, status line. */
+function band({ icon, name, status, left = 0.6, last, diff, peek }) {
+  const ring = diff
+    ? `<div class="ring"><div class="time" style="--left:${Math.round(left * 100)}%"></div><div class="diff"></div>${icon}<span class="pip"><i></i></span></div>`
+    : `<div class="ring"><div class="time${last ? ' last' : ''}" style="--left:${Math.round(left * 100)}%"></div><div class="in"></div>${icon}</div>`;
+  return `<div class="band">${ring}<div><div class="t">${name}</div><div class="s">${status}</div></div>${peek ? '<span class="more">More ▴</span>' : ''}</div>`;
+}
+function phone({ cap, sheet, markers = [], me = [195, 520], dim, extra = '' }) {
+  return `<div><p class="cap">${cap}</p><div class="phone" role="img" aria-label="${cap}"><div class="map"></div>
+    ${markers.map(([x, y, e, sel]) => `<div class="mk${sel ? ' sel' : ''}" style="left:${x}px;top:${y}px"><div class="d"></div><div class="e">${e}</div></div>`).join('')}
+    <div class="me" style="left:${me[0]}px;top:${me[1]}px"></div>
+    ${sheet ? '' : '<div class="island"></div>'}
+    ${dim ? '<div class="dim"></div>' : ''}${sheet || ''}${extra}</div></div>`;
+}
+const sheet = (head, body, foot) => `<div class="sheet"><span class="grab"></span>${head}${body ? `<div class="body">${body}</div>` : ''}<div class="foot">${foot}</div></div>`;
+
+/* ---------- the town: one street graph for every route frame (as in route-prototype.html) ---------- */
+const xs = [40, 130, 210, 290, 360], ys = [40, 140, 250, 360, 460, 540];
+const K = (x, y) => `${x},${y}`;
+const missing = ['130,250|40,250', '210,40|290,40', '360,460|360,540', '40,360|40,460'];
+const riskyL = ['290,360|290,460', '210,250|290,250'];
+const norm = (id) => { const [p, q] = id.split('|'); return p < q ? `${p}|${q}` : `${q}|${p}`; };
+const missingN = missing.map(norm), riskyN = riskyL.map(norm);
+const nodes = new Map(); const segs = [];
+const node = (x, y) => { const k = K(x, y); if (!nodes.has(k)) nodes.set(k, { x, y, k, e: [] }); return nodes.get(k); };
+const streets = [];
+for (let r = 0; r < ys.length; r++) for (let c = 0; c < xs.length; c++) {
+  if (c + 1 < xs.length) streets.push([[xs[c], ys[r]], [xs[c + 1], ys[r]]]);
+  if (r + 1 < ys.length) streets.push([[xs[c], ys[r]], [xs[c], ys[r + 1]]]);
+}
+streets.push([[130, 250], [210, 140]]);
+for (const [a, b] of streets) {
+  const id = norm(`${K(...a)}|${K(...b)}`);
+  if (missingN.includes(id)) continue;
+  const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const na = node(...a), nm = node(...m), nb = node(...b);
+  for (const [p, q] of [[na, nm], [nm, nb]]) { const len = Math.hypot(p.x - q.x, p.y - q.y); p.e.push({ to: q.k, len, id }); q.e.push({ to: p.k, len, id }); }
+  segs.push({ a, b, risky: riskyN.includes(id) });
+}
+function shortest(from, to) {
+  const dist = new Map([[from, 0]]), prev = new Map(), done = new Set();
+  for (;;) {
+    let u = null, best = Infinity;
+    for (const [k, d] of dist) if (!done.has(k) && d < best) { best = d; u = k; }
+    if (u === null || u === to) break;
+    done.add(u);
+    for (const e of nodes.get(u).e) { const nd = best + e.len; if (nd < (dist.get(e.to) ?? Infinity)) { dist.set(e.to, nd); prev.set(e.to, u); } }
+  }
+  const pts = [to]; let k = to; while (k !== from) { k = prev.get(k); pts.push(k); }
+  return pts.reverse().map((k) => nodes.get(k));
+}
+const NET = {
+  hall: { at: K(210, 360), icon: '🏠', name: 'Hall' },
+  farm: { at: K(130, 460), icon: '🌾', name: 'Farm' },
+  quarry: { at: K(290, 140), icon: '⛏️', name: 'Quarry' },
+  herbs: { at: K(40, 140), icon: '🌿', name: 'Herb garden' },
+  tavern: { at: K(290, 460), icon: '🍺', name: 'Tavern' },
+  smithy: { at: K(360, 250), icon: '⚒️', name: 'Smithy' },
+  apothecary: { at: K(130, 40), icon: '⚗️', name: 'Apothecary' },
+};
+const OTHER = [['👺', 230, 170], ['⛪', 330, 530], ['🔥', 60, 520], ['🏚️', 330, 60], ['🎣', 70, 300]];
+
+/** A town map as SVG: streets, the route through `stops` (ids or via node keys), pins large in route mode. */
+function town({ stops = [], routeMode = true, late = [], badges = {}, cart = null, faded = false }) {
+  const seq = [NET.hall.at, ...stops.map((s) => NET[s]?.at ?? s), NET.hall.at];
+  let path = [];
+  for (let i = 0; i + 1 < seq.length; i++) path = path.concat(i ? shortest(seq[i], seq[i + 1]).slice(1) : shortest(seq[i], seq[i + 1]));
+  let out = `<svg class="town" viewBox="0 -14 400 594" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+    <rect x="-300" y="-300" width="1000" height="1300" fill="#6DAE4F"/>
+    <circle cx="80" cy="90" r="55" fill="#5d9a43"/><circle cx="330" cy="400" r="50" fill="#5d9a43"/>
+    <path d="M -20 300 C 60 280, 90 330, 160 320 S 240 300, 260 290" stroke="#6FA6C9" stroke-width="14" fill="none" opacity=".7"/>`;
+  for (const s of segs) {
+    out += `<line x1="${s.a[0]}" y1="${s.a[1]}" x2="${s.b[0]}" y2="${s.b[1]}" stroke="#b8ad8a" stroke-width="13" stroke-linecap="round"/>`;
+    out += `<line x1="${s.a[0]}" y1="${s.a[1]}" x2="${s.b[0]}" y2="${s.b[1]}" stroke="${s.risky && routeMode ? '#E7B9A6' : '#d9cfae'}" stroke-width="9" stroke-linecap="round"/>`;
+    if (s.risky && routeMode) out += `<line x1="${s.a[0]}" y1="${s.a[1]}" x2="${s.b[0]}" y2="${s.b[1]}" stroke="#C2412A" stroke-width="2" stroke-dasharray="4 5"/>`;
+  }
+  const dimOthers = routeMode || faded;
+  for (const [e, x, y] of OTHER) out += `<g transform="translate(${x} ${y})" opacity="${dimOthers ? .35 : 1}"><rect x="-14" y="-14" width="28" height="28" transform="rotate(45)" fill="#F2E4C2" stroke="#1E120A" stroke-width="2"/><text text-anchor="middle" dominant-baseline="central" font-size="15" font-family="system-ui">${e}</text></g>`;
+  if (routeMode) out += `<rect x="-300" y="-300" width="1000" height="1300" fill="rgba(20,12,6,.18)"/>`;
+  if (path.length > 1) {
+    const pts = path.map((n) => `${n.x},${n.y}`).join(' ');
+    out += `<polyline points="${pts}" fill="none" stroke="#1E120A" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
+    out += `<polyline points="${pts}" fill="none" stroke="#F6D98E" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    for (let i = 0; i + 1 < path.length; i++) {
+      const a = path[i], b = path[i + 1]; if (Math.hypot(b.x - a.x, b.y - a.y) < 30) continue;
+      out += `<path d="M -4 -4 L 3 0 L -4 4" fill="none" stroke="#1E120A" stroke-width="2" transform="translate(${(a.x + b.x) / 2} ${(a.y + b.y) / 2}) rotate(${Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI})"/>`;
+    }
+  }
+  stops.forEach((s) => { if (!NET[s]) { const n = nodes.get(s); out += `<rect x="-9" y="-9" width="18" height="18" transform="translate(${n.x} ${n.y}) rotate(45)" fill="#F6D98E" stroke="#1E120A" stroke-width="3"/>`; } });
+  for (const [id, s] of Object.entries(NET)) {
+    const n = nodes.get(s.at); const i = stops.indexOf(id);
+    const sz = routeMode ? 25 : 22;
+    out += `<g transform="translate(${n.x} ${n.y})"><rect x="${-sz}" y="${-sz}" width="${sz * 2}" height="${sz * 2}" transform="rotate(45) scale(.72)" fill="${id === 'hall' ? '#5A3820' : '#F2E4C2'}" stroke="${i >= 0 ? '#B4471C' : '#1E120A'}" stroke-width="${i >= 0 ? 5 : 4}"/>
+      <text text-anchor="middle" dominant-baseline="central" font-size="${routeMode ? 21 : 18}" font-family="system-ui">${s.icon}</text>`;
+    if (routeMode) out += `<text y="33" text-anchor="middle" font-size="12" font-family="Alegreya, Georgia, serif" font-weight="700" fill="#1E120A" stroke="#F2E4C2" stroke-width="3" paint-order="stroke">${s.name}</text>`;
+    if (i >= 0 && routeMode) out += `<g transform="translate(19 -19)"><circle r="11" fill="#B4471C" stroke="#1E120A" stroke-width="2"/><text text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="700" fill="#FFF1DC" font-family="Alegreya, Georgia, serif">${i + 1}</text></g>`;
+    if (late.includes(id)) out += `<g transform="translate(-20 -19)"><rect x="-10" y="-10" width="20" height="20" fill="#B4471C" stroke="#1E120A" stroke-width="2"/><text text-anchor="middle" dominant-baseline="central" font-size="12" font-family="system-ui">⏳</text></g>`;
+    const b = badges[id];
+    if (b) out += `<g transform="translate(17 -17)"><rect x="-12" y="-12" width="24" height="24" fill="${b[1]}" stroke="#1E120A" stroke-width="2"/><text text-anchor="middle" dominant-baseline="central" font-size="13" font-family="system-ui">${b[0]}</text></g>`;
+    out += `</g>`;
+  }
+  if (cart) out += `<g transform="translate(${cart[0]} ${cart[1]})"><rect x="-17" y="-13" width="34" height="26" fill="#5A3820" stroke="#1E120A" stroke-width="3"/><text x="-6" text-anchor="middle" dominant-baseline="central" font-size="15" font-family="system-ui">🛒</text><g transform="translate(14 -14)"><circle r="10" fill="#F2E4C2" stroke="#1E120A" stroke-width="2"/><text text-anchor="middle" dominant-baseline="central" font-size="11" font-family="system-ui">🌾</text></g></g>`;
+  out += `<circle cx="228" cy="384" r="14" fill="rgba(46,111,216,.25)"/><circle cx="228" cy="384" r="7" fill="#2E6FD8" stroke="#fff" stroke-width="3"/></svg>`;
+  return out;
+}
+const chip = (n, icon, name, move, o = {}) => `<div class="chip${o.late ? ' late' : ''}${o.lift ? ' lift' : ''}">${o.late ? '<span class="lt">⏳</span>' : ''}<span class="no">${n}</span><span class="ic">${icon}</span><span class="ld">${name}<small class="${move.startsWith('+') ? 'up' : move.startsWith('−') ? 'down' : ''}">${move}</small></span></div>`;
+const hallChip = (s) => `<div class="chip hall"><span class="ic">🏠</span><span class="ld">Hall<small>${s}</small></span></div>`;
+const ar = '<span class="ar">›</span>';
+function rbar({ chips, stats, via = false }) {
+  return `<div class="rbar"><div class="chips">${chips.join(ar)}</div>
+    <div class="stats"><div class="s">${stats}</div><div class="btn wood small${via ? ' on' : ''}">${via ? 'Cancel via' : 'Route through…'}</div></div>
+    <div class="btns"><div class="btn wood x">Cancel</div><div class="btn wood sg">Suggest order</div><div class="btn ember">Save</div></div></div>`;
+}
+function rphone({ cap, map, hint, bar, extra = '' }) {
+  return `<div><p class="cap">${cap}</p><div class="phone" role="img" aria-label="${cap}"><div class="map" style="background:#6DAE4F"></div>${map}
+    <div class="topbar">Edit delivery route</div>${hint ? `<div class="rhint">${hint}</div>` : ''}${bar}<div class="island r"></div>${extra}</div></div>`;
+}
+
+document.getElementById('route').innerHTML = [
+  rphone({ cap: 'Entering: the saved route, everything else dimmed', map: town({ stops: ['farm', 'tavern'], late: ['tavern'] }),
+    hint: 'Tap pins in visit order. Tap a number to take it off.',
+    bar: rbar({ chips: [hallChip('start'), chip(1, '🌾', 'Farm', '+24 grain'), chip(2, '🍺', 'Tavern', '−24 grain', { late: 1 }), hallChip('back')],
+      stats: '<b>Loop 42 min</b> · no risky street · home: nothing<br>⏳ Tavern leaves in 30 min' }) }),
+  rphone({ cap: 'Two stops added: a risky street, a stop gone by then', map: town({ stops: ['farm', 'tavern', 'quarry', 'smithy'], late: ['tavern'] }),
+    bar: rbar({ chips: [hallChip('start'), chip(1, '🌾', 'Farm', '+24 grain'), chip(2, '🍺', 'Tavern', '−24 grain', { late: 1 }), chip(3, '⛏️', 'Quarry', '+18 stone')],
+      stats: '<b>Loop 1 h 28 min</b> · <span class="risk">2 risky streets</span> · home: nothing<br>⏳ Tavern leaves in 30 min' }),
+    extra: `<div class="callout" style="left:16px;top:150px">The route follows the streets; a risky street shows red dashes on the map and counts in the bar.</div>` }),
+  rphone({ cap: 'Reordering: long-press a chip, drag it', map: town({ stops: ['quarry', 'farm', 'tavern', 'smithy'] }),
+    bar: rbar({ chips: [hallChip('start'), chip(1, '⛏️', 'Quarry', '+18 stone', { lift: 1 }), chip(2, '🌾', 'Farm', '+24 grain'), chip(3, '🍺', 'Tavern', 'gone by then')],
+      stats: '<b>Loop 1 h 28 min</b> · <span class="risk">1 risky street</span> · home: 24 grain' }),
+    extra: `<div class="callout" style="left:150px;top:470px">Or tap a chip: ◀ Earlier · Later ▶ · Remove appear above the stats.</div>` }),
+  rphone({ cap: 'Route through…: one tap on a street', map: town({ stops: ['farm', K(210, 410), 'tavern'] }),
+    hint: 'Tap a street: the cart will go through it.',
+    bar: rbar({ chips: [hallChip('start'), chip(1, '🌾', 'Farm', '+24 grain'), `<div class="chip" style="background:var(--parchShade)"><span class="no">2</span><span class="ld">via<small>a street</small></span></div>`, chip(3, '🍺', 'Tavern', '−24 grain')],
+      stats: '<b>Loop 50 min</b> · no risky street · home: nothing', via: true }) }),
+  rphone({ cap: 'Leaving with changes asks once', map: town({ stops: ['farm', 'tavern', 'quarry', 'smithy'] }),
+    bar: rbar({ chips: [hallChip('start'), chip(1, '🌾', 'Farm', '+24 grain'), chip(2, '🍺', 'Tavern', '−24 grain')], stats: '<b>Loop 1 h 28 min</b> · <span class="risk">2 risky streets</span>' }),
+    extra: `<div class="ask"><div class="card"><h4>Leave without saving?</h4><div>You changed the delivery route (2 changes). Leaving now keeps the route as it was.</div><div class="btn ember">Keep editing</div><div class="btn wood">Leave without saving</div></div></div>` }),
+  `<div><p class="cap">Step 2: a stop added for you</p><div class="phone" role="img" aria-label="A toast after a stop was added automatically"><div class="map" style="background:#6DAE4F"></div>${town({ stops: ['farm', 'tavern', 'quarry'], routeMode: false, cart: [210, 300] })}
+    <div class="topbar">Map<span class="tg">Network</span></div><div class="toastx">⛏️ Quarry added to the delivery route <u>Undo</u><u>Edit</u></div><div class="island"></div></div></div>`,
+].join('');
+
+/* ---------- building ---------- */
+const farmIcon = em('🌾');
+const bMarkers = (sel) => [[250, 150, '🌾', sel], [70, 300, '🏠'], [330, 330, '🍺']];
+const bStatus = (where) => `<span>★★☆</span><span>·</span>${where}<span>·</span><span>leaves in 2 days</span>`;
+const bSum = (cart) => `<div class="sum">Making 3 ${mini([['🌾']])} grain an hour <span class="m">·</span> 12 of 36 stored <span class="m">·</span> ${cart}</div>`;
+const bTabs = (on) => `<div class="tabs"><span class="${on === 'make' ? 'on' : ''}">Making</span><span class="${on === 'people' ? 'on' : ''}">People</span><span class="${on === 'details' ? 'on' : ''}">Details</span></div>`;
+document.getElementById('building').innerHTML = [
+  phone({ cap: 'Peek · far · no worker, not on the route', markers: bMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: farmIcon, name: 'Farm', status: bStatus('<span>320 m away</span>'), left: 0.7, peek: 1 }), bSum('nothing collects it'),
+      btn('Post a hero') + `<div class="sec">${btn('Add to the delivery route', 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Peek · far · worked, on the route', markers: bMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: farmIcon, name: 'Farm', status: bStatus('<span>320 m away</span>'), left: 0.7, peek: 1 }), bSum('the cart calls every 42 min'),
+      locked('Walk 320 m to collect 12') + `<div class="sec">${btn('Edit delivery route', 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Full · Making tab', markers: bMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: farmIcon, name: 'Farm', status: bStatus('<span>320 m away</span>'), left: 0.7 }), bSum('the cart calls every 42 min') + bTabs('make') +
+      `<div class="bar"><i style="width:33%"></i></div><div class="sum" style="font-size:16px">12 of 36 stored <span class="m">· full in 8 h</span></div>
+       <div class="grid">${tile(em('🌾'), 'Grain', { n: '10' })}${tile(img(ic.meat), 'Meat', { n: '2' })}</div>
+       <div class="dl"><dt>Goes to</dt><dd>🍺 The Crooked Mug, stop 2</dd><dt>Next call</dt><dd>in 18 min</dd><dt>Leftover</dt><dd>goes home to the hall</dd></div>`,
+      locked('Walk 320 m to collect 12') + `<div class="sec">${btn('Edit delivery route', 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Full · People tab · tap the slot for the picker', markers: bMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: farmIcon, name: 'Farm', status: bStatus('<span>320 m away</span>'), left: 0.7 }), bSum('the cart calls every 42 min') + bTabs('people') +
+      `<div style="display:flex;gap:12px;align-items:center"><div class="portrait" style="outline:3px solid var(--brassLight);outline-offset:2px">${img(ic.ranger)}</div><div><div style="font-size:19px">Ysolde · Ranger</div><div class="sum" style="font-size:15px"><span class="m">Farmer, level 2 · full rate +12%: 3.4 grain an hour</span></div></div></div>
+       <div class="sum" style="font-size:15px"><span class="m">Without her, locals work it at 50%: 1.5 grain an hour.</span></div>`,
+      btn('Change worker') + `<div class="sec">${btn('Recall Ysolde', 'wood', { c: 1 })}</div>`),
+    extra: `<div class="callout" style="left:150px;top:330px">The portrait is the slot: tapping it opens the hero picker. Empty, it shows “+”.</div>` }),
+].join('');
+
+/* ---------- site ---------- */
+const siteIcon = em('🌱');
+const sMarkers = (sel) => [[230, 170, '🌱', sel], [70, 300, '🏠'], [330, 330, '🍺']];
+const sStatus = (where) => `<span>★★☆</span><span>·</span>${where}<span>·</span><span>leaves in 3 days</span>`;
+const kindTile = (e, name, rate, sel, lock) => tile(em(e), `<span style="font-size:15px;text-align:center;line-height:1.1">${name}<br><span style="font-family:Alegreya,serif;font-size:12px;color:var(--inkMuted)">${rate}</span></span>`, { sel, dim: lock });
+document.getElementById('site').innerHTML = [
+  phone({ cap: 'Peek · far · not discovered', markers: sMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: em('❔'), name: 'Site', status: '<span>320 m away</span><span>·</span><span>leaves in 3 days</span>', left: 0.8, peek: 1 }),
+      `<div class="sum">Walk here to see how good the ground is and what you can build.</div>`, locked('Walk 320 m to discover it')) }),
+  phone({ cap: 'Peek · far · discovered', markers: sMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: siteIcon, name: 'Site', status: sStatus('<span>320 m away</span>'), left: 0.8, peek: 1 }),
+      `<div class="sum">Good ground <span class="m">·</span> a Farm here makes 3 ${mini([['🌾']])} grain an hour <span class="m">·</span> 2 places nearby want it</div>`,
+      locked('Walk 320 m to build') + `<div class="sec">${btn('See what you can build', 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Full · here · Build tab, Farm picked', markers: sMarkers(1), me: [245, 190], dim: 1,
+    sheet: sheet(band({ icon: siteIcon, name: 'Site', status: sStatus('<b>You’re here</b>'), left: 0.8 }),
+      `<div class="sum">Good ground <span class="m">·</span> 2 places nearby want grain</div><div class="tabs"><span class="on">Build</span><span>Details</span></div>
+       <div class="grid">${kindTile('🌾', 'Farm', '3 grain/h', 1)}${kindTile('🦌', 'Hunting camp', '2.4/h')}${kindTile('🪵', 'Lumber camp', '3 wood/h')}${kindTile('⛏️', 'Quarry', 'tier 2', 0, 1)}</div>
+       <div class="card"><div><div class="ct">Farm</div><div class="cd">Grain and some meat. Wanted by 🍺 the Crooked Mug (480 m) and 🍺 the Laughing Goose (1.1 km). Added to the delivery route when built.</div></div></div>
+       <div class="sum" style="font-size:15px"><span class="m">Buildings near the hall: 2 of 4 within 1.5 km</span></div>`,
+      btn(`Build a Farm <small>${gold(40)} · 10 wood</small>`)) }),
+].join('');
+
+/* ---------- cart ---------- */
+const cartIcon = em('🛒');
+const cMarkers = (sel) => [[200, 260, '🛒', sel], [70, 300, '🏠'], [330, 330, '🍺'], [130, 140, '🌾']];
+const cTabs = (on) => `<div class="tabs"><span class="${on === 'route' ? 'on' : ''}">Route</span><span class="${on === 'crew' ? 'on' : ''}">Crew</span><span class="${on === 'log' ? 'on' : ''}">Last loops</span></div>`;
+const stopRow = (n, e, name, what, cls) => `<div class="foe"><div class="slot" style="width:36px;min-height:36px;height:36px;font-family:Alegreya,serif;color:var(--brassLight);font-weight:700">${n}</div><span style="font-family:system-ui;font-size:20px">${e}</span><div><div class="fn" style="font-size:18px">${name}</div><span class="tag" style="${cls}">${what}</span></div></div>`;
+document.getElementById('cart').innerHTML = [
+  phone({ cap: 'Peek · no route yet', markers: cMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: cartIcon, name: 'The cart', status: '<span>Parked at the hall</span>', left: 1, peek: 1 }),
+      `<div class="sum">No delivery route yet. Pick the stops on the map: buildings to collect from, places to deliver to.</div>`,
+      btn('Plan the delivery route')) }),
+  phone({ cap: 'Peek · running', markers: cMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: cartIcon, name: 'The cart', status: '<span>Loop 3</span><span>·</span><span>back at the hall in 12 min</span>', left: 0.7, peek: 1 }),
+      `<div class="sum">Carrying 18 ${mini([['🌾']])} grain to the Crooked Mug <span class="m">·</span> loop 42 min <span class="m">·</span> no risky street</div>`,
+      btn('Edit delivery route') + `<div class="sec">${btn('Stop after this loop', 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Full · Route tab', markers: cMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: cartIcon, name: 'The cart', status: '<span>Loop 3</span><span>·</span><span>back at the hall in 12 min</span>', left: 0.7 }),
+      `<div class="sum">Carrying 18 ${mini([['🌾']])} grain to the Crooked Mug</div>` + cTabs('route') +
+      stopRow(1, '🌾', 'Farm', '+24 grain', 'color:var(--good)') + stopRow(2, '🍺', 'The Crooked Mug', '−24 grain · leaves in 30 min', 'color:var(--bad)') +
+      `<div class="sum" style="font-size:15px"><span class="m">Loop 42 min · 2.1 km along streets · home: nothing</span></div>`,
+      btn('Edit delivery route') + `<div class="sec">${btn('Stop after this loop', 'wood', { c: 1 })}</div>`) }),
+  phone({ cap: 'Full · Crew tab · parked', markers: cMarkers(1), dim: 1,
+    sheet: sheet(band({ icon: cartIcon, name: 'The cart', status: '<span>Parked at the hall</span>', left: 1 }),
+      `<div class="sum">Route ready: 2 stops, loop 42 min</div>` + cTabs('crew') +
+      `<div style="display:flex;gap:16px"><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="portrait">${img(ic.warrior)}</div><span style="font-size:15px">Driver</span></div>
+       <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div class="portrait empty">+</div><span style="font-size:15px">Escort</span></div></div>
+       <div class="sum" style="font-size:15px"><span class="m">Bram drives: 3.5 km/h, carries 100. An escort fights off ambushes on risky streets.</span></div>`,
+      btn('Start') + `<div class="sec">${btn('Edit delivery route', 'wood', { c: 1 })}</div>`) }),
+].join('');
+
+/* ---------- badges ---------- */
+const BADGES = [
+  ['⚔️', 'raid', 'Raid coming', 'Raiders reach it soon. “Farm, raid in 2 h”'],
+  ['⏳', 'last', 'Last day', 'It leaves within a day; stock left is lost. “Farm, last day, 5 h left”'],
+  ['📦', 'full', 'Full', 'Storage full, making nothing. “Farm, full, 36 of 36 stored”'],
+  ['🛒', 'idle', 'Nothing collecting it', 'Not on the delivery route, or the cart is parked. “Farm, not on the delivery route”'],
+  ['👤', 'nowork', 'No worker', 'Only locals work it, at half rate. “Farm, no hero posted”'],
+];
+document.getElementById('badges').innerHTML = `<tr><th>Badge</th><th>Means</th><th>When and what it says</th></tr>` +
+  BADGES.map(([e, c, n, d], i) => `<tr><td><span class="nm"><span class="d"></span><span class="e">🌾</span><span class="bd ${c}">${e}</span></span></td><td><b>${i + 1}. ${n}</b></td><td>${d}</td></tr>`).join('');
+document.getElementById('markers').innerHTML = [
+  `<div><p class="cap">Network markers at map zoom</p><div class="phone" role="img" aria-label="The map with badges on the network markers"><div class="map" style="background:#6DAE4F"></div>
+    ${town({ stops: ['farm', 'tavern'], routeMode: false, cart: [210, 460], badges: { farm: ['⏳', '#B4471C'], quarry: ['🛒', '#E9D9B2'], herbs: ['⚔️', '#C2412A'] } })}
+    <div class="topbar">Map<span class="tg">Network</span></div><div class="island"></div>
+    <div class="callout" style="left:170px;top:600px">Tapping the route line opens the cart's sheet. The cart shows one cargo icon.</div></div></div>`,
+  `<div><p class="cap">The Network toggle on</p><div class="phone" role="img" aria-label="The map with the Network toggle on"><div class="map" style="background:#6DAE4F"></div>
+    ${town({ stops: ['farm', 'tavern'], routeMode: false, faded: true, cart: [210, 460], badges: { farm: ['⏳', '#B4471C'], quarry: ['🛒', '#E9D9B2'], herbs: ['⚔️', '#C2412A'] } })}
+    <div class="topbar">Map<span class="tg on">Network ✓</span></div><div class="island"></div></div></div>`,
+].join('');
+
+/* ---------- the Network tab ---------- */
+const fi = (x, y, e, n, m, b, cls = '') => `<div class="fi ${cls}" style="left:${x}%;top:${y}px"><div class="t">${e}${b ? `<span class="bd ${b[1]}">${b[0]}</span>` : ''}</div><div class="n">${n}</div><div class="m">${m}</div></div>`;
+const flow = `<div class="flow" role="img" aria-label="The network as a picture: three buildings, the cart, three places">
+  <span class="colh" style="left:8px">Buildings</span><span class="colh" style="left:50%;transform:translateX(-50%)">Cart</span><span class="colh" style="right:8px">Places</span>
+  <svg viewBox="0 0 352 300" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 70 70 C 150 70, 150 150, 176 150 C 202 150, 210 70, 282 70" fill="none" stroke="#C9A04E" stroke-width="4"/>
+    <path d="M 70 150 C 120 150, 140 150, 176 150 C 212 150, 230 150, 282 150" fill="none" stroke="#8A6A34" stroke-width="4" stroke-dasharray="7 6"/>
+    <path d="M 70 230 L 110 230" fill="none" stroke="#8A6A34" stroke-width="4" stroke-dasharray="2 6"/>
+    <path d="M 282 230 L 245 230" fill="none" stroke="#8A6A34" stroke-width="4" stroke-dasharray="2 6"/>
+  </svg>
+  ${fi(20, 70, '🌾', 'Farm', '12 of 36 stored', ['⏳', 'last'])}
+  ${fi(20, 150, '⛏️', 'Quarry', '18 of 36 stored', ['🛒', 'idle'])}
+  ${fi(20, 230, '🌿', 'Herb garden', '10 of 36 stored', ['⚔️', 'raid'])}
+  ${fi(50, 150, '🛒', 'The cart', 'loop 42 min', null, 'cart')}
+  ${fi(80, 70, '🍺', 'Crooked Mug', 'wants 30 grain')}
+  ${fi(80, 150, '⚒️', 'Smithy', 'wants 20 stone')}
+  ${fi(80, 230, '⚗️', 'Apothecary', 'wants 15 herbs')}
+  <span class="fl" style="left:38%;top:116px">grain</span><span class="fl" style="left:66%;top:126px">stone: not on the route</span><span class="fl" style="left:50%;top:230px">herbs: nothing carries them</span>
+</div>`;
+document.getElementById('tab').innerHTML = `<div><p class="cap">Network tab</p><div class="phone" role="img" aria-label="The Network tab with the flow picture"><div class="screen">
+  <div class="hd">Network <small>Hall · 3 buildings · 3 places</small></div>
+  <div class="tabsx"><span>Hall</span><span class="on">Network</span><span>Orders</span></div>
+  <div class="sc">
+    <div class="next"><div class="l"><b>Next:</b> raiders reach the Herb garden in 2 h.</div><div class="btn ember c">Answer the raid</div></div>
+    ${flow}
+    <div class="secth">Buildings, last day first</div>
+    <div class="ncard"><span class="e">🌾</span><div><div class="tt">Farm</div><div class="ss">12 of 36 stored · Ysolde works it</div></div><span class="lastday">⏳ last day</span></div>
+    <div class="ncard"><span class="e">🌿</span><div><div class="tt">Herb garden</div><div class="ss">10 of 36 stored · raid in 2 h</div></div></div>
+  </div></div><div class="island"></div></div></div>
+  <div style="max-width:420px"><p class="cap">How the picture reads</p><ul class="why">
+    <li>Solid brass line: a good the delivery route carries now, from the building it's made in to the place that wants it, through the cart.</li>
+    <li>Dashed line: a building makes what a place wants, but the route doesn't connect them yet. Tapping the line opens route mode with both stops added.</li>
+    <li>Short dotted stubs: nothing carries this good at all.</li>
+    <li>Badges are the map's badges, on the item they concern. Every item shows its key number with its unit.</li>
+    <li>Tapping a building or place opens its sheet on the map; tapping the cart opens route mode.</li>
+  </ul></div>`;
+</script>
+</body>
+</html>

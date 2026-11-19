@@ -1,0 +1,569 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Route Mode Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: one phone screen. The map fills the top, route mode's slim bar sits above the island menu. */
+@font-face{font-family:'Fantaisie';src:url(../../../../assets/fonts/FantaisieArtistique.ttf) format('truetype'),url(FantaisieArtistique.ttf) format('truetype');font-display:swap}
+:root{
+  color-scheme:dark;
+  --outline:#1E120A;--woodDeep:#2A180D;--woodDark:#3A2314;--woodMid:#5A3820;--woodSeam:#4E301B;--woodSel:#7A4A26;
+  --brass:#C9A04E;--brassDim:#8A6A34;--brassLight:#F6D98E;--parch:#F2E4C2;--parchShade:#E6D3A8;--rule:#B9A27A;
+  --ink:#3A2314;--inkMuted:#6A4A2C;--onWood:#F2E4C2;--onWoodMuted:#C9B48A;
+  --ember:#B4471C;--emberLight:#E07A3E;--emberDark:#6E2A0E;--onEmber:#FFF1DC;
+  --grass:#6DAE4F;--grassDark:#5d9a43;--street:#d9cfae;--streetEdge:#b8ad8a;--route:#F6D98E;--routeCase:#1E120A;--risk:#C2412A;
+  --me:#2E6FD8;
+  --display:'Fantaisie',Georgia,serif;--body:Alegreya,Georgia,serif;--emoji:system-ui,'Apple Color Emoji','Segoe UI Emoji',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--woodDeep);color:var(--onWood);font-family:var(--body);overflow:hidden}
+.app{position:relative;height:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column;background:var(--grass);overflow:hidden;
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.top{flex:none;display:flex;align-items:center;gap:8px;padding:8px max(12px,env(safe-area-inset-left,0px));background:repeating-linear-gradient(0deg,var(--woodMid) 0 13px,var(--woodSeam) 13px 14px);border-bottom:3px solid var(--outline)}
+.top .t{font-family:var(--display);font-size:20px;color:var(--brassLight);flex:1;min-width:0}
+.top button{font-family:var(--body);font-size:13px;color:var(--brassLight);background:var(--woodDark);border:2px solid var(--brass);min-height:36px;padding:0 10px}
+.mapwrap{position:relative;flex:1 1 auto;min-height:0}
+svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.pin{cursor:pointer}
+.pin text{pointer-events:none}
+.hint{position:absolute;left:12px;right:12px;top:6px;padding:4px 10px;font-size:14px!important;background:rgba(30,18,10,.88);border:2px solid var(--brassDim);color:var(--parch);font-size:15px;line-height:1.3;text-align:center;pointer-events:none}
+.toast{position:absolute;left:50%;transform:translateX(-50%);top:10px;z-index:3;max-width:92%;padding:8px 14px;background:var(--parch);color:var(--ink);border:3px solid var(--outline);font-family:var(--display);font-size:17px;text-align:center;transition:opacity .2s}
+.toast[hidden]{display:none!important}
+.editbtn{position:absolute;right:12px;bottom:12px}
+
+/* ---------- the slim bar ---------- */
+.bar{flex:none;background:var(--parch);color:var(--ink);border-top:3px solid var(--outline);position:relative;padding:8px 0 8px}
+.bar:before{content:"";position:absolute;inset:4px;border:2px solid var(--brass);pointer-events:none}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:10px 12px 6px;scrollbar-width:none;touch-action:pan-x;position:relative}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;align-items:center;gap:6px;min-height:48px;padding:4px 10px 4px 6px;background:#F7ECCF;border:2px solid var(--outline);font-family:var(--display);font-size:16px;line-height:1.05;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;position:relative}
+.chip .no{width:24px;height:24px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--woodMid);color:var(--brassLight);border:2px solid var(--outline);font-family:var(--body);font-weight:700;font-size:14px}
+.chip .ic{font-family:var(--emoji);font-size:18px}
+.chip .ld{display:flex;flex-direction:column}
+.chip .ld small{font-family:var(--body);font-size:13px;color:var(--inkMuted)}
+.chip .ld .up{color:#2F6B32}
+.chip .ld .down{color:#8A2E1C}
+.chip.hall{background:var(--woodMid);color:var(--brassLight);border-color:var(--outline)}
+.chip.hall small{color:var(--onWoodMuted)}
+.chip.via{background:var(--parchShade);min-height:48px}
+.chip.sel{outline:3px solid var(--ember);outline-offset:1px}
+.chip.lift{transform:scale(1.08) translateY(-4px);box-shadow:0 6px 0 rgba(30,18,10,.35);z-index:2;background:#FFF6DF}
+.chip.late{border-color:var(--ember)}
+.chip .late{position:absolute;top:-8px;right:-6px;font-family:var(--emoji);font-size:13px;background:var(--ember);border:2px solid var(--outline);padding:0 3px;line-height:16px}
+.arrow{flex:none;align-self:center;color:var(--inkMuted);font-size:14px}
+.stats{display:flex;align-items:center;gap:8px;padding:2px 12px 6px;position:relative}
+.stats .s{flex:1;min-width:0;font-size:15px;line-height:1.25;color:var(--ink)}
+.stats .s b{font-weight:700}
+.stats .s .risk{color:var(--risk);font-weight:700}
+.btns{display:flex;gap:6px;padding:0 12px;position:relative}
+.btn{min-height:46px;padding:0 10px;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--display);font-size:18px;border:3px solid var(--outline);position:relative;text-align:center;line-height:1.05;cursor:pointer;color:var(--brassLight);background:var(--woodMid)}
+.btn:after{content:"";position:absolute;inset:3px;border:2px solid var(--brass);pointer-events:none}
+.btn.ember{background:var(--ember);color:var(--onEmber);box-shadow:inset 3px 3px 0 var(--emberLight),inset -3px -3px 0 var(--emberDark)}
+.btn.ember:after{display:none}
+.btn.small{min-height:40px;font-size:15px;flex:none}
+.btn.on{background:var(--woodSel);outline:3px solid var(--brassLight);outline-offset:1px}
+.btn[disabled]{opacity:.5}
+.btns .btn{flex:1;font-size:17px;padding:0 6px;white-space:nowrap}
+.btns #cancel{flex:.8}
+.btns #suggest{flex:1.35}
+.btn:focus-visible,.chip:focus-visible{outline:3px solid #3C6FD0;outline-offset:2px}
+.seltools{display:flex;gap:6px;padding:0 12px 6px;position:relative}
+.seltools[hidden]{display:none!important}
+.seltools .btn{flex:1;min-height:44px;font-size:16px}
+.seltools .lab{align-self:center;font-size:14px;color:var(--inkMuted);flex:none;max-width:30%}
+
+/* ---------- island menu (not live here) ---------- */
+.island{flex:none;margin:6px 12px max(10px,env(safe-area-inset-bottom,0px));height:58px;background:repeating-linear-gradient(0deg,var(--woodMid) 0 13px,var(--woodSeam) 13px 14px);border:2px solid var(--outline);outline:2px solid var(--brass);outline-offset:-5px;display:flex;align-items:center;justify-content:space-around;font-family:var(--emoji);font-size:22px;opacity:.85}
+.below{flex:none;background:var(--woodDeep)}
+
+/* ---------- the "leave?" card ---------- */
+.modal{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
+.modal[hidden]{display:none!important}
+.card{background:var(--parch);color:var(--ink);border:3px solid var(--outline);padding:16px;max-width:340px;width:100%;position:relative;display:flex;flex-direction:column;gap:12px}
+.card:before{content:"";position:absolute;inset:4px;border:2px solid var(--brass);pointer-events:none}
+.card h2{margin:0;font-family:var(--display);font-weight:400;font-size:22px}
+.card p{margin:0;font-size:16px}
+.card .btn{width:100%}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app" id="app">
+  <div class="top">
+    <span class="t" id="title">Delivery route</span>
+    <button type="button" id="reset">Reset demo</button>
+  </div>
+  <div class="mapwrap" id="mapwrap">
+    <svg class="map" id="map" viewBox="0 -14 400 594" preserveAspectRatio="xMidYMax meet" role="application" aria-label="Map in route mode"></svg>
+    <div class="hint" id="hint">Tap pins in visit order. Tap a number to take it off.</div>
+    <div class="toast" id="toast" hidden></div>
+    <button type="button" class="btn ember editbtn" id="edit" hidden>Edit delivery route</button>
+  </div>
+  <div class="bar" id="bar">
+    <div class="chips" id="chips" aria-label="Stops in order"></div>
+    <div class="seltools" id="seltools" hidden>
+      <span class="lab" id="sellab"></span>
+      <button type="button" class="btn" id="earlier" aria-label="Move earlier">◀ Earlier</button>
+      <button type="button" class="btn" id="later" aria-label="Move later">Later ▶</button>
+      <button type="button" class="btn" id="remove">Remove</button>
+    </div>
+    <div class="stats">
+      <div class="s" id="stats"></div>
+      <button type="button" class="btn small" id="via" aria-pressed="false">Route through…</button>
+    </div>
+    <div class="btns">
+      <button type="button" class="btn" id="cancel">Cancel</button>
+      <button type="button" class="btn" id="suggest">Suggest order</button>
+      <button type="button" class="btn ember" id="save">Save</button>
+    </div>
+  </div>
+  <div class="below">
+    <div class="island" aria-hidden="true"><span>🗺️</span><span>🛡️</span><span>🎒</span><span>🔨</span><span>📜</span></div>
+  </div>
+  <div class="modal" id="modal" hidden>
+    <div class="card" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+      <h2 id="mtitle">Leave without saving?</h2>
+      <p id="mbody"></p>
+      <button type="button" class="btn ember" id="keep">Keep editing</button>
+      <button type="button" class="btn" id="leave">Leave without saving</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- the town: streets (a graph), the network, other markers ----------
+  const M_PER_UNIT = 4;           // 1 map unit = 4 m
+  const CART_M_PER_MIN = 50;      // 3 km/h, the cart with a driver
+  const CAPACITY = 100;
+  const NOW_MIN = 0;
+
+  const xs = [40, 130, 210, 290, 360];
+  const ys = [40, 140, 250, 360, 460, 540];
+  const key = (x, y) => `${x},${y}`;
+  const nodes = new Map();
+  const addNode = (x, y) => { const k = key(x, y); if (!nodes.has(k)) nodes.set(k, { x, y, k, edges: [] }); return nodes.get(k); };
+  const streets = []; // [a, b, risky]
+  const missing = new Set(['130,250|40,250', '210,40|290,40', '360,460|360,540', '40,360|40,460']);
+  const risky = new Set(['290,360|290,460', '210,250|290,250']);
+  for (let r = 0; r < ys.length; r++) for (let c = 0; c < xs.length; c++) {
+    const here = [xs[c], ys[r]];
+    if (c + 1 < xs.length) streets.push([here, [xs[c + 1], ys[r]]]);
+    if (r + 1 < ys.length) streets.push([here, [xs[c], ys[r + 1]]]);
+  }
+  streets.push([[130, 250], [210, 140]]); // the old diagonal lane
+  const edgeId = (a, b) => { const s = key(...a), t = key(...b); return s < t ? `${s}|${t}` : `${t}|${s}`; };
+  const same = (id, list) => [...list].some((m) => { const [p, q] = m.split('|'); return id === (p < q ? `${p}|${q}` : `${q}|${p}`); });
+  const segs = []; // drawn streets, split in halves so a via can sit mid-street
+  for (const [a, b] of streets) {
+    const id = edgeId(a, b);
+    if (same(id, missing)) continue;
+    const isRisky = same(id, risky);
+    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const na = addNode(...a), nm = addNode(...mid), nb = addNode(...b);
+    for (const [p, q] of [[na, nm], [nm, nb]]) {
+      const len = Math.hypot(p.x - q.x, p.y - q.y);
+      p.edges.push({ to: q.k, len, street: id }); q.edges.push({ to: p.k, len, street: id });
+    }
+    segs.push({ a, b, id, risky: isRisky });
+  }
+
+  function shortest(from, to) {
+    const dist = new Map([[from, 0]]), prev = new Map(), done = new Set();
+    while (true) {
+      let u = null, best = Infinity;
+      for (const [k, d] of dist) if (!done.has(k) && d < best) { best = d; u = k; }
+      if (u === null || u === to) break;
+      done.add(u);
+      for (const e of nodes.get(u).edges) {
+        const nd = best + e.len;
+        if (nd < (dist.get(e.to) ?? Infinity)) { dist.set(e.to, nd); prev.set(e.to, { k: u, street: e.street }); }
+      }
+    }
+    const pts = [to], used = [];
+    let k = to;
+    while (k !== from) { const p = prev.get(k); if (!p) break; used.push(p.street); k = p.k; pts.push(k); }
+    return { points: pts.reverse().map((k) => nodes.get(k)), len: dist.get(to) ?? 0, streets: used };
+  }
+
+  const HALL = { id: 'hall', kind: 'hall', name: 'Hall', icon: '🏠', at: key(210, 360) };
+  const NETWORK = [
+    { id: 'farm', kind: 'building', name: 'Farm', icon: '🌾', at: key(130, 460), stock: { grain: 24 } },
+    { id: 'quarry', kind: 'building', name: 'Quarry', icon: '⛏️', at: key(290, 140), stock: { stone: 18 } },
+    { id: 'herbs', kind: 'building', name: 'Herb garden', icon: '🌿', at: key(40, 140), stock: { herb: 10 } },
+    { id: 'tavern', kind: 'place', name: 'The Crooked Mug', short: 'Tavern', icon: '🍺', at: key(290, 460), wants: { grain: 30 }, leavesIn: 30 },
+    { id: 'smithy', kind: 'place', name: 'Smithy', icon: '⚒️', at: key(360, 250), wants: { stone: 20 }, leavesIn: 2 * 24 * 60 },
+    { id: 'apothecary', kind: 'place', name: 'Apothecary', icon: '⚗️', at: key(130, 40), wants: { herb: 15 }, leavesIn: 5 * 60 },
+  ];
+  const OTHERS = [
+    { icon: '👺', x: 230, y: 170, name: 'Goblin patrol' },
+    { icon: '⛪', x: 330, y: 530, name: 'Chapel' },
+    { icon: '🔥', x: 60, y: 520, name: 'Sanctum' },
+    { icon: '🏚️', x: 330, y: 60, name: 'Ruins' },
+    { icon: '🎣', x: 70, y: 300, name: 'Fishing dock' },
+  ];
+  const GOOD = { grain: '🌾', stone: '🪨', herb: '🌿' };
+  const byId = Object.fromEntries([HALL, ...NETWORK].map((s) => [s.id, s]));
+  const builds = (b, wants) => Object.keys(b.stock).some((g) => g in wants);
+
+  // ---------- state ----------
+  const SAVED0 = [{ stop: 'farm' }, { stop: 'tavern' }];
+  let saved = SAVED0.map((p) => ({ ...p }));
+  let draft = saved.map((p) => ({ ...p }));
+  let mode = 'route';    // 'route' | 'map'
+  let routing = false;   // "Route through…" is waiting for a street tap
+  let selected = -1;     // index of the chip picked for the move buttons
+  let toastTimer = 0;
+  let hintDone = false; // the first-time hint goes once a pin is tapped
+
+  const pointAt = (p) => p.stop ? byId[p.stop].at : p.via;
+  const changed = () => JSON.stringify(draft) !== JSON.stringify(saved);
+
+  // ---------- the loop: path, time, cargo, risk ----------
+  function plan(route) {
+    const seq = [HALL.at, ...route.map(pointAt), HALL.at];
+    let path = [], len = 0, streetsUsed = new Set(), arrive = [];
+    for (let i = 0; i + 1 < seq.length; i++) {
+      const leg = shortest(seq[i], seq[i + 1]);
+      path = path.concat(i === 0 ? leg.points : leg.points.slice(1));
+      len += leg.len;
+      leg.streets.forEach((s) => streetsUsed.add(s));
+      arrive.push((len * M_PER_UNIT) / CART_M_PER_MIN);
+    }
+    const minutes = (len * M_PER_UNIT) / CART_M_PER_MIN;
+    let cargo = {};
+    const stops = route.map((p, i) => {
+      if (!p.stop) return { via: true };
+      const s = byId[p.stop];
+      const at = arrive[i];
+      if (s.kind === 'building') {
+        const loads = {};
+        for (const [g, n] of Object.entries(s.stock)) {
+          const room = CAPACITY - Object.values(cargo).reduce((a, b) => a + b, 0);
+          const take = Math.min(n, room);
+          if (take > 0) { loads[g] = take; cargo[g] = (cargo[g] ?? 0) + take; }
+        }
+        return { loads, unloads: {}, at };
+      }
+      const late = s.leavesIn < minutes;
+      const gone = s.leavesIn < at;
+      const unloads = {};
+      if (!gone) for (const [g, n] of Object.entries(s.wants)) {
+        const give = Math.min(n, cargo[g] ?? 0);
+        if (give > 0) { unloads[g] = give; cargo[g] -= give; if (!cargo[g]) delete cargo[g]; }
+      }
+      return { loads: {}, unloads, at, late, gone };
+    });
+    const riskyCount = [...streetsUsed].filter((s) => same(s, risky)).length;
+    return { path, minutes, stops, home: cargo, riskyCount, meters: len * M_PER_UNIT };
+  }
+
+  // The existing suggest-order rule: nearest next from the hall, a place waits for the building that serves it; vias keep their place at the end.
+  function suggest(route) {
+    const vias = route.filter((p) => !p.stop);
+    const left = route.filter((p) => p.stop).map((p) => byId[p.stop]);
+    let cur = HALL.at; const out = [];
+    while (left.length) {
+      const eligible = left.filter((s) => s.kind === 'building' || !left.some((o) => o.kind === 'building' && builds(o, s.wants)));
+      const pool = eligible.length ? eligible : left;
+      let best = pool[0], bd = Infinity;
+      for (const s of pool) { const d = shortest(cur, s.at).len; if (d < bd) { bd = d; best = s; } }
+      out.push({ stop: best.id }); left.splice(left.indexOf(best), 1); cur = best.at;
+    }
+    return [...out, ...vias];
+  }
+
+  // ---------- drawing ----------
+  const svg = document.getElementById('map');
+  const NS = 'http://www.w3.org/2000/svg';
+  // CSS variables only work through style, not SVG presentation attributes.
+  const el = (tag, attrs = {}, parent = svg) => {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (typeof v === 'string' && v.startsWith('var(')) e.style.setProperty(k, v); else e.setAttribute(k, v);
+    }
+    parent.appendChild(e);
+    return e;
+  };
+  const fmtMin = (m) => m >= 60 ? `${Math.floor(m / 60)} h ${Math.round(m % 60)} min` : `${Math.round(m)} min`;
+  const fmtLeaves = (m) => m >= 1440 ? `${Math.round(m / 1440)} d` : m >= 60 ? `${Math.round(m / 60)} h` : `${Math.round(m)} min`;
+  const goodsText = (o) => Object.entries(o).map(([g, n]) => `${n} ${g}`).join(', ');
+
+  function drawMap(p) {
+    svg.textContent = '';
+    el('rect', { x: -300, y: -300, width: 1000, height: 1300, fill: 'var(--grass)' });
+    el('circle', { cx: 80, cy: 90, r: 55, fill: 'var(--grassDark)' });
+    el('circle', { cx: 330, cy: 400, r: 50, fill: 'var(--grassDark)' });
+    el('path', { d: 'M -20 300 C 60 280, 90 330, 160 320 S 240 300, 260 290', stroke: '#6FA6C9', 'stroke-width': 14, fill: 'none', opacity: .7 });
+    const streetLayer = el('g', { id: 'streets' });
+    for (const s of segs) {
+      el('line', { x1: s.a[0], y1: s.a[1], x2: s.b[0], y2: s.b[1], stroke: 'var(--streetEdge)', 'stroke-width': 13, 'stroke-linecap': 'round' }, streetLayer);
+      el('line', { x1: s.a[0], y1: s.a[1], x2: s.b[0], y2: s.b[1], stroke: s.risky ? '#E7B9A6' : 'var(--street)', 'stroke-width': 9, 'stroke-linecap': 'round' }, streetLayer);
+      if (s.risky) el('line', { x1: s.a[0], y1: s.a[1], x2: s.b[0], y2: s.b[1], stroke: 'var(--risk)', 'stroke-width': 2, 'stroke-dasharray': '4 5' }, streetLayer);
+    }
+    if (mode === 'route') {
+      // Everything outside the network is dimmed.
+      for (const o of OTHERS) {
+        const g = el('g', { class: 'pin', opacity: .35, transform: `translate(${o.x} ${o.y})`, role: 'button', 'aria-label': `${o.name}, not part of the delivery route` });
+        el('rect', { x: -14, y: -14, width: 28, height: 28, transform: 'rotate(45)', fill: 'var(--parch)', stroke: 'var(--outline)', 'stroke-width': 2 }, g);
+        const t = el('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 15, 'font-family': 'system-ui' }, g); t.textContent = o.icon;
+        g.addEventListener('click', (e) => { e.stopPropagation(); toast(`${o.name} isn't part of the network`); });
+      }
+      el('rect', { x: -300, y: -300, width: 1000, height: 1300, fill: 'rgba(20,12,6,.18)', 'pointer-events': 'none' });
+    } else {
+      for (const o of OTHERS) {
+        const g = el('g', { transform: `translate(${o.x} ${o.y})` });
+        el('rect', { x: -14, y: -14, width: 28, height: 28, transform: 'rotate(45)', fill: 'var(--parch)', stroke: 'var(--outline)', 'stroke-width': 2 }, g);
+        const t = el('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 15, 'font-family': 'system-ui' }, g); t.textContent = o.icon;
+      }
+    }
+    // The route along the streets.
+    const pts = p.path.map((n) => `${n.x},${n.y}`).join(' ');
+    el('polyline', { points: pts, fill: 'none', stroke: 'var(--routeCase)', 'stroke-width': 9, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', opacity: .9 });
+    el('polyline', { points: pts, fill: 'none', stroke: 'var(--route)', 'stroke-width': 5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+    // Direction ticks along the line.
+    for (let i = 0; i + 1 < p.path.length; i++) {
+      const a = p.path[i], b = p.path[i + 1];
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      if (len < 30) continue;
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      el('path', { d: 'M -4 -4 L 3 0 L -4 4', fill: 'none', stroke: 'var(--routeCase)', 'stroke-width': 2, transform: `translate(${mx} ${my}) rotate(${ang})` });
+    }
+    // Via points.
+    draft.forEach((pt, i) => {
+      if (pt.stop) return;
+      const n = nodes.get(pt.via);
+      const g = el('g', { class: 'pin', transform: `translate(${n.x} ${n.y})`, role: 'button', 'aria-label': 'Via point, tap to remove' });
+      el('rect', { x: -9, y: -9, width: 18, height: 18, transform: 'rotate(45)', fill: 'var(--brassLight)', stroke: 'var(--outline)', 'stroke-width': 3 }, g);
+      el('circle', { r: 20, fill: 'transparent' }, g);
+      g.addEventListener('click', (e) => { e.stopPropagation(); if (mode !== 'route') return; draft.splice(i, 1); selected = -1; render(); toast('Via point removed'); });
+    });
+    // Network pins: large in route mode.
+    const big = mode === 'route';
+    for (const s of [HALL, ...NETWORK]) {
+      const n = nodes.get(s.at);
+      const idx = draft.findIndex((pt) => pt.stop === s.id);
+      const stopInfo = idx >= 0 ? p.stops[idx] : null;
+      const size = big ? 25 : 17;
+      const label = s.id === 'hall' ? 'Hall, start and end of the loop'
+        : idx >= 0 ? `${s.name}, stop ${idx + 1}, tap to remove` : `${s.name}, tap to add as stop ${draft.filter((d) => d.stop).length + 1}`;
+      const g = el('g', { class: 'pin', transform: `translate(${n.x} ${n.y})`, role: 'button', 'aria-label': label });
+      el('circle', { r: 30, fill: 'transparent' }, g);
+      el('rect', { x: -size, y: -size, width: size * 2, height: size * 2, transform: 'rotate(45) scale(.72)', fill: s.id === 'hall' ? 'var(--woodMid)' : 'var(--parch)', stroke: idx >= 0 ? 'var(--ember)' : 'var(--outline)', 'stroke-width': idx >= 0 ? 5 : 4 }, g);
+      const t = el('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': big ? 21 : 15, 'font-family': 'system-ui' }, g); t.textContent = s.icon;
+      if (big) {
+        const nm = el('text', { y: 33, 'text-anchor': 'middle', 'font-size': 12, 'font-family': 'Alegreya, Georgia, serif', 'font-weight': 700, fill: '#1E120A', stroke: '#F2E4C2', 'stroke-width': 3, 'paint-order': 'stroke' }, g);
+        nm.textContent = s.short ?? s.name;
+      }
+      if (idx >= 0) {
+        const b = el('g', { transform: 'translate(19 -19)' }, g);
+        el('circle', { r: 11, fill: 'var(--ember)', stroke: 'var(--outline)', 'stroke-width': 2 }, b);
+        const nt = el('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 13, 'font-weight': 700, fill: '#FFF1DC', 'font-family': 'Alegreya, Georgia, serif' }, b);
+        nt.textContent = String(idx + 1);
+      }
+      if (stopInfo?.late) {
+        const b = el('g', { transform: 'translate(-20 -19)' }, g);
+        el('rect', { x: -10, y: -10, width: 20, height: 20, fill: 'var(--ember)', stroke: 'var(--outline)', 'stroke-width': 2 }, b);
+        const lt = el('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 12, 'font-family': 'system-ui' }, b); lt.textContent = '⏳';
+      }
+      g.addEventListener('click', (e) => { e.stopPropagation(); tapPin(s); });
+    }
+    // The player.
+    el('circle', { cx: 228, cy: 384, r: 14, fill: 'rgba(46,111,216,.25)' });
+    el('circle', { cx: 228, cy: 384, r: 7, fill: 'var(--me)', stroke: '#fff', 'stroke-width': 3 });
+  }
+
+  function chipHtml(i, pt, info) {
+    if (!pt.stop) return `<div class="chip via" data-i="${i}" tabindex="0" role="button" aria-label="Via point ${i + 1}"><span class="no">${i + 1}</span><span class="ld">via<small>a street</small></span></div>`;
+    const s = byId[pt.stop];
+    const move = Object.keys(info.loads).length ? `<small class="up">+${goodsText(info.loads)}</small>`
+      : Object.keys(info.unloads).length ? `<small class="down">−${goodsText(info.unloads)}</small>`
+      : `<small>${info.gone ? 'gone by then' : 'nothing to move'}</small>`;
+    const late = info.late ? `<span class="late" aria-hidden="true">⏳</span>` : '';
+    const lateText = info.late ? `, leaves in ${fmtLeaves(s.leavesIn)}, before the loop ends` : '';
+    return `<div class="chip${info.late ? ' late' : ''}${selected === i ? ' sel' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="Stop ${i + 1}, ${s.name}${lateText}. Long-press and drag to reorder, or tap for move buttons.">${late}<span class="no">${i + 1}</span><span class="ic">${s.icon}</span><span class="ld">${s.short ?? s.name}${move}</span></div>`;
+  }
+
+  function render() {
+    const p = plan(draft);
+    drawMap(p);
+    const chips = document.getElementById('chips');
+    const home = Object.keys(p.home).length ? goodsText(p.home) : 'nothing';
+    chips.innerHTML = `<div class="chip hall" aria-label="Start at the hall"><span class="ic">🏠</span><span class="ld">Hall<small>start</small></span></div>`
+      + draft.map((pt, i) => `<span class="arrow" aria-hidden="true">›</span>` + chipHtml(i, pt, p.stops[i])).join('')
+      + `<span class="arrow" aria-hidden="true">›</span><div class="chip hall" aria-label="Back at the hall with ${home}"><span class="ic">🏠</span><span class="ld">Hall<small>${Object.keys(p.home).length ? '+' + home : 'back'}</small></span></div>`;
+    const late = p.stops.map((s, i) => s.late ? byId[draft[i].stop] : null).filter(Boolean);
+    const riskText = p.riskyCount === 0 ? 'no risky street' : `<span class="risk">${p.riskyCount} risky street${p.riskyCount > 1 ? 's' : ''}</span>`;
+    document.getElementById('stats').innerHTML = draft.length === 0
+      ? 'No stops yet: tap a pin to add the first.'
+      : `<b>Loop ${fmtMin(p.minutes)}</b> · ${riskText} · home: ${home}${late.length ? `<br>⏳ ${late.map((s) => `${s.short ?? s.name} leaves in ${fmtLeaves(s.leavesIn)}`).join(', ')}` : ''}`;
+    document.getElementById('save').disabled = !changed();
+    const tools = document.getElementById('seltools');
+    tools.hidden = selected < 0 || selected >= draft.length;
+    if (!tools.hidden) {
+      const pt = draft[selected];
+      document.getElementById('sellab').textContent = pt.stop ? `${selected + 1} · ${byId[pt.stop].short ?? byId[pt.stop].name}` : `${selected + 1} · via`;
+      document.getElementById('earlier').disabled = selected === 0;
+      document.getElementById('later').disabled = selected === draft.length - 1;
+    }
+    const viaBtn = document.getElementById('via');
+    viaBtn.classList.toggle('on', routing);
+    viaBtn.setAttribute('aria-pressed', String(routing));
+    viaBtn.textContent = routing ? 'Cancel via' : 'Route through…';
+    document.getElementById('hint').textContent = routing
+      ? 'Tap a street: the cart will go through it.'
+      : 'Tap pins in visit order. Tap a number to take it off.';
+    document.getElementById('bar').hidden = mode !== 'route';
+    document.getElementById('hint').hidden = mode !== 'route' || (hintDone && !routing);
+    document.getElementById('edit').hidden = mode === 'route';
+    document.getElementById('title').textContent = mode === 'route' ? 'Edit delivery route' : 'Map';
+    bindChips();
+  }
+
+  function toast(text) {
+    const t = document.getElementById('toast');
+    const hint = document.getElementById('hint');
+    t.textContent = text; t.hidden = false; hint.style.visibility = 'hidden';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; hint.style.visibility = ''; }, 2200);
+  }
+
+  // ---------- taps ----------
+  function tapPin(s) {
+    if (mode !== 'route') return;
+    if (routing) { routeThrough(nodes.get(s.at)); return; }
+    hintDone = true;
+    if (s.id === 'hall') { toast('The hall is where every loop starts and ends'); return; }
+    const idx = draft.findIndex((pt) => pt.stop === s.id);
+    if (idx >= 0) { draft.splice(idx, 1); selected = -1; toast(`${s.short ?? s.name} taken off the route`); }
+    else { draft.push({ stop: s.id }); toast(`${s.short ?? s.name} added as stop ${draft.length}`); }
+    render();
+  }
+
+  function svgPoint(evt) {
+    const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function routeThrough(at) {
+    // A via point goes after the stop nearest to it, as the game does today.
+    let best = -1, bd = Infinity;
+    draft.forEach((pt, i) => { const n = nodes.get(pointAt(pt)); const d = Math.hypot(n.x - at.x, n.y - at.y); if (d < bd) { bd = d; best = i; } });
+    draft.splice(best + 1, 0, { via: at.k });
+    routing = false; selected = -1;
+    toast('The cart goes through that street now');
+    render();
+  }
+  svg.addEventListener('click', (evt) => {
+    if (mode !== 'route' || !routing) return;
+    const p = svgPoint(evt);
+    let best = null, bd = Infinity;
+    for (const n of nodes.values()) { const d = Math.hypot(n.x - p.x, n.y - p.y); if (d < bd) { bd = d; best = n; } }
+    if (best && bd < 40) routeThrough(best); else toast('Tap closer to a street');
+  });
+
+  // ---------- chips: tap for move buttons, long-press and drag to reorder ----------
+  function bindChips() {
+    const box = document.getElementById('chips');
+    box.querySelectorAll('.chip[data-i]').forEach((chip) => {
+      const i = Number(chip.dataset.i);
+      chip.addEventListener('click', () => { if (dragJustEnded) return; selected = selected === i ? -1 : i; render(); });
+      chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selected = selected === i ? -1 : i; render(); } });
+      chip.addEventListener('touchstart', (e) => startPress(e, chip, i, e.touches[0]), { passive: true });
+      chip.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') startPress(e, chip, i, e); });
+    });
+  }
+  let press = null, dragJustEnded = false;
+  function startPress(e, chip, i, p) {
+    cancelPress();
+    press = { chip, i, x0: p.clientX, y0: p.clientY, lifted: false };
+    press.timer = setTimeout(() => {
+      if (!press) return;
+      press.lifted = true;
+      chip.classList.add('lift');
+      if (navigator.vibrate) try { navigator.vibrate(15); } catch (_) {}
+    }, 350);
+  }
+  function cancelPress() { if (press) { clearTimeout(press.timer); press.chip.classList.remove('lift'); } press = null; }
+  function moveTo(clientX) {
+    const box = document.getElementById('chips');
+    const chips = [...box.querySelectorAll('.chip[data-i]')];
+    let target = press.i;
+    chips.forEach((c) => { const r = c.getBoundingClientRect(); const j = Number(c.dataset.i); if (j < press.i && clientX < r.left + r.width / 2) target = Math.min(target, j); if (j > press.i && clientX > r.left + r.width / 2) target = Math.max(target, j); });
+    if (target !== press.i) {
+      const [pt] = draft.splice(press.i, 1); draft.splice(target, 0, pt);
+      // Move the chips in place: the dragged chip must stay in the page, or the finger's events stop.
+      const order = chips.map((c) => Number(c.dataset.i));
+      const [moved] = order.splice(press.i, 1); order.splice(target, 0, moved);
+      const sorted = order.map((j) => chips.find((c) => Number(c.dataset.i) === j));
+      const arrows = [...box.querySelectorAll('.arrow')];
+      const end = box.lastElementChild;
+      sorted.forEach((c, k) => { box.insertBefore(arrows[k], end); box.insertBefore(c, end); c.dataset.i = String(k); const no = c.querySelector('.no'); if (no) no.textContent = String(k + 1); });
+      box.insertBefore(arrows[arrows.length - 1], end);
+      press.i = target; selected = -1;
+      drawMap(plan(draft));
+    }
+    // Scroll the bar when the chip nears its edges.
+    const r = box.getBoundingClientRect();
+    if (clientX < r.left + 30) box.scrollLeft -= 12; else if (clientX > r.right - 30) box.scrollLeft += 12;
+  }
+  function onMove(p, e) {
+    if (!press) return;
+    if (!press.lifted) { if (Math.hypot(p.clientX - press.x0, p.clientY - press.y0) > 8) cancelPress(); return; }
+    if (e.cancelable) e.preventDefault();
+    moveTo(p.clientX);
+  }
+  function onEnd() {
+    const wasDrag = press?.lifted;
+    cancelPress();
+    if (wasDrag) { dragJustEnded = true; setTimeout(() => { dragJustEnded = false; }, 50); render(); toast('Order changed'); }
+  }
+  document.addEventListener('touchmove', (e) => onMove(e.touches[0], e), { passive: false });
+  document.addEventListener('touchend', onEnd);
+  document.addEventListener('touchcancel', onEnd);
+  document.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') onMove(e, e); });
+  document.addEventListener('pointerup', (e) => { if (e.pointerType === 'mouse') onEnd(); });
+  document.addEventListener('contextmenu', (e) => { if (press) e.preventDefault(); });
+
+  // ---------- the bar's buttons ----------
+  const move = (d) => { const j = selected + d; if (j < 0 || j >= draft.length) return; const [pt] = draft.splice(selected, 1); draft.splice(j, 0, pt); selected = j; render(); };
+  document.getElementById('earlier').addEventListener('click', () => move(-1));
+  document.getElementById('later').addEventListener('click', () => move(1));
+  document.getElementById('remove').addEventListener('click', () => { const pt = draft[selected]; draft.splice(selected, 1); selected = -1; render(); toast(pt.stop ? `${byId[pt.stop].short ?? byId[pt.stop].name} taken off the route` : 'Via point removed'); });
+  document.getElementById('via').addEventListener('click', () => { routing = !routing; selected = -1; render(); });
+  document.getElementById('suggest').addEventListener('click', () => {
+    const next = suggest(draft);
+    const same = JSON.stringify(next) === JSON.stringify(draft);
+    draft = next; selected = -1; render();
+    toast(same ? 'Already the suggested order' : 'Stops put in the suggested order');
+  });
+  document.getElementById('save').addEventListener('click', () => {
+    if (draft.length === 0) { toast('Add at least one stop'); return; }
+    saved = draft.map((p) => ({ ...p })); mode = 'map'; routing = false; selected = -1; render(); toast('Delivery route saved');
+  });
+  const modal = document.getElementById('modal');
+  document.getElementById('cancel').addEventListener('click', () => {
+    if (!changed()) { leave(); return; }
+    const n = diffCount();
+    document.getElementById('mbody').textContent = `You changed the delivery route (${n} change${n > 1 ? 's' : ''}). Leaving now keeps the route as it was.`;
+    modal.hidden = false; document.getElementById('keep').focus();
+  });
+  document.getElementById('keep').addEventListener('click', () => { modal.hidden = true; });
+  document.getElementById('leave').addEventListener('click', () => { modal.hidden = true; leave(); });
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.hidden = true; });
+  function leave() { draft = saved.map((p) => ({ ...p })); mode = 'map'; routing = false; selected = -1; render(); }
+  function diffCount() {
+    const a = saved.map((p) => p.stop ?? p.via), b = draft.map((p) => p.stop ?? p.via);
+    const added = b.filter((x) => !a.includes(x)).length, removed = a.filter((x) => !b.includes(x)).length;
+    const kept = b.filter((x) => a.includes(x));
+    const orderChanged = JSON.stringify(kept) !== JSON.stringify(a.filter((x) => b.includes(x))) ? 1 : 0;
+    return Math.max(1, added + removed + orderChanged);
+  }
+  document.getElementById('edit').addEventListener('click', () => { mode = 'route'; draft = saved.map((p) => ({ ...p })); render(); });
+  document.getElementById('reset').addEventListener('click', () => { saved = SAVED0.map((p) => ({ ...p })); draft = saved.map((p) => ({ ...p })); mode = 'route'; routing = false; selected = -1; modal.hidden = true; render(); });
+
+  render();
+})();
+</script>

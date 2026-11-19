@@ -81,3 +81,16 @@ Still hidden, on purpose:
 - **The empty map tap does nothing**, except while the route planner is adjusting a stop or while the hall is being placed. Hall placement moved to the player's own marker (it opens `HallSheet` for the player's cell, with "Place the hall here"), to the Network tab (a "Place the hall here" button on the hall line, and the first steps' "Place hall here", which places it at once in the player's cell) and to "Pick a spot on the map" in the hall sheet, which shows a bar ("Tap a spot on the map to place your hall") until the next tap opens the hall sheet for that spot.
 - Unchanged rules: ranges, fights, odds, the Sanctum's one attempt, the hall's moves and their limit.
 - **Speed** (`src/perf/fightSheetFirstOpen.test.tsx`, dev machine, 2026-11-19), cold peek / full / warm peek and full: patrol 36 / 11 / 14 ms (the first of the run, so it pays the module warm-up), place fight 15 / 6 / 12, Sanctum 9 / 6 / 10, trader 9 / 10 / 21, secret place 7 / 16 / 8, hall 7 / no tabs / 4. The old panels took 5–15 ms cold. Sheets and the chooser open through `mapPanelsStore`, so the markers don't re-render.
+
+## Proposed (prompt 2, step 1): the network, made easy
+
+For review, no code change. `network.html` mocks up route mode on the map, the building, site and cart sheets on the template, the network markers with their badges and the Network tab as a flow picture. `route-prototype.html` is a clickable prototype of route mode, to try on a phone before any game code.
+
+- **Route mode** dims everything that can't be a stop and shows the hall, the buildings and the discovered places that want something as large pins. Tapping a pin adds it as the next numbered stop; tapping a numbered pin takes it off. The route redraws along the streets after each change.
+- **The slim bar** sits above the island menu: the stops as chips (number, icon, what is loaded or delivered), then "Loop 42 min · 1 risky street · home: 6 stone", then Cancel, Suggest order and Save. "Route through…" waits for one tap on a street and adds a via point after the nearest stop (as the planner does today).
+- **Reordering:** long-press a chip and drag it sideways; or tap a chip for "◀ Earlier · Later ▶ · Remove", which is also the accessible way.
+- **Expiring stops** get ⏳ on their pin and chip, and a line under the stats; a place the cart would reach after it leaves says "gone by then".
+- **Leaving with changes** asks once: "Leave without saving?" with Keep editing (main) and Leave without saving.
+- **Auto-added stops** (step 2) show a toast: "Quarry added to the delivery route · Undo · Edit".
+- **Badges**, at most one per network marker, most urgent first: raid coming ⚔️, last day ⏳, full 📦, nothing collecting it 🛒, no worker 👤.
+- **Suggest order** keeps today's rule: nearest next from the hall, a place waits for the building in the route that serves it.
