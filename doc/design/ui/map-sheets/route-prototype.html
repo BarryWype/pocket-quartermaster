@@ -27,7 +27,7 @@ body{background:var(--woodDeep);color:var(--onWood);font-family:var(--body);over
 .top .t{font-family:var(--display);font-size:20px;color:var(--brassLight);flex:1;min-width:0}
 .top button{font-family:var(--body);font-size:13px;color:var(--brassLight);background:var(--woodDark);border:2px solid var(--brass);min-height:36px;padding:0 10px}
 .mapwrap{position:relative;flex:1 1 auto;min-height:0}
-svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
 .pin{cursor:pointer}
 .pin text{pointer-events:none}
 .hint{position:absolute;left:12px;right:12px;top:6px;padding:4px 10px;font-size:14px!important;background:rgba(30,18,10,.88);border:2px solid var(--brassDim);color:var(--parch);font-size:15px;line-height:1.3;text-align:center;pointer-events:none}
@@ -473,8 +473,14 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-act
     svg.setPointerCapture(e.pointerId);
     const p0 = svgPoint(e);
     grab = { i, g, id: e.pointerId, x0: e.clientX, y0: e.clientY, lifted: false, preview: null, at: p0 };
-    grab.timer = setTimeout(() => {
-      if (!grab) return;
+    grab.timer = setTimeout(() => lift(), 300);
+  }
+  // The point comes up for dragging after a short hold, or as soon as the finger moves it.
+  function lift() {
+    if (!grab || grab.lifted) return;
+    clearTimeout(grab.timer);
+    const { g, i } = grab;
+    {
       grab.lifted = true;
       g.setAttribute('transform', `${g.getAttribute('transform')} scale(1.35)`);
       if (navigator.vibrate) try { navigator.vibrate(15); } catch (_) {}
@@ -484,7 +490,7 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-act
       grab.preview = el('polyline', { points: '', fill: 'none', stroke: 'var(--outline)', 'stroke-width': 3, 'stroke-dasharray': '6 5', 'pointer-events': 'none' });
       svg.appendChild(g);
       movePreview(grab.at);
-    }, 300);
+    }
   }
   function movePreview(at) {
     grab.at = at;
@@ -493,10 +499,10 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-act
   }
   svg.addEventListener('pointermove', (e) => {
     if (!grab || e.pointerId !== grab.id) return;
-    if (!grab.lifted) { if (Math.hypot(e.clientX - grab.x0, e.clientY - grab.y0) > 8) { clearTimeout(grab.timer); grab = null; } return; }
+    if (!grab.lifted) { if (Math.hypot(e.clientX - grab.x0, e.clientY - grab.y0) <= 6) return; lift(); }
     movePreview(svgPoint(e));
   });
-  const endGrab = (e) => {
+  function endGrab(e) {
     if (!grab || e.pointerId !== grab.id) return;
     clearTimeout(grab.timer);
     const g = grab;
@@ -507,9 +513,10 @@ svg.map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-act
     if (n) { draft[g.i] = { via: n.k }; toast('The route now passes there'); }
     else toast('Too far from any street: put back');
     render();
-  };
+  }
   svg.addEventListener('pointerup', endGrab);
-  svg.addEventListener('pointercancel', (e) => { if (grab && e.pointerId === grab.id) { clearTimeout(grab.timer); grab = null; render(); } });
+  // If the browser takes the touch back mid-drag, the point still lands where the finger left it.
+  svg.addEventListener('pointercancel', (e) => { if (grab && e.pointerId === grab.id) { if (grab.lifted) endGrab(e); else { clearTimeout(grab.timer); grab = null; } } });
 
   const bubble = document.getElementById('bubble');
   let bubbleFor = -1, bubbleAt = 0;
