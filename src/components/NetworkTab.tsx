@@ -95,9 +95,19 @@ export function NetworkTab() {
         stayingOrders.map((order) => <OrderCard key={order.placeId} order={order} now={now} />)
       )}
       <CartCard now={now} />
-      <Text style={styles.line}>
-        {hall ? t('supply.network.hallMoves', { n: hallMovesLeft(save, now) }) : t('supply.network.noHall')}
-      </Text>
+      <View style={styles.hallRow}>
+        <Text style={[styles.line, styles.hallText]}>
+          {hall ? t('supply.network.hallMoves', { n: hallMovesLeft(save, now) }) : t('supply.network.noHall')}
+        </Text>
+        {player && (
+          <WoodButton
+            compact
+            title={hall ? t('supply.hall.move') : t('supply.hall.place')}
+            disabled={hall?.cell === cellAt(player)}
+            onPress={() => openOnMap(() => useMapPanels.getState().openHall(cellAt(player)))}
+          />
+        )}
+      </View>
       {routeLeft && (
         <View style={styles.routeLeftRow}>
           <GameIcon emoji="⚠️" size={18} />
@@ -233,8 +243,9 @@ function firstChainStep(step: FirstChainStep, save: SaveData, player: LatLng | n
   const around = aroundOf(save, player);
   switch (step) {
     case 'hall':
-      if (player) panels.openSupplyCell(cellAt(player));
-      break;
+      // "Place hall here": the player's own cell, at once; the checklist moves on.
+      if (player) useGameStore.getState().placeHall(cellAt(player));
+      return;
     case 'site': {
       const site = nearestSite(save, player, now, false) ?? nearestSite(save, player, now, true);
       if (site) world.set({ focusPlace: site.position });
@@ -316,7 +327,7 @@ function nextStep(save: SaveData, player: LatLng | null, now: number): { line: s
     return {
       line: t('supply.firstChain.hall'),
       label: t('supply.firstChain.buttons.hall'),
-      onPress: () => openOnMap(() => player && panels.openSupplyCell(cellAt(player))),
+      onPress: () => player && useGameStore.getState().placeHall(cellAt(player)),
     };
   }
   if (!Object.keys(save.supply.discovered).some(isSiteId)) {
@@ -623,6 +634,8 @@ function OrderCard({ order, now }: { order: Order; now: number }) {
 }
 
 const styles = StyleSheet.create({
+  hallRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  hallText: { flex: 1 },
   body: { gap: 10 },
   card: { gap: 8 },
   chainRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

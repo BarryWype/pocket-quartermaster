@@ -92,7 +92,7 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
   return (
     <>
       {hall && (
-        <Marker id="supply-hall" lngLat={toLngLat(tileCenter(hall.cell))} onPress={tapped(() => useMapPanels.getState().openSupplyCell(hall.cell))}>
+        <Marker id="supply-hall" lngLat={toLngLat(tileCenter(hall.cell))} onPress={tapped(() => useMapPanels.getState().openHall(hall.cell))}>
           <GameIcon emoji="🏠" size={MARKER_SIZE} />
         </Marker>
       )}

@@ -110,12 +110,11 @@ describe('the Network tab', () => {
     expect(tab).toContain('A building');
     expect(tab).toContain('Build on a site, then the cart carries what it makes to places that pay for it.');
     expect(tab).toContain('No hall yet');
-    // The current step's button opens the player's own cell on the map.
+    // The current step's button places the hall in the player's own cell, right here.
     act(() => {
-      renderer!.root.findByProps({ accessibilityLabel: 'Show my cell' }).props.onPress();
+      renderer!.root.findAllByProps({ accessibilityLabel: 'Place hall here' })[0].props.onPress();
     });
-    expect(useMapPanels.getState().supplyCell).toBe(cellAt(origin));
-    expect(navigate).toHaveBeenCalledWith('/');
+    expect(useGameStore.getState().save.supply.hall?.cell).toBe(cellAt(origin));
   });
 
   it('shows the route step as the current one, with its button alone', () => {
@@ -130,7 +129,7 @@ describe('the Network tab', () => {
     expect(tab).toContain('Set the cart’s route');
     expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Plan the route' }).length).toBeGreaterThan(0);
     // Only the current step carries a button.
-    expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Show my cell' }).length).toBe(0);
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Place hall here' }).length).toBe(0);
   });
 
   it('shows the next step for a building worked by locals only', () => {

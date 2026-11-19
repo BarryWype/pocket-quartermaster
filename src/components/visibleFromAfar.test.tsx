@@ -7,10 +7,10 @@ import { createInitialSave } from '@/game/save';
 import type { TavernSpawn } from '@/game/taverns/taverns';
 import { useGameStore } from '@/store/gameStore';
 
-import { PlaceFightPanel } from './PlaceFightPanel';
+import { PlaceFightSheet } from './fights/PlaceFightSheet';
 import { PlaceSheet } from './places/PlaceSheet';
 import { TavernSheet } from './places/TavernSheet';
-import { SecretPanel } from './SecretPanel';
+import { SecretSheet } from './places/SecretSheet';
 import { ItemSlot } from './ui';
 
 jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
@@ -104,17 +104,22 @@ describe('map sheets show what is there from afar', () => {
 
   it('a fight shows its foes from afar, and Fight says how far to walk', () => {
     act(() => {
-      renderer = create(<PlaceFightPanel place={spawn('banditCamp')} player={far} now={now} onClose={() => {}} />);
+      renderer = create(<PlaceFightSheet place={spawn('banditCamp')} player={far} now={now} onClose={() => {}} />);
     });
-    const sheet = text(renderer!);
-    expect(sheet).toContain('Foes');
-    expect(sheet).toContain('Bandits with stolen goods.');
+    // The peek names the foes, their threats and what they drop; the full sheet tells the rest.
+    expect(text(renderer!)).toContain('3 foes: cutpurse, bandit, bandit archer');
+    expect(text(renderer!)).toContain('Drops: Gold');
     expect(titles(renderer!)).toContain(`Walk 320${NBSP}m to fight`);
+    press('More');
+    expect(text(renderer!)).toContain('cutpurse');
+    const details = renderer!.root.findAll((n) => n.props.accessibilityRole === 'tab' && n.props.accessibilityLabel === 'Details' && typeof n.props.onPress === 'function')[0];
+    act(() => details.props.onPress());
+    expect(text(renderer!)).toContain('Bandits with stolen goods.');
   });
 
   it('a secret place keeps its offer behind the key, from afar as here', () => {
     act(() => {
-      renderer = create(<SecretPanel place={spawn('blackMarket')} player={far} now={now} onClose={() => {}} />);
+      renderer = create(<SecretSheet place={spawn('blackMarket')} player={far} now={now} onClose={() => {}} />);
     });
     const sheet = text(renderer!);
     expect(sheet).toContain('A rare hero and goods no shop sells.');

@@ -19,6 +19,7 @@ import { MapTopBar, TOP_BAR_HEIGHT } from '@/components/MapTopBar';
 import { MapMarkers } from '@/components/MapMarkers';
 import { MapPanels } from '@/components/MapPanels';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
+import { markerHits, offerChooser, type MarkerHit } from '@/components/markerHits';
 import { PANEL_KINDS } from '@/components/places/placeText';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SupplyLayers } from '@/components/SupplyLayers';
@@ -200,6 +201,9 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const openPlaceId = useMapPanels((state) => state.place?.id ?? null);
   const cameraRef = useRef<CameraRef>(null);
   const mapRef = useRef<MapRef>(null);
+  // The zoom and the markers in sight, read only when a marker is tapped: a tap on overlapping markers offers the chooser.
+  const zoomRef = useRef(17);
+  const chooserRef = useRef<{ hits: MarkerHit[]; player: LatLng | null }>({ hits: [], player: null });
   const ambience = useAmbience();
   const skyPan = useSkyPan();
   // What the map draws of its decorations at the current zoom: nothing, one still frame, or the animated frames.
@@ -412,6 +416,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const openPlaceAt = useCallback(
     (place: PlaceSpawn) => {
       markTap('place marker');
+      if (offerChooser(place.id, chooserRef.current.hits, chooserRef.current.player, zoomRef.current, mapRef.current)) return;
       openPlaceAtPanel(place);
       if (position) visitPlace(place, position);
     },
@@ -420,6 +425,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const openSanctumAt = useCallback(
     (spawn: SanctumSpawn) => {
       markTap('sanctum marker');
+      if (offerChooser(spawn.id, chooserRef.current.hits, chooserRef.current.player, zoomRef.current, mapRef.current)) return;
       useMapPanels.getState().openSanctum(spawn);
     },
     [],
@@ -427,6 +433,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const openTavernAt = useCallback(
     (tavern: TavernSpawn) => {
       markTap('tavern marker');
+      if (offerChooser(tavern.id, chooserRef.current.hits, chooserRef.current.player, zoomRef.current, mapRef.current)) return;
       useMapPanels.getState().openTavern(tavern);
     },
     [],
@@ -434,6 +441,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const openPatrolAt = useCallback(
     (spawn: PatrolSpawn) => {
       markTap('patrol marker');
+      if (offerChooser(spawn.id, chooserRef.current.hits, chooserRef.current.player, zoomRef.current, mapRef.current)) return;
       useMapPanels.getState().openPatrol(spawn);
     },
     [],
@@ -543,6 +551,13 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         : [],
     [patrolSpawns, position, now, save.beatenPatrols, save.helpedTravellers, save.walkEffects, patrolsSeen, patrolsShown, debugPatrols],
   );
+  useEffect(() => {
+    chooserRef.current.player = position;
+    chooserRef.current.hits = markerHits(
+      { sanctums: sanctumsInSight, taverns: tavernsInSight, places: placesInSight, secrets: secretsInSight, patrols: visiblePatrols },
+      () => chooserRef.current.player,
+    );
+  });
 
   // The first time the map draws a kind, its tip comes up.
   const noteTips = useGameStore((state) => state.noteTips);
@@ -702,9 +717,9 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     markTap('quest marker');
     navigate('/quests');
   }, []);
-  // The player's own marker opens their cell's sheet; only passed while the switch is on, so the memo keeps working.
+  // The player's own marker opens the hall sheet for their cell ("Place hall here"); only passed while the network is on, so the memo keeps working.
   const onPlayerCell = useCallback(() => {
-    if (position) useMapPanels.getState().openSupplyCell(cellAt(position));
+    if (position) useMapPanels.getState().openHall(cellAt(position));
   }, [position]);
 
   // The menu stays reachable while there is no map to show.
@@ -767,6 +782,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         logo={false}
         attributionPosition={{ top: insets.top + TOP_BAR_HEIGHT + 8, left: 8 }}
         onRegionIsChanging={(event) => {
+          zoomRef.current = event.nativeEvent.zoom;
           // Native-driven pan: no state changes here, so panning never re-renders this screen.
           skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
           setDecor((current) => {
@@ -775,6 +791,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           });
         }}
         onRegionDidChange={(event) => {
+          zoomRef.current = event.nativeEvent.zoom;
           skyPan.update(event.nativeEvent.center, event.nativeEvent.zoom);
           setDecor((current) => {
             const shown = decorationMode(event.nativeEvent.zoom);

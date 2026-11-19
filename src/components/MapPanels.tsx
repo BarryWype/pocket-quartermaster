@@ -8,27 +8,28 @@ import { useNow } from '@/hooks/useNow';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { useWorldStore } from '@/store/worldStore';
 
-import { PatrolPanel } from './PatrolPanel';
-import { PlaceFightPanel } from './PlaceFightPanel';
+import { PatrolSheet } from './fights/PatrolSheet';
+import { PlaceFightSheet } from './fights/PlaceFightSheet';
+import { SanctumSheet } from './fights/SanctumSheet';
+import { TravellerSheet } from './fights/TravellerSheet';
+import { HallSheet, PlacingHallBar } from './HallSheet';
+import { MarkerChooser } from './MarkerChooser';
+import { PlaceSheet } from './places/PlaceSheet';
+import { SecretSheet } from './places/SecretSheet';
+import { TavernSheet } from './places/TavernSheet';
 import { RoutePlannerSheet } from './RoutePlannerSheet';
-import { SanctumPanel } from './SanctumPanel';
-import { SecretPanel } from './SecretPanel';
 import { SupplyCampPanel } from './SupplyCampPanel';
 import { SupplyCartPanel } from './SupplyCartPanel';
-import { SupplyCellPanel } from './SupplyCellPanel';
 import { SupplySitePanel } from './SupplySitePanel';
-import { TravellerPanel } from './TravellerPanel';
-import { PlaceSheet } from './places/PlaceSheet';
-import { TavernSheet } from './places/TavernSheet';
 
-const TimedSanctumPanel = timed('panel: sanctum', SanctumPanel);
-const TimedPlaceFightPanel = timed('panel: place fight', PlaceFightPanel);
+const TimedSanctumSheet = timed('panel: sanctum', SanctumSheet);
+const TimedPlaceFightSheet = timed('panel: place fight', PlaceFightSheet);
 const TimedPlaceSheet = timed('panel: place', PlaceSheet);
-const TimedSecretPanel = timed('panel: secret', SecretPanel);
+const TimedSecretSheet = timed('panel: secret', SecretSheet);
 const TimedTavernSheet = timed('panel: tavern', TavernSheet);
-const TimedTravellerPanel = timed('panel: traveller', TravellerPanel);
-const TimedPatrolPanel = timed('panel: patrol', PatrolPanel);
-const TimedSupplyCellPanel = timed('panel: supply cell', SupplyCellPanel);
+const TimedTravellerSheet = timed('panel: traveller', TravellerSheet);
+const TimedPatrolSheet = timed('panel: patrol', PatrolSheet);
+const TimedHallSheet = timed('panel: hall', HallSheet);
 const TimedSupplyBuildingPanel = timed('panel: supply building', SupplyCampPanel);
 const TimedSupplyCartPanel = timed('panel: supply cart', SupplyCartPanel);
 const TimedSupplySitePanel = timed('panel: supply site', SupplySitePanel);
@@ -54,14 +55,14 @@ export function MapPanels({ player, patrols }: Props) {
   const openPlace = useMapPanels((state) => state.place);
   const openTavern = useMapPanels((state) => state.tavern);
   const openPatrol = useMapPanels((state) => state.patrol);
-  const supplyCell = useMapPanels((state) => state.supplyCell);
+  const hallCell = useMapPanels((state) => state.hallCell);
   const supplyBuilding = useMapPanels((state) => state.supplyBuilding);
   const site = useMapPanels((state) => state.site);
   const closeSanctum = useMapPanels((state) => state.closeSanctum);
   const closePlace = useMapPanels((state) => state.closePlace);
   const closeTavern = useMapPanels((state) => state.closeTavern);
   const closePatrol = useMapPanels((state) => state.closePatrol);
-  const closeSupplyCell = useMapPanels((state) => state.closeSupplyCell);
+  const closeHall = useMapPanels((state) => state.closeHall);
   const closeSupplyBuilding = useMapPanels((state) => state.closeSupplyBuilding);
   const closeSite = useMapPanels((state) => state.closeSite);
   const cartOpen = useMapPanels((state) => state.cartOpen);
@@ -74,22 +75,24 @@ export function MapPanels({ player, patrols }: Props) {
 
   return (
     <>
-      {openSanctum && <TimedSanctumPanel spawn={openSanctum} player={player} onClose={closeSanctum} />}
+      {openSanctum && <TimedSanctumSheet spawn={openSanctum} player={player} now={now} onClose={closeSanctum} />}
       {openPlace && isFightPlace(openPlace.kind) && (
-        <TimedPlaceFightPanel place={openPlace} player={player} now={now} onClose={closePlace} />
+        <TimedPlaceFightSheet place={openPlace} player={player} now={now} onClose={closePlace} />
       )}
-      {openPlace && isSecretKind(openPlace.kind) && <TimedSecretPanel place={openPlace} player={player} now={now} onClose={closePlace} />}
+      {openPlace && isSecretKind(openPlace.kind) && <TimedSecretSheet place={openPlace} player={player} now={now} onClose={closePlace} />}
       {openPlace && !isFightPlace(openPlace.kind) && !isSecretKind(openPlace.kind) && (
         <TimedPlaceSheet place={openPlace} player={player} now={now} onClose={closePlace} />
       )}
       {openTavern && <TimedTavernSheet tavern={openTavern} player={player} now={now} onClose={closeTavern} />}
       {selectedPatrol && isPatrolKind(selectedPatrol.kind) && (
-        <TimedPatrolPanel spawn={selectedPatrol} player={player} now={now} onClose={closePatrol} />
+        <TimedPatrolSheet spawn={selectedPatrol} player={player} now={now} onClose={closePatrol} />
       )}
       {selectedPatrol && isTravellerKind(selectedPatrol.kind) && (
-        <TimedTravellerPanel spawn={selectedPatrol} player={player} now={now} onClose={closePatrol} />
+        <TimedTravellerSheet spawn={selectedPatrol} player={player} now={now} onClose={closePatrol} />
       )}
-      {supplyCell && <TimedSupplyCellPanel cell={supplyCell} player={player} onClose={closeSupplyCell} />}
+      {hallCell && <TimedHallSheet cell={hallCell} player={player} onClose={closeHall} />}
+      <PlacingHallBar />
+      <MarkerChooser />
       {supplyBuilding && <TimedSupplyBuildingPanel id={supplyBuilding} player={player} onClose={closeSupplyBuilding} />}
       {site && <TimedSupplySitePanel site={site} player={player} onClose={closeSite} />}
       {cartOpen && <TimedSupplyCartPanel onClose={closeCart} />}

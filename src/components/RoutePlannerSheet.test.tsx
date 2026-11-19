@@ -174,7 +174,7 @@ describe('the route planner sheet', () => {
     });
     const state = useMapPanels.getState();
     expect(state.routePlanner).toEqual([]);
-    expect([state.supplyBuilding, state.supplyCell, state.site, state.place, state.sanctum, state.tavern, state.patrol]).toEqual([null, null, null, null, null, null, null]);
+    expect([state.supplyBuilding, state.hallCell, state.site, state.place, state.sanctum, state.tavern, state.patrol]).toEqual([null, null, null, null, null, null, null]);
     expect(state.cartOpen).toBe(false);
   });
 

@@ -8,8 +8,8 @@ import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
 import { t } from '@/i18n';
 
+import { HallSheet } from './HallSheet';
 import { statusText } from './HeroPicker';
-import { SupplyCellPanel } from './SupplyCellPanel';
 import { SupplyLayers } from './SupplyLayers';
 import { SupplyMarkers } from './SupplyMarkers';
 
@@ -63,7 +63,7 @@ describe('the supply lines on the map', () => {
       });
     });
     act(() => {
-      renderer = create(<SupplyCellPanel cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
+      renderer = create(<HallSheet cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
     });
     const sheet = text(renderer!);
     expect(sheet).toContain('Move the hall here');
@@ -86,7 +86,7 @@ describe('the supply lines on the map', () => {
       });
     });
     act(() => {
-      renderer = create(<SupplyCellPanel cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
+      renderer = create(<HallSheet cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
     });
     const sheet = text(renderer!);
     expect(sheet).toContain('No moves left this week');
@@ -117,7 +117,7 @@ describe('the supply lines on the map', () => {
       });
     });
     act(() => {
-      renderer = create(<SupplyCellPanel cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
+      renderer = create(<HallSheet cell={cell} player={tileCenter(cell)} onClose={() => {}} />);
     });
     act(() => {
       renderer!.root.findAll((node) => node.props.title === 'Move the hall here' && typeof node.props.onPress === 'function')[0].props.onPress();
