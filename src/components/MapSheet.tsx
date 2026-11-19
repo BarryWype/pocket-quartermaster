@@ -40,6 +40,9 @@ export type MapSheetAction = {
 
 export type MapSheetSecondary = { key: string; title: string; onPress: () => void; disabled?: boolean };
 
+/** What the sheet is showing, for an action that changes with it, and a way to open a tab. */
+export type MapSheetView = { full: boolean; tab: string; open: (tab?: string) => void };
+
 type Props = {
   /** A tap outside, a swipe down from the peek and Android back all lead here. There is no Close button. */
   onClose: () => void;
@@ -51,9 +54,10 @@ type Props = {
   status: string;
   /** What's here, in one line. */
   summary: ReactNode;
-  action: MapSheetAction;
+  /** The main action, or a function of what the sheet shows ("Buy" in the peek opens the shop; on the shop, it buys the picked tile). */
+  action: MapSheetAction | ((view: MapSheetView) => MapSheetAction);
   /** Secondary actions, in a row under the main one. */
-  secondary?: MapSheetSecondary[];
+  secondary?: MapSheetSecondary[] | ((view: MapSheetView) => MapSheetSecondary[]);
   /** The full sheet's tabs. Without tabs there is only the peek. */
   tabs?: MapSheetTab[];
   /** Opens straight on the full sheet. */
@@ -113,6 +117,17 @@ export function MapSheet({ onClose, emoji, icon, ring, title, status, summary, a
   );
 
   const shown = full && hasTabs ? (tabs!.find((tab) => tab.key === tabKey) ?? tabs![0]) : null;
+  const view: MapSheetView = {
+    full: !!shown,
+    tab: shown?.key ?? '',
+    open: (tab) => {
+      if (!hasTabs) return;
+      if (tab) setTabKey(tab);
+      setFull(true);
+    },
+  };
+  const main = typeof action === 'function' ? action(view) : action;
+  const more = typeof secondary === 'function' ? secondary(view) : secondary;
 
   return (
     <Overlay onClose={onClose} position="bottom">
@@ -136,10 +151,10 @@ export function MapSheet({ onClose, emoji, icon, ring, title, status, summary, a
             footerStyle={styles.footer}
             footer={
               <>
-                <MainButton action={action} onWalked={() => setFull(false)} />
-                {secondary && secondary.length > 0 && (
+                <MainButton action={main} onWalked={() => setFull(false)} />
+                {more && more.length > 0 && (
                   <View style={styles.secondary}>
-                    {secondary.map((entry) => (
+                    {more.map((entry) => (
                       <WoodButton key={entry.key} compact title={entry.title} disabled={entry.disabled} onPress={entry.onPress} style={styles.secondaryButton} />
                     ))}
                   </View>

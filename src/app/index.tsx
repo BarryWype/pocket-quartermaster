@@ -19,7 +19,7 @@ import { MapTopBar, TOP_BAR_HEIGHT } from '@/components/MapTopBar';
 import { MapMarkers } from '@/components/MapMarkers';
 import { MapPanels } from '@/components/MapPanels';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
-import { PANEL_KINDS } from '@/components/PlacePanel';
+import { PANEL_KINDS } from '@/components/places/placeText';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SupplyLayers } from '@/components/SupplyLayers';
 import { SupplyMarkers } from '@/components/SupplyMarkers';

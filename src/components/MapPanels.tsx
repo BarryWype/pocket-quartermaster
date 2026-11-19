@@ -10,7 +10,6 @@ import { useWorldStore } from '@/store/worldStore';
 
 import { PatrolPanel } from './PatrolPanel';
 import { PlaceFightPanel } from './PlaceFightPanel';
-import { PlacePanel } from './PlacePanel';
 import { RoutePlannerSheet } from './RoutePlannerSheet';
 import { SanctumPanel } from './SanctumPanel';
 import { SecretPanel } from './SecretPanel';
@@ -18,14 +17,15 @@ import { SupplyCampPanel } from './SupplyCampPanel';
 import { SupplyCartPanel } from './SupplyCartPanel';
 import { SupplyCellPanel } from './SupplyCellPanel';
 import { SupplySitePanel } from './SupplySitePanel';
-import { TavernPanel } from './TavernPanel';
 import { TravellerPanel } from './TravellerPanel';
+import { PlaceSheet } from './places/PlaceSheet';
+import { TavernSheet } from './places/TavernSheet';
 
 const TimedSanctumPanel = timed('panel: sanctum', SanctumPanel);
 const TimedPlaceFightPanel = timed('panel: place fight', PlaceFightPanel);
-const TimedPlacePanel = timed('panel: place', PlacePanel);
+const TimedPlaceSheet = timed('panel: place', PlaceSheet);
 const TimedSecretPanel = timed('panel: secret', SecretPanel);
-const TimedTavernPanel = timed('panel: tavern', TavernPanel);
+const TimedTavernSheet = timed('panel: tavern', TavernSheet);
 const TimedTravellerPanel = timed('panel: traveller', TravellerPanel);
 const TimedPatrolPanel = timed('panel: patrol', PatrolPanel);
 const TimedSupplyCellPanel = timed('panel: supply cell', SupplyCellPanel);
@@ -80,9 +80,9 @@ export function MapPanels({ player, patrols }: Props) {
       )}
       {openPlace && isSecretKind(openPlace.kind) && <TimedSecretPanel place={openPlace} player={player} now={now} onClose={closePlace} />}
       {openPlace && !isFightPlace(openPlace.kind) && !isSecretKind(openPlace.kind) && (
-        <TimedPlacePanel place={openPlace} player={player} now={now} onClose={closePlace} />
+        <TimedPlaceSheet place={openPlace} player={player} now={now} onClose={closePlace} />
       )}
-      {openTavern && <TimedTavernPanel tavern={openTavern} player={player} onClose={closeTavern} />}
+      {openTavern && <TimedTavernSheet tavern={openTavern} player={player} now={now} onClose={closeTavern} />}
       {selectedPatrol && isPatrolKind(selectedPatrol.kind) && (
         <TimedPatrolPanel spawn={selectedPatrol} player={player} now={now} onClose={closePatrol} />
       )}

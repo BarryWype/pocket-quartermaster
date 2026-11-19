@@ -23,7 +23,7 @@ import { patrolRules, patrolTexts } from '@/content/patrols';
 import { placeGroupOf, placesAround, type PlaceSpawn } from '@/game/places/generate';
 import { nearestByKind } from '@/game/places/density';
 import { placeInfo, type PlaceKind } from '@/content/places';
-import { PANEL_KINDS } from '@/components/PlacePanel';
+import { PANEL_KINDS } from '@/components/places/placeText';
 import { placeFightRules } from '@/content/placeFights';
 import { sanctums } from '@/content/sanctums';
 import { bossWeaknesses } from '@/content/weaknesses';

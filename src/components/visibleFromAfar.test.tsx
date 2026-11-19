@@ -8,9 +8,10 @@ import type { TavernSpawn } from '@/game/taverns/taverns';
 import { useGameStore } from '@/store/gameStore';
 
 import { PlaceFightPanel } from './PlaceFightPanel';
-import { PlacePanel } from './PlacePanel';
+import { PlaceSheet } from './places/PlaceSheet';
+import { TavernSheet } from './places/TavernSheet';
 import { SecretPanel } from './SecretPanel';
-import { TavernPanel } from './TavernPanel';
+import { ItemSlot } from './ui';
 
 jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
 jest.mock('expo-router', () => ({ ...jest.requireActual('expo-router'), useIsFocused: () => true }));
@@ -48,45 +49,57 @@ describe('map sheets show what is there from afar', () => {
     renderer = null;
   });
 
-  it('a smithy shows its stock 320 m away, its Buy buttons saying how far to walk; here they say Buy', () => {
+  const press = (title: string) => {
+    const node = renderer!.root.findAll((n) => n.props.title === title && typeof n.props.onPress === 'function')[0];
+    act(() => node.props.onPress());
+  };
+  /** The shop's tiles: the item slots that can be tapped. */
+  const tiles = () => renderer!.root.findAllByType(ItemSlot).filter((node) => typeof node.props.onPress === 'function');
+
+  it('a smithy shows its stock 320 m away as tiles; the one action is the walk, and here it is Buy', () => {
     const smithy = spawn('smithy');
     const stock = placeStock(useGameStore.getState().save, smithy, now);
     expect(stock.length).toBeGreaterThan(0);
     act(() => {
-      renderer = create(<PlacePanel place={smithy} player={far} now={now} onClose={() => {}} />);
+      renderer = create(<PlaceSheet place={smithy} player={far} now={now} onClose={() => {}} />);
     });
-    const sheet = text(renderer!);
-    expect(sheet).not.toContain('too far to see');
-    expect(sheet).toContain(`320${NBSP}m away`);
-    expect(sheet).toContain('Sells and buys gear');
-    const walk = titles(renderer!).filter((title) => title === `Walk 320${NBSP}m to buy`);
-    expect(walk).toHaveLength(stock.length);
+    expect(text(renderer!)).not.toContain('too far to see');
+    expect(text(renderer!)).toContain(`320${NBSP}m away`);
+    expect(text(renderer!)).toContain('Sells and buys gear');
+    expect(titles(renderer!)).toContain(`Walk 320${NBSP}m to trade`);
+    // The full sheet shows every line as a tile, with its price, from afar.
+    press('More');
+    expect(tiles()).toHaveLength(stock.length);
     act(() => renderer!.unmount());
     act(() => {
-      renderer = create(<PlacePanel place={smithy} player={near} now={now} onClose={() => {}} />);
+      renderer = create(<PlaceSheet place={smithy} player={near} now={now} onClose={() => {}} />);
     });
-    // One Buy per line, and the Buy tab beside Sell.
-    expect(titles(renderer!).filter((title) => title === 'Buy')).toHaveLength(stock.length + 1);
+    expect(titles(renderer!)).toContain('Buy');
     expect(text(renderer!)).not.toContain('m away');
   });
 
-  it('a chapel shows its care and blessing from afar, locked with the walk', () => {
+  it('a chapel shows its blessing from afar, locked with the walk', () => {
     act(() => {
-      renderer = create(<PlacePanel place={spawn('chapel')} player={far} now={now} onClose={() => {}} />);
+      renderer = create(<PlaceSheet place={spawn('chapel')} player={far} now={now} onClose={() => {}} />);
     });
-    expect(text(renderer!)).toContain('Care for a hero at home');
+    expect(text(renderer!)).toContain('party damage on your next expedition');
     expect(titles(renderer!)).toContain(`Walk 320${NBSP}m to take the blessing`);
   });
 
-  it('a tavern shows its recruits from afar, without a separate “get within” line', () => {
+  it('a tavern shows its recruits from afar, and its emergency supply in the Buy tab, locked with its reason', () => {
     const tavern: TavernSpawn = { ...spawn('tavern'), name: 'The Crooked Mug' };
     act(() => {
-      renderer = create(<TavernPanel tavern={tavern} player={far} onClose={() => {}} />);
+      renderer = create(<TavernSheet tavern={tavern} player={far} now={now} onClose={() => {}} />);
     });
-    const sheet = text(renderer!);
-    expect(sheet).toContain('Emergency supply');
-    expect(sheet).not.toContain('Get within');
-    expect(titles(renderer!)).toContain(`Walk 320${NBSP}m to buy`);
+    expect(text(renderer!)).toContain('recruits today');
+    expect(text(renderer!)).not.toContain('Get within');
+    expect(titles(renderer!)).toContain(`Walk 320${NBSP}m to recruit`);
+    press('More');
+    const buyTab = renderer!.root.findAll((n) => n.props.accessibilityRole === 'tab' && n.props.accessibilityLabel === 'Buy' && typeof n.props.onPress === 'function')[0];
+    act(() => buyTab.props.onPress());
+    expect(text(renderer!)).toContain('Emergency supply');
+    // A new save can't recruit or buy supply yet: the supply's button says so; the footer still says the walk.
+    expect(titles(renderer!)).toEqual(expect.arrayContaining(['Beat the Bandit Stockade first', `Walk 320${NBSP}m to trade`]));
   });
 
   it('a fight shows its foes from afar, and Fight says how far to walk', () => {

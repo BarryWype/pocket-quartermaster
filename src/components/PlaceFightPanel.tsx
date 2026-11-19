@@ -21,7 +21,7 @@ import { colors } from '@/theme';
 
 import { EnemyTags } from './EnemyTags';
 import { DifficultyChip, EmberButton, WoodButton } from './ui';
-import { leavesIn } from './PlacePanel';
+import { leavesIn } from './places/placeText';
 import { Overlay } from './Overlay';
 import { PartyDialog } from './PartyDialog';
 import { Sheet } from './Sheet';

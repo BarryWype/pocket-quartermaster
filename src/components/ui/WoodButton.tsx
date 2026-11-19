@@ -15,14 +15,16 @@ type Props = {
   /** A smaller block for in-card actions. */
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** What a screen reader says, when the title alone is a sign ("−", "+"). */
+  accessibilityLabel?: string;
 };
 
 /** The secondary button: a wood block with a brass inner outline. */
-export function WoodButton({ title, onPress, disabled, emoji, icon, compact, style }: Props) {
+export function WoodButton({ title, onPress, disabled, emoji, icon, compact, style, accessibilityLabel }: Props) {
   return (
     <PressScale
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
