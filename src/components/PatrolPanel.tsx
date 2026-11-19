@@ -3,7 +3,7 @@ import { rosterRules } from '@/content/roster';
 import { StyleSheet, View } from 'react-native';
 
 import { frPatrolTexts } from '@/content/fr/patrols';
-import { patrolFights, patrolRules, patrolTexts } from '@/content/patrols';
+import { patrolFights, patrolTexts } from '@/content/patrols';
 import { patrolThreat } from '@/content/threats';
 import { tagInfo } from '@/content/rotation';
 import { isElitePatrolKind } from '@/content/enemies';
@@ -31,6 +31,7 @@ import { Text } from './Text';
 import { ThreatChip } from './ThreatChip';
 import { PartsLine } from './IconLabel';
 import { asRecalled, recallWorkingHeroes } from './workingHeroes';
+import { walkTo } from './walkLabel';
 
 const problemText: Record<Exclude<PatrolFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -79,7 +80,6 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
   // Before a party is picked, only the place's own problems count (distance, gone).
   const problem = problemOf(save, []);
   const placeProblem = problem === 'empty' ? null : problem;
-  const far = distanceTo(spawn, player, now) > patrolRules.engageMeters;
   const escortId = save.escort?.heroId;
 
   const fight = (heroIds: string[]) => {
@@ -102,7 +102,11 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            <EmberButton title={t('patrols.fight')} disabled={placeProblem !== null} onPress={() => setPicking(true)} />
+            <EmberButton
+              title={placeProblem === 'tooFar' ? walkTo(distanceTo(spawn, player, now), 'fight') : t('patrols.fight')}
+              disabled={placeProblem !== null}
+              onPress={() => setPicking(true)}
+            />
             <WoodButton title={t('common.close')} onPress={onClose} />
           </View>
         }
@@ -116,8 +120,8 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
           labelStyle={styles.muted}
         />
         <DifficultyChip difficulty={difficulty} />
-        {!far && (
-          <>
+        {/* Everything shows from afar; Fight says how far to walk in its own label. */}
+        <>
           <Text style={styles.muted}>{t(`patrols.rewards.${kind}`)}</Text>
           <ThreatChip threat={patrolThreat(spawn)} />
           <PartsLine
@@ -129,10 +133,10 @@ export function PatrolPanel({ spawn, player, now, onClose }: Props) {
             <EnemyTags key={mob.id} mob={mob} />
           ))}
           {escortId !== undefined && <Text style={styles.muted}>{t('patrols.escortNote')}</Text>}
-          </>
+        </>
+        {placeProblem && placeProblem !== 'tooFar' && (
+          <Text style={styles.problem}>{problemText[placeProblem](distanceTo(spawn, player, now))}</Text>
         )}
-        {placeProblem && <Text style={styles.problem}>{problemText[placeProblem](distanceTo(spawn, player, now))}</Text>}
-        {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
       </Sheet>
       {picking && (
         <PartyDialog

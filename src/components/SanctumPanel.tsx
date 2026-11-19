@@ -36,6 +36,7 @@ import { IconLabel } from './IconLabel';
 import { LootGrid } from './LootGrid';
 import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
 import { TrophyLine } from './TrophyLine';
+import { walkTo } from './walkLabel';
 
 const LINE_DELAY_MS = 600;
 /** A Sanctum's guardian brings no threats to answer: the dialog shows only the party's families. */
@@ -89,7 +90,6 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
   const problem = problemOf(save, []);
   const placeProblem = problem === 'noHeroes' ? null : problem;
   const distance = distanceMeters(player, spawn.position);
-  const far = distance > sanctumRules.interactionMeters;
 
   const start = (heroIds: string[]) =>
     Alert.alert(
@@ -133,7 +133,11 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
         footer={
           <View style={styles.actions}>
             {!result && (
-              <EmberButton title={t('sanctum.challenge')} disabled={placeProblem !== null} onPress={() => setPicking(true)} />
+              <EmberButton
+                title={placeProblem === 'tooFar' ? walkTo(distance, 'challenge') : t('sanctum.challenge')}
+                disabled={placeProblem !== null}
+                onPress={() => setPicking(true)}
+              />
             )}
             <WoodButton
               title={result && !finished ? t('sanctum.skip') : t('common.close')}
@@ -143,8 +147,8 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
         }
       >
         <DifficultyChip difficulty="hard" />
-        {!far && (
-          <>
+        {/* Everything shows from afar; Challenge says how far to walk in its own label. */}
+        <>
           <View style={styles.elementRow}>
             <IconLabel emoji={element.emoji} label={tr(element.name)} labelStyle={styles.muted} />
             <Text style={styles.muted}> · {tr(sanctum.description)}</Text>
@@ -153,13 +157,11 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
           <EnemyTags mob={sanctumGuardian(sanctum, tier ?? 1)} named={false} />
           <Text style={styles.muted}>{tr(sanctum.guardian.description)}</Text>
           <TrophyLine source="sanctum" />
-          </>
-        )}
+        </>
 
         {!result && (
           <>
-            {!far && (
-              <>
+            <>
               <Text style={styles.subtitle}>{t('sanctum.sigil')}</Text>
               <View style={styles.chips}>
                 {tiers.length === 0 && <Text style={styles.muted}>{t('sanctum.noSigilHeld')}</Text>}
@@ -173,11 +175,9 @@ export function SanctumPanel({ spawn, player, onClose }: Props) {
                   </PressScale>
                 ))}
               </View>
-              </>
-            )}
+            </>
             <Text style={styles.warning}>{t('sanctum.warning')}</Text>
-            {placeProblem && <Text style={styles.problem}>{problemText[placeProblem](distance)}</Text>}
-            {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
+            {placeProblem && placeProblem !== 'tooFar' && <Text style={styles.problem}>{problemText[placeProblem](distance)}</Text>}
           </>
         )}
 

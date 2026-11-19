@@ -34,6 +34,7 @@ import { RecruitGrade } from './RecruitGrade';
 import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { TradeLabel } from './TradeLabel';
+import { walkTo } from './walkLabel';
 
 const helpProblemText: Record<'tooFar' | 'gone' | 'noStock', (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -94,6 +95,10 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
       <Sheet variant="wood" emoji={patrolIcons[kind]} title={traveller.name} bodyStyle={styles.content}
       footer={
         <View style={styles.actions}>
+          {/* Far, one walk button stands for the help the traveller asks for. */}
+          {!reward && far && kind !== 'trader' && (
+            <EmberButton title={walkTo(distanceTo(spawn, player, now), 'help')} compact disabled onPress={() => {}} />
+          )}
           {!reward && !far && kind !== 'trader' && (
             <>
               {kind === 'wounded' && (
@@ -115,13 +120,8 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
           <WoodButton title={t('patrols.walkOn')} onPress={onClose} />
         </View>
       }>
-        {far ? (
-          <>
-            <Text style={styles.problem}>{t('patrols.walkCloser', { distance: Math.round(distanceTo(spawn, player, now)) })}</Text>
-            <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>
-          </>
-        ) : (
-          <>
+        {/* What they ask shows from afar; what they give stays a surprise until they're helped. */}
+        <>
           <Text style={styles.muted}>{traveller.line}</Text>
 
           {kind === 'trader' ? (
@@ -141,13 +141,13 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                     </Text>
                     <View style={styles.actions}>
                       <WoodButton
-                        title={t('patrols.trade')}
+                        title={issue === 'tooFar' ? walkTo(distanceTo(spawn, player, now), 'trade') : t('patrols.trade')}
                         compact
                         disabled={issue !== null}
                         onPress={() => tradeWithTrader(spawn, trade.index, player)}
                       />
                     </View>
-                    {issue && <Text style={styles.problem}>{tradeProblemText[issue](distanceTo(spawn, player, now))}</Text>}
+                    {issue && issue !== 'tooFar' && <Text style={styles.problem}>{tradeProblemText[issue](distanceTo(spawn, player, now))}</Text>}
                   </View>
                 );
               })}
@@ -170,7 +170,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
                         points: supplyHeld(save.consumables),
                       })}
                 </Text>
-                {helpProblemShown && (
+                {helpProblemShown && helpProblemShown !== 'tooFar' && (
                   <Text style={styles.problem}>{helpProblemText[helpProblemShown](distanceTo(spawn, player, now))}</Text>
                 )}
               </>
@@ -215,8 +215,7 @@ export function TravellerPanel({ spawn, player, now, onClose }: Props) {
               {helped?.rosterFull && <Text style={styles.muted}>{t('patrols.rosterFull')}</Text>}
             </View>
           )}
-          </>
-        )}
+        </>
       </Sheet>
     </Overlay>
   );

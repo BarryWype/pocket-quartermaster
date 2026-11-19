@@ -47,7 +47,7 @@ import { isAway } from '@/game/team/team';
 import { gainsPrefix } from '@/components/lootText';
 import { LootGrid } from '@/components/LootGrid';
 import { lootTiles, type RewardTile } from '@/game/loot/tiles';
-import { formatPercent, t, tr } from '@/i18n';
+import { formatDistance, formatPercent, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors, pixel, ui } from '@/theme';
 
@@ -59,6 +59,7 @@ import { Overlay } from './Overlay';
 import { OrderSection } from './OrderSection';
 import { Sheet } from './Sheet';
 import { TimerStrip } from './TimerStrip';
+import { walkTo } from './walkLabel';
 import { EmberButton, WoodButton } from './ui';
 import { Text } from './Text';
 import { asRecalled, includesWorking, recallWorkingHeroes } from './workingHeroes';
@@ -136,7 +137,12 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
             {problem === 'known' ? t('places.known') : left > 0 ? t('places.left', { count: left }) : t('places.soldOut')}
           </Text>
           <Price amount={line.price} short={save.gold < line.price} textStyle={styles.price} />
-          <WoodButton title={t('places.buy')} compact disabled={problem !== null} onPress={() => actions.buyAtPlace(place, line.key, 1, player)} />
+          <WoodButton
+            title={problem === 'tooFar' ? walkTo(distance, 'buy') : t('places.buy')}
+            compact
+            disabled={problem !== null}
+            onPress={() => actions.buyAtPlace(place, line.key, 1, player)}
+          />
         </View>
       </View>
     );
@@ -160,7 +166,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
           </View>
           <Price amount={gearSellPrice(g)} textStyle={styles.price} />
           <WoodButton
-            title={t('places.sell')}
+            title={far ? walkTo(distance, 'sell') : t('places.sell')}
             compact
             disabled={sellGearProblem(save, place, g.uid, player, now) !== null}
             onPress={() => actions.sellGearAtPlace(place, g.uid, player)}
@@ -176,17 +182,20 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         <View style={styles.actions}>
           <Price amount={materialSellPrice(id, place.kind)} textStyle={styles.price} />
           <WoodButton
-            title={t('places.sell')}
+            title={far ? walkTo(distance, 'sell') : t('places.sell')}
             compact
             disabled={sellMaterialProblem(save, place, id, 1, player, now) !== null}
             onPress={() => actions.sellMaterialAtPlace(place, id, 1, player)}
           />
-          <WoodButton
-            title={t('places.sellAll')}
-            compact
-            disabled={sellMaterialProblem(save, place, id, count, player, now) !== null}
-            onPress={() => actions.sellMaterialAtPlace(place, id, count, player)}
-          />
+          {/* One walk label is enough: Sell all joins it once the player is there. */}
+          {!far && (
+            <WoodButton
+              title={t('places.sellAll')}
+              compact
+              disabled={sellMaterialProblem(save, place, id, count, player, now) !== null}
+              onPress={() => actions.sellMaterialAtPlace(place, id, count, player)}
+            />
+          )}
         </View>
       </View>
     ));
@@ -218,7 +227,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
               )}
               <WoodButton
                 compact
-                title={t(care === 'heal' ? 'places.heal' : 'places.rest')}
+                title={far ? walkTo(distance, care) : t(care === 'heal' ? 'places.heal' : 'places.rest')}
                 disabled={problemOf(hero.id, care) !== null}
                 onPress={() => give(hero.id, care)}
               />
@@ -237,13 +246,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
         {supplyOn && isNetworkKind(place.kind) && !(place.id in save.supply.discovered) && (
           <IconLabel emoji="👣" label={t('supply.discover.walkHere')} />
         )}
-        {far ? (
-          <>
-            <Text style={styles.problem}>{t('places.walkCloser', { distance: Math.round(distance) })}</Text>
-            <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>
-          </>
-        ) : (
-          <>
+        {/* Everything shows from afar; the actions say how far to walk in their own labels. */}
+        <>
+          {far && <Text style={styles.problem}>{t('mapSheet.away', { distance: formatDistance(distance) })}</Text>}
           <Text style={styles.muted}>{tr(info.description)}</Text>
           <View style={styles.goldRow}>
             <Text style={styles.muted}>
@@ -277,7 +282,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                     : t('places.blessingHint', { percent: Math.round(serviceRules.chapel.blessingDamage * 100) })}
                 </Text>
                 <EmberButton
-                  title={t('places.blessing')}
+                  title={far ? walkTo(distance, 'bless') : t('places.blessing')}
                   compact
                   disabled={chapelBlessingProblem(save, place, player, now) !== null}
                   onPress={() => actions.takeChapelBlessing(place, player)}
@@ -291,7 +296,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
               <Text style={styles.name}>{t('places.digProgress', { dots: ruinsDots(save.ruinsProgress) })}</Text>
               <Text style={styles.muted}>{t('places.digHint')}</Text>
               <EmberButton
-                title={t('places.dig')}
+                title={far ? walkTo(distance, 'dig') : t('places.dig')}
                 compact
                 disabled={digProblem(save, place, player, now) !== null}
                 onPress={() => {
@@ -307,7 +312,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
             <View style={styles.section}>
               <Text style={styles.muted}>{t('places.fishHint')}</Text>
               <EmberButton
-                title={t('places.fishAction')}
+                title={far ? walkTo(distance, 'fish') : t('places.fishAction')}
                 compact
                 disabled={fishProblem(save, place, player, now) !== null}
                 onPress={() => {
@@ -350,7 +355,9 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                 <Text style={styles.odds}>{t('places.heistOdds', { percent: formatPercent(heistOdds(save, heistHeroId)) })}</Text>
               )}
               <EmberButton
-                title={includesWorking(save, heistHeroId ? [heistHeroId] : []) ? t('jobs.recallAndSend') : t('places.heist')}
+                title={
+                  far ? walkTo(distance, 'heist') : includesWorking(save, heistHeroId ? [heistHeroId] : []) ? t('jobs.recallAndSend') : t('places.heist')
+                }
                 compact
                 disabled={!heistHeroId || heistProblem(asRecalled(save, heistHeroId ? [heistHeroId] : []), place, heistHeroId, player, now) !== null}
                 onPress={() => {
@@ -387,7 +394,12 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
                     ) : (
                       <>
                         <Price amount={trainPrice(save)} short={save.gold < trainPrice(save)} textStyle={styles.price} />
-                        <WoodButton compact title={t('places.train')} disabled={problem !== null} onPress={() => actions.trainHero(place, hero.id, player)} />
+                        <WoodButton
+                          compact
+                          title={problem === 'tooFar' ? walkTo(distance, 'train') : t('places.train')}
+                          disabled={problem !== null}
+                          onPress={() => actions.trainHero(place, hero.id, player)}
+                        />
                       </>
                     )}
                   </View>
@@ -395,8 +407,7 @@ export function PlacePanel({ place, player, now, onClose }: Props) {
               })}
             </View>
           )}
-          </>
-        )}
+        </>
       </Sheet>
     </Overlay>
   );

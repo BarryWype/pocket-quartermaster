@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { opportunityById } from '@/content/lookup';
 import { placeFightRules } from '@/content/placeFights';
-import { placeInfo, placeRules } from '@/content/places';
+import { placeInfo } from '@/content/places';
 import { highestUnlockedTier } from '@/game/expeditions/expeditions';
 import { fightOddsKey } from '@/game/expeditions/oddsCache';
 import { distanceMeters } from '@/game/generation/geo';
@@ -31,6 +31,7 @@ import { TimerStrip } from './TimerStrip';
 import { TrophyLine } from './TrophyLine';
 import { IconLabel, PartsLine } from './IconLabel';
 import { asRecalled, recallWorkingHeroes } from './workingHeroes';
+import { walkTo } from './walkLabel';
 
 const problemText: Record<Exclude<PlaceFightProblem, null>, (distance: number) => string> = {
   tooFar: (distance) => t('patrols.walkCloser', { distance: Math.round(distance) }),
@@ -70,7 +71,6 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
   // Before a party is picked, only the place's own problems count (distance, gone).
   const problem = problemOf(save, []);
   const placeProblem = problem === 'empty' ? null : problem;
-  const far = distanceMeters(player, place.position) > placeRules.interactionMeters;
   const info = placeInfo[kind];
 
   const fight = (heroIds: string[]) => {
@@ -91,14 +91,18 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
         bodyStyle={styles.content}
         footer={
           <View style={styles.actions}>
-            <EmberButton title={t('places.fight')} disabled={placeProblem !== null} onPress={() => setPicking(true)} />
+            <EmberButton
+              title={placeProblem === 'tooFar' ? walkTo(distanceMeters(player, place.position), 'fight') : t('places.fight')}
+              disabled={placeProblem !== null}
+              onPress={() => setPicking(true)}
+            />
             <WoodButton title={t('common.close')} onPress={onClose} />
           </View>
         }
       >
         {supplyOn && kind === 'monsterLair' && <TimerStrip expiresAt={place.expiresAt} />}
         <DifficultyChip difficulty={rules.difficulty} />
-        {!far && <Text style={styles.muted}>{tr(info.description)}</Text>}
+        <Text style={styles.muted}>{tr(info.description)}</Text>
         <PartsLine
           parts={[
             `${t('expeditions.tier', { tier: highestUnlockedTier(save) })}${rules.elite ? ' ★' : ''}`,
@@ -108,8 +112,8 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
           labelStyle={styles.muted}
         />
         <Text style={styles.muted}>{leavesIn(place.expiresAt - now)}</Text>
-        {!far && (
-          <>
+        {/* Everything shows from afar; Fight says how far to walk in its own label. */}
+        <>
           {briefing.threats.map((threat) => (
             <ThreatChip key={threat.id} threat={threat} />
           ))}
@@ -125,10 +129,10 @@ export function PlaceFightPanel({ place, player, now, onClose }: Props) {
             <EnemyTags key={mob.id} mob={mob} />
           ))}
           <TrophyLine source={kind} />
-          </>
+        </>
+        {placeProblem && placeProblem !== 'tooFar' && (
+          <Text style={styles.problem}>{problemText[placeProblem](distanceMeters(player, place.position))}</Text>
         )}
-        {placeProblem && <Text style={styles.problem}>{problemText[placeProblem](distanceMeters(player, place.position))}</Text>}
-        {far && <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>}
       </Sheet>
       {picking && (
         <PartyDialog

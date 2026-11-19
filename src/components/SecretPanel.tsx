@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { heroClasses } from '@/content/heroes';
 import { gearName, itemById } from '@/content/lookup';
-import { placeInfo, placeRules } from '@/content/places';
+import { placeInfo } from '@/content/places';
 import { secretRules } from '@/content/secrets';
 import { traitById } from '@/content/traits';
 import { dungeonFoes } from '@/game/enemies/tags';
@@ -42,6 +42,7 @@ import { TradeLabel } from './TradeLabel';
 import { ThreatChip } from './ThreatChip';
 import { IconLabel, PartsLine, type LabelPart } from './IconLabel';
 import { recallWorkingHeroes } from './workingHeroes';
+import { walkTo } from './walkLabel';
 
 const problemText = (problem: SecretProblem, distance: number, cap: number): string => {
   switch (problem) {
@@ -78,7 +79,6 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
   const seeClasses = useGameStore((state) => state.seeClasses);
   const info = placeInfo[place.kind];
   const distance = distanceMeters(player, place.position);
-  const far = distance > placeRules.interactionMeters;
   const entered = isEntered(save, place);
   const underwater = place.kind === 'underwaterDungeon';
   const [confirming, setConfirming] = useState(false);
@@ -123,8 +123,13 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
         {dungeonFoes(dungeon).map((mob) => (
           <EnemyTags key={mob.id} mob={mob} />
         ))}
-        {problem && problem !== 'noKey' && <Text style={styles.problem}>{problemText(problem, distance, rosterCap(save))}</Text>}
-        <WoodButton title={t('secrets.launch')} compact disabled={problem !== null} onPress={() => setConfirming(true)} />
+        {problem && problem !== 'noKey' && problem !== 'tooFar' && <Text style={styles.problem}>{problemText(problem, distance, rosterCap(save))}</Text>}
+        <WoodButton
+          title={problem === 'tooFar' ? walkTo(distance, 'dive') : t('secrets.launch')}
+          compact
+          disabled={problem !== null}
+          onPress={() => setConfirming(true)}
+        />
         {confirming && (
           <ExpeditionDialog
             dungeon={dungeon}
@@ -150,8 +155,13 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
       const problem = enterProblem(save, place, player, now);
       return (
         <>
-          {problem && problem !== 'noKey' && <Text style={styles.problem}>{problemText(problem, distance, rosterCap(save))}</Text>}
-          <WoodButton title={t('secrets.enter')} compact disabled={problem !== null} onPress={() => enter(place, player)} />
+          {problem && problem !== 'noKey' && problem !== 'tooFar' && <Text style={styles.problem}>{problemText(problem, distance, rosterCap(save))}</Text>}
+          <WoodButton
+            title={problem === 'tooFar' ? walkTo(distance, 'enter') : t('secrets.enter')}
+            compact
+            disabled={problem !== null}
+            onPress={() => enter(place, player)}
+          />
         </>
       );
     }
@@ -175,9 +185,14 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             <ClassSummary classId={offer.classId} />
             <View style={styles.actions}>
               <Price amount={offer.price} short={save.gold < offer.price} textStyle={styles.price} />
-              <EmberButton title={t('tavern.recruit')} compact disabled={recruitProblem !== null} onPress={() => recruit(place, player)} />
+              <EmberButton
+                title={recruitProblem === 'tooFar' ? walkTo(distance, 'recruit') : t('tavern.recruit')}
+                compact
+                disabled={recruitProblem !== null}
+                onPress={() => recruit(place, player)}
+              />
             </View>
-            {recruitProblem && <Text style={styles.problem}>{problemText(recruitProblem, distance, rosterCap(save))}</Text>}
+            {recruitProblem && recruitProblem !== 'tooFar' && <Text style={styles.problem}>{problemText(recruitProblem, distance, rosterCap(save))}</Text>}
           </View>
         )}
         {place.kind === 'blackMarket' && (
@@ -191,7 +206,12 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
                   <View style={styles.actions}>
                     <Price amount={line.price} short={save.gold < line.price} textStyle={styles.price} />
                     {problem === 'soldOut' && <Text style={styles.muted}>{t('places.soldOut')}</Text>}
-                    <WoodButton title={t('tavern.buy')} compact disabled={problem !== null} onPress={() => buy(place, line.key, player)} />
+                    <WoodButton
+                      title={problem === 'tooFar' ? walkTo(distance, 'buy') : t('tavern.buy')}
+                      compact
+                      disabled={problem !== null}
+                      onPress={() => buy(place, line.key, player)}
+                    />
                   </View>
                 </View>
               );
@@ -205,14 +225,8 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
   return (
     <Overlay onClose={onClose} position="bottom">
       <Sheet variant="wood" emoji={info.emoji} title={tr(info.name)} bodyStyle={styles.content} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
-        {far ? (
-          <>
-            {keyLine}
-            <Text style={styles.problem}>{t('places.walkCloser', { distance: Math.round(distance) })}</Text>
-            <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>
-          </>
-        ) : (
-          <>
+        {/* Everything shows from afar but the offer, which stays behind the key; the actions say how far to walk. */}
+        <>
           {keyLine}
           <Text style={styles.muted}>{tr(info.description)}</Text>
           <View style={styles.goldRow}>
@@ -224,8 +238,7 @@ export function SecretPanel({ place, player, now, onClose }: Props) {
             <Price amount={save.gold} textStyle={styles.muted} />
           </View>
           {underwater ? underwaterBody() : offerBody()}
-          </>
-        )}
+        </>
       </Sheet>
     </Overlay>
   );

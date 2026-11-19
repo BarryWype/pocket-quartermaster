@@ -21,7 +21,7 @@ import {
   type TavernSpawn,
 } from '@/game/taverns/taverns';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
-import { t, tr } from '@/i18n';
+import { formatDistance, t, tr } from '@/i18n';
 import { useGameStore } from '@/store/gameStore';
 import { colors } from '@/theme';
 
@@ -38,6 +38,7 @@ import { SpecialLabel } from './SpecialLabel';
 import { Text } from './Text';
 import { TradeLabel } from './TradeLabel';
 import { TimerStrip } from './TimerStrip';
+import { walkTo } from './walkLabel';
 
 const problemText: Record<RecruitProblem, (distance: number, cap: number) => string> = {
   locked: () => t('tavern.locked'),
@@ -86,9 +87,14 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         <ClassSummary classId={offer.classId} />
         <View style={styles.actions}>
           <Price amount={offer.price} short={save.gold < offer.price} textStyle={styles.price} />
-          <EmberButton title={t('tavern.recruit')} compact disabled={problem !== null} onPress={() => recruit(offer, tavern.position, player)} />
+          <EmberButton
+            title={problem === 'tooFar' ? walkTo(distance, 'recruit') : t('tavern.recruit')}
+            compact
+            disabled={problem !== null}
+            onPress={() => recruit(offer, tavern.position, player)}
+          />
         </View>
-        {problem && <Text style={styles.problem}>{problemText[problem](distance, rosterCap(save))}</Text>}
+        {problem && problem !== 'tooFar' && <Text style={styles.problem}>{problemText[problem](distance, rosterCap(save))}</Text>}
       </View>
     );
   };
@@ -99,13 +105,9 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
         {supplyOn && <TimerStrip expiresAt={tavern.expiresAt} />}
         <OrderSection place={tavern} player={player} now={openedAt} />
         {supplyOn && !(tavern.id in save.supply.discovered) && <IconLabel emoji="👣" label={t('supply.discover.walkHere')} />}
-        {far ? (
-          <>
-            <Text style={styles.problem}>{problemText.tooFar(distance, rosterCap(save))}</Text>
-            <Text style={styles.muted}>{t('places.tooFarToSee')}</Text>
-          </>
-        ) : (
-          <>
+        {/* Everything shows from afar; the actions say how far to walk in their own labels. */}
+        <>
+          {far && <Text style={styles.problem}>{t('mapSheet.away', { distance: formatDistance(distance) })}</Text>}
           <View style={styles.goldRow}>
             <Text style={styles.muted}>{t('tavern.headerGold')}</Text>
             <Price amount={save.gold} textStyle={styles.muted} />
@@ -129,7 +131,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
             <View style={styles.actions}>
               <Price amount={supplyPrice(save)} short={save.gold < supplyPrice(save)} textStyle={styles.price} />
               <WoodButton
-                title={t('tavern.buy')}
+                title={far ? walkTo(distance, 'buy') : t('tavern.buy')}
                 compact
                 disabled={buySupplyProblem(save, 1, tavern.position, player) !== null}
                 onPress={() => buySupply(1, tavern.position, player)}
@@ -145,7 +147,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
                   {stockLeft(save, tavern, line) > 0 ? t('places.left', { count: stockLeft(save, tavern, line) }) : t('places.soldOut')}
                 </Text>
                 <WoodButton
-                  title={t('tavern.buy')}
+                  title={far ? walkTo(distance, 'buy') : t('tavern.buy')}
                   compact
                   disabled={buyProblem(save, tavern, line.key, 1, player, openedAt) !== null}
                   onPress={() => buyAtPlace(tavern, line.key, 1, player)}
@@ -153,8 +155,7 @@ export function TavernPanel({ tavern, player, onClose }: Props) {
               </View>
             </View>
           ))}
-          </>
-        )}
+        </>
       </Sheet>
     </Overlay>
   );
