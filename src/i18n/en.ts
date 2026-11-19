@@ -1077,6 +1077,18 @@ export const en = {
     terrain: { green: 'Green ground', waterside: 'Water’s edge', built: 'Built-up', water: 'Open water' },
     resource: { timber: 'Timber', game: 'Game' },
     youAreHere: 'You are here',
+    autoRoute: {
+      added: '{name} added to the delivery route',
+      addedMany: { one: '{count} stop added to the delivery route', other: '{count} stops added to the delivery route' },
+      removed: '{name} left the delivery route: its time is up',
+      removedMany: { one: '{count} stop left the delivery route: its time is up', other: '{count} stops left the delivery route: their time is up' },
+      undo: 'Undo',
+      undoLabel: 'Undo: put the delivery route back as it was',
+      edit: 'Edit',
+      editLabel: 'Edit the delivery route',
+      setting: 'Add new stops to the route automatically',
+      settingHint: 'New buildings, and places that want what they make, join the delivery route.',
+    },
     discover: {
       found: 'Discovered: {name}. {wants}',
       more: 'And {count} more.',

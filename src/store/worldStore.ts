@@ -4,6 +4,7 @@ import type { LatLng } from '@/game/generation/types';
 import type { PatrolSpawn } from '@/game/patrols/generate';
 import type { TavernSpawn } from '@/game/taverns/taverns';
 import type { RewardTile } from '@/game/loot/tiles';
+import type { RouteSnapshot } from '@/game/supply/autoRoute';
 
 /** Auto-gather as it runs: in the background, only while the app is open, or not at all. */
 export type AutoGatherMode = 'off' | 'on' | 'limited';
@@ -22,6 +23,11 @@ type WorldState = {
   patrolMessage: { text: string; tiles?: RewardTile[]; at: number } | null;
   /** A short note from the supply cart for the map (an ambush on its way). */
   supplyMessage: { text: string; at: number } | null;
+  /**
+   * The delivery route changed by itself (a stop added or taken off): the map's
+   * route toast says so, with Undo (the route as it was) for an addition.
+   */
+  routeNote: { text: string; undo: RouteSnapshot | null; at: number } | null;
   /** A place unload while the app was open: the pop over the cart marker. */
   cartPop: { good: string; n: number; at: number } | null;
   /** Patrol id → when the map first showed it, for goblins' flee timer. */
@@ -52,6 +58,7 @@ export const useWorldStore = create<WorldState>()((set) => ({
   autoGatherMessage: null,
   patrolMessage: null,
   supplyMessage: null,
+  routeNote: null,
   cartPop: null,
   patrolsSeen: {},
   focusPatrol: null,

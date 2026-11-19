@@ -16,6 +16,7 @@ import { MapFoliage, useFoliage } from '@/components/MapFoliage';
 import { MapTrail, MapWater } from '@/components/MapAmbience';
 import { MapSky, useSkyPan } from '@/components/MapSky';
 import { MapTopBar, TOP_BAR_HEIGHT } from '@/components/MapTopBar';
+import { RouteToast } from '@/components/RouteToast';
 import { MapMarkers } from '@/components/MapMarkers';
 import { MapPanels } from '@/components/MapPanels';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
@@ -76,6 +77,7 @@ import { collectRadiusNow, fallbackReady, shownTutorialSpawns } from '@/game/tut
 import { useLanguage } from '@/hooks/useLanguage';
 import { useAmbience } from '@/hooks/useAmbience';
 import { useDiscovery } from '@/hooks/useDiscovery';
+import { useRoutePathKeeper } from '@/hooks/useRoutePathKeeper';
 import { useNow } from '@/hooks/useNow';
 import { usePlacedPoints, usePlacedSpawns } from '@/hooks/usePlacedSpawns';
 import { usePlayerLocation, type PlayerLocationState } from '@/hooks/usePlayerLocation';
@@ -391,6 +393,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const secretsShown = isRevealed(save, 'secrets');
   const secretsInSight = useMemo(() => (secretsShown ? tippedSecrets : []), [secretsShown, tippedSecrets]);
   // Supply lines: the placed network places in sight are what the player can walk to and discover.
+  useRoutePathKeeper();
   useDiscovery(useMemo(() => [...placesInSight.filter((place) => isNetworkKind(place.kind)), ...tavernsInSight, ...sitesInSight], [placesInSight, tavernsInSight, sitesInSight]));
   // Quest objectives unlock from the place kinds the player has seen.
   const notePlacesSeen = useGameStore((state) => state.notePlacesSeen);
@@ -915,6 +918,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         </PressScale>
       ))}
       <MapPanels player={position} patrols={visiblePatrols} />
+      <RouteToast style={{ top: insets.top + TOP_BAR_HEIGHT + 8 }} />
       {fallbackButton}
       {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
       {message && <ToastBanner message={message} style={{ bottom: insets.bottom + ISLAND_HEIGHT + (showPill || fallback ? 52 : 12) }} />}

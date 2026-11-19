@@ -28,6 +28,8 @@ type Props = {
   /** The screen edge it comes in from. */
   edge: 'top' | 'bottom';
   style?: StyleProp<ViewStyle>;
+  /** Its buttons take presses; a plain toast lets them through to the map. */
+  interactive?: boolean;
   children: ReactNode;
 };
 
@@ -37,12 +39,12 @@ type Props = {
  * (`ToastStack` in the root layout) move to their new place when one comes or
  * goes, instead of jumping.
  */
-export function Toast({ edge, style, children }: Props) {
+export function Toast({ edge, style, interactive = false, children }: Props) {
   const { level } = useMotion();
   const animations = level === 'off' ? undefined : ANIMATIONS[level];
   return (
     <Animated.View
-      pointerEvents="none"
+      pointerEvents={interactive ? 'box-none' : 'none'}
       style={style}
       entering={animations?.[edge]}
       exiting={animations?.exiting}

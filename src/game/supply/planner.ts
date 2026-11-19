@@ -12,7 +12,7 @@ import type { Building, BuildingKind, RoutePoint } from './types';
 const makes = (kind: BuildingKind): string[] => Object.keys(supplyRules.buildings.kinds[kind].makes);
 
 /** Whether a building of `kind` serves a place that wants `wants` (null: a market, served by any building). */
-const serves = (wants: Record<string, number> | null, kind: BuildingKind): boolean =>
+export const serves = (wants: Record<string, number> | null, kind: BuildingKind): boolean =>
   wants === null || makes(kind).some((good) => (wants[good] ?? 0) > 0);
 
 /** One stop of the tour: its route point, where it stands, and what a place it is wants. */

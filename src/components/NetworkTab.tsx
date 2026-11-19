@@ -7,7 +7,7 @@ import { GameIcon } from '@/components/GameIcon';
 import { Text } from '@/components/Text';
 import { IconLabel } from '@/components/IconLabel';
 import { LootGrid } from '@/components/LootGrid';
-import { EmberButton, ParchmentCard, WoodButton } from '@/components/ui';
+import { EmberButton, ParchmentCard, PixelSwitch, WoodButton } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
 import { materials } from '@/content/materials';
 import { placeInfo } from '@/content/places';
@@ -37,6 +37,7 @@ import { navigate } from '@/services/navigation';
 import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
 import { ui } from '@/theme';
 
@@ -95,6 +96,7 @@ export function NetworkTab() {
         stayingOrders.map((order) => <OrderCard key={order.placeId} order={order} now={now} />)
       )}
       <CartCard now={now} />
+      <AutoRouteRow />
       <View style={styles.hallRow}>
         <Text style={[styles.line, styles.hallText]}>
           {hall ? t('supply.network.hallMoves', { n: hallMovesLeft(save, now) }) : t('supply.network.noHall')}
@@ -115,6 +117,20 @@ export function NetworkTab() {
           <WoodButton compact title={t('supply.cart.setRoute')} onPress={() => openOnMap(() => useMapPanels.getState().openRoutePlanner(route))} />
         </View>
       )}
+    </View>
+  );
+}
+
+/** The setting that lets new stops join the delivery route by themselves; on by default. */
+function AutoRouteRow() {
+  const on = useSettingsStore((s) => s.autoRoute);
+  return (
+    <View style={styles.autoRouteRow}>
+      <View style={styles.autoRouteText}>
+        <Text style={styles.line}>{t('supply.autoRoute.setting')}</Text>
+        <Text style={[styles.line, styles.autoRouteHint]}>{t('supply.autoRoute.settingHint')}</Text>
+      </View>
+      <PixelSwitch value={on} accessibilityLabel={t('supply.autoRoute.setting')} onValueChange={(value) => useSettingsStore.getState().set({ autoRoute: value })} />
     </View>
   );
 }
@@ -668,6 +684,9 @@ const styles = StyleSheet.create({
   flowSketch: { fontSize: 13, color: ui.inkMuted, textAlign: 'center' },
   sketchCard: { opacity: 0.6, padding: 10, gap: 8, borderWidth: 3, borderColor: ui.outline, backgroundColor: ui.parchment },
   routeLeftRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  autoRouteRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  autoRouteText: { flex: 1, gap: 2 },
+  autoRouteHint: { fontSize: 14, color: ui.inkMuted },
   routeLeftText: { flex: 1 },
   lastDay: { color: ui.onEmber, backgroundColor: ui.ember, fontSize: 12, letterSpacing: 1, paddingHorizontal: 4, paddingVertical: 2 },
 });

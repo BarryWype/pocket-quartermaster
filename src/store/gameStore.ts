@@ -60,7 +60,7 @@ import type { TipId } from '@/content/reveal';
 import { claimFreePick } from '@/game/taverns/freePick';
 import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, unequip } from '@/game/team/team';
 import { chooseTitle } from '@/game/team/record';
-import { buySupply, recruit, type RecruitOffer } from '@/game/taverns/taverns';
+import { buySupply, recruit, tavernNameOf, withTavernName, type RecruitOffer } from '@/game/taverns/taverns';
 import { checkPersonalTavern } from '@/game/taverns/personal';
 import { buyRank } from '@/game/guild/guild';
 import { applyTraining } from '@/game/guild/training';
@@ -70,7 +70,7 @@ import { collectFromHere, collectRadiusNow, collectTutorialSpawn, placeTutorialS
 import { skipTutorial, restartTutorial, jumpToStep } from '@/game/tutorial/skip';
 import { pruneExpired } from '@/game/upkeep';
 import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
-import { placeRules, type PlaceKind } from '@/content/places';
+import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
 import { newQuest, questUpkeep, rerollQuest } from '@/game/quests/arrival';
 import { complete, deliver, maybeSecretQuest, markSeen, noteMarksReached, questEvent, refreshWalks } from '@/game/quests/progress';
 import { claimQuest, reachMark } from '@/game/quests/rewards';
@@ -80,28 +80,67 @@ import { makeGearPiece } from '@/game/gear/make';
 import { distanceMeters } from '@/game/generation/geo';
 import { placeHall as placeHallInSave } from '@/game/supply/hall';
 import { discoverAlong, discoverAt, discoveryNote, networkPlacesAround } from '@/game/supply/discovery';
-import { claimStep, deliverFromBag, isOrderKind, makeOrder } from '@/game/supply/orders';
+import { claimStep, deliverFromBag, isOrderKind, makeOrder, orderPlaceName } from '@/game/supply/orders';
 import { advanceFirstChain } from '@/game/supply/firstChain';
 import { networkUnlocked } from '@/game/supply/unlock';
 import { collectBuilding as collectBuildingInSave, postHero as postHeroInSave, recallPosted as recallPostedInSave } from '@/game/supply/postings';
-import { build as buildInSave } from '@/game/supply/buildings';
+import { build as buildInSave, buildingNameKey } from '@/game/supply/buildings';
 import { checkPersonalSite as checkPersonalSiteInSave } from '@/game/supply/sites';
 import { ageNetwork } from '@/game/supply/debug';
 import { debugRaid as debugRaidInSave, sendDefenders as sendDefendersInSave } from '@/game/supply/raids';
 import { settleNetwork } from '@/game/supply/settle';
-import { setCrew as setCrewInSave, setRoute as setRouteInSave, startCart as startCartInSave, stopCart as stopCartInSave } from '@/game/supply/cart';
+import { autoAddBuilding, autoAddStops, effectiveRoute, placesForRoute, pruneRoute, restoreRoute, sameRoute, type RouteSnapshot } from '@/game/supply/autoRoute';
+import { routeProblem, setCrew as setCrewInSave, setRoute as setRouteInSave, startCart as startCartInSave, stopCart as stopCartInSave } from '@/game/supply/cart';
 import type { BuildingKind, RoutePoint, StreetPath } from '@/game/supply/types';
 import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, PlaceFight, Rarity } from '@/game/types';
 
-import { t } from '@/i18n';
+import { t, tr } from '@/i18n';
 
 import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
+import { useSettingsStore } from './settingsStore';
 import { useWorldStore } from './worldStore';
 
 /** A tip for a place already tipped pays gold: say so on the map. New tips have their own toast (SecretToast). */
 function noteTips(outcomes: TipOutcome[]) {
   const gold = outcomes.reduce((sum, outcome) => sum + (outcome.kind === 'gold' ? outcome.gold : 0), 0);
   if (gold > 0) useWorldStore.getState().set({ patrolMessage: { text: t('secrets.duplicate', { gold }), at: Date.now() } });
+}
+
+/** A route stop's name for the route toast, read from the save it was on; null when it can't be told. */
+function stopName(save: SaveData, point: RoutePoint, places: PlaceSpawn[] = []): string | null {
+  if ('building' in point) {
+    const building = save.supply.buildings.find((b) => b.id === point.building);
+    return building ? t(buildingNameKey[building.kind]) : null;
+  }
+  if ('place' in point) {
+    const place = places.find((p) => p.id === point.place);
+    if (place) return place.kind === 'tavern' ? withTavernName(place).name : tr(placeInfo[place.kind].name);
+    const order = save.supply.orders[point.place];
+    return order ? orderPlaceName(order, tavernNameOf) : null;
+  }
+  return null;
+}
+
+/** Tells the map's route toast what changed by itself: one stop by its name, several by their number. */
+function noteRoute(save: SaveData, points: RoutePoint[], change: 'added' | 'removed', undo: RouteSnapshot | null, places: PlaceSpawn[] = []) {
+  const name = points.length === 1 ? stopName(save, points[0], places) : null;
+  const text = name ? t(`supply.autoRoute.${change}`, { name }) : t(`supply.autoRoute.${change}Many`, { count: points.length });
+  useWorldStore.getState().set({ routeNote: { text, undo, at: Date.now() } });
+}
+
+/** Settles the network to now and takes the stops whose time is up off the route, saying so. */
+function settleAll(save: SaveData, now: number): SaveData {
+  const { save: pruned, removed } = pruneRoute(settleNetwork(save, now), now);
+  if (removed.length > 0) noteRoute(save, removed, 'removed', null);
+  return pruned;
+}
+
+/** With the player's setting on, adds the discovered places that want what the route's buildings make. */
+function addFoundPlaces(save: SaveData, found: PlaceSpawn[], now: number): SaveData {
+  if (!useSettingsStore.getState().autoRoute || found.length === 0) return save;
+  const { save: next, added, before } = autoAddStops(save, placesForRoute(save, found, now), now);
+  if (added.length > 0) noteRoute(next, added, 'added', before, found);
+  return next;
 }
 
 type GameState = {
@@ -152,6 +191,10 @@ type GameState = {
   debugUnlockNetwork: () => void;
   /** Supply lines: sets the cart's route and its street path (straight when omitted); while a loop runs both apply at the next departure. */
   setRoute: (route: RoutePoint[], path?: StreetPath) => void;
+  /** Supply lines: puts the route back as it was before an automatic change (the route toast's Undo). */
+  undoRouteChange: (snapshot: RouteSnapshot) => void;
+  /** Supply lines: the street path found for the route the cart drives next; dropped if the route changed meanwhile. */
+  keepRoutePath: (route: RoutePoint[], path: StreetPath) => void;
   /** Supply lines: sets the cart's crew, which can only change while the cart is parked. */
   setCrew: (driver: string | null, escorts: string[]) => void;
   /** Supply lines: starts the cart on its route. */
@@ -380,7 +423,7 @@ export const useGameStore = create<GameState>()(
           const fresh = fixes.filter((fix) => fix.timestamp > before.autoGather.processedUntil);
           const { save: discovered, found } = discoverAlong(walked, fresh, options.tiles ?? {});
           if (found.length > 0) {
-            walked = discovered;
+            walked = addFoundPlaces(discovered, found, Date.now());
             const note = discoveryNote(found);
             if (note) useWorldStore.getState().set({ supplyMessage: { text: note, at: Date.now() } });
           }
@@ -389,8 +432,9 @@ export const useGameStore = create<GameState>()(
         return summary;
       },
       discoverPlaces: (places, position) => {
-        const { save, found } = discoverAt(get().save, places, position, Date.now());
-        if (found.length > 0) set({ save });
+        const now = Date.now();
+        const { save, found } = discoverAt(get().save, places, position, now);
+        if (found.length > 0) set({ save: addFoundPlaces(save, found, now) });
         return found;
       },
       markWalksSeen: () => set(({ save }) => ({ save: markWalksSeen(save) })),
@@ -412,21 +456,33 @@ export const useGameStore = create<GameState>()(
       placeHall: (cell) => set({ save: placeHallInSave(get().save, cell, Date.now()) }),
       postHero: (buildingId, heroId) =>
         set({
-          save: postHeroInSave(settleNetwork(get().save, Date.now()), buildingId, heroId, Date.now()),
+          save: postHeroInSave(settleAll(get().save, Date.now()), buildingId, heroId, Date.now()),
         }),
       recallPosted: (heroId) => set({ save: recallPostedInSave(get().save, heroId, Date.now()) }),
       collectBuilding: (buildingId, player) =>
         set({
-          save: collectBuildingInSave(settleNetwork(get().save, Date.now()), buildingId, player, Date.now()),
+          save: collectBuildingInSave(settleAll(get().save, Date.now()), buildingId, player, Date.now()),
         }),
-      build: (site, kind, player, free = false) => set({ save: buildInSave(settleNetwork(get().save, Date.now()), site, kind, player, Date.now(), { free }) }),
+      build: (site, kind, player, free = false) => {
+        const now = Date.now();
+        const built = buildInSave(settleAll(get().save, now), site, kind, player, now, { free });
+        if (!useSettingsStore.getState().autoRoute) {
+          set({ save: built });
+          return;
+        }
+        // The new building is the last one; with no route yet, it makes one: hall → building → hall.
+        const building = built.supply.buildings[built.supply.buildings.length - 1];
+        const { save, added, before } = autoAddBuilding(built, building.id, now);
+        set({ save });
+        if (added.length > 0) noteRoute(save, added, 'added', before);
+      },
       checkPersonalSite: (origin, snap) => {
         const next = checkPersonalSiteInSave(get().save, origin, Date.now(), snap);
         if (next !== get().save) set({ save: next });
       },
       settleSupply: () => {
         const now = Date.now();
-        const settled = settleNetwork(get().save, now);
+        const settled = settleAll(get().save, now);
         set({ save: { ...settled, supply: { ...settled.supply, lastOpenAt: now } } });
       },
       deliverOrder: (placeId, placePosition, player) => {
@@ -443,10 +499,10 @@ export const useGameStore = create<GameState>()(
       },
       sendDefenders: (heroIds) => {
         const now = Date.now();
-        set({ save: sendDefendersInSave(settleNetwork(get().save, now), heroIds, now) });
+        set({ save: sendDefendersInSave(settleAll(get().save, now), heroIds, now) });
       },
       debugRaid: (buildingId) => set({ save: debugRaidInSave(get().save, buildingId, Date.now()) }),
-      debugAgeNetwork: (ms) => set({ save: settleNetwork(ageNetwork(get().save, ms), Date.now()) }),
+      debugAgeNetwork: (ms) => set({ save: settleAll(ageNetwork(get().save, ms), Date.now()) }),
       debugExpireBuilding: (buildingId) => {
         const now = Date.now();
         const save = get().save;
@@ -454,7 +510,7 @@ export const useGameStore = create<GameState>()(
           ...save,
           supply: { ...save.supply, buildings: save.supply.buildings.map((b) => (b.id === buildingId ? { ...b, expiresAt: now } : b)) },
         };
-        set({ save: settleNetwork(aged, now) });
+        set({ save: settleAll(aged, now) });
       },
       debugExpireSite: (site) =>
         set(({ save }) => ({ save: { ...save, usedPlaces: { ...save.usedPlaces, [site.id]: site.expiresAt } } })),
@@ -477,6 +533,12 @@ export const useGameStore = create<GameState>()(
       debugUnlockNetwork: () =>
         set(({ save }) => ({ save: { ...save, supply: { ...save.supply, debugUnlocked: true } } })),
       setRoute: (route, path) => set({ save: setRouteInSave(get().save, route, path ?? null, Date.now()) }),
+      undoRouteChange: (snapshot) => set({ save: restoreRoute(get().save, snapshot, Date.now()) }),
+      keepRoutePath: (route, path) => {
+        const save = get().save;
+        if (!sameRoute(effectiveRoute(save), route) || routeProblem(save, route)) return;
+        set({ save: setRouteInSave(save, route, path, Date.now()) });
+      },
       setCrew: (driver, escorts) => set({ save: setCrewInSave(get().save, driver, escorts, Date.now()) }),
       startCart: () => set({ save: startCartInSave(get().save, Date.now()) }),
       stopCart: () => set({ save: stopCartInSave(get().save, Date.now()) }),

@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
 
 import { tileCenter } from '@/game/generation/tiles';
-import type { WalkableTile } from '@/game/generation/walkable';
 import { buildingReach } from '@/game/supply/buildings';
 import { routeStops } from '@/game/supply/cart';
-import { buildStreetGraph, routeStreetPath, streetTileKeys, type StreetGraph } from '@/game/supply/streets';
 import type { RoutePoint, StreetPath } from '@/game/supply/types';
-import { walkableTiles } from '@/services/mapTiles';
+import { findStreetPath } from '@/services/streetPath';
 import { useGameStore } from '@/store/gameStore';
-
-/** The last built graph, with the tile keys it was built from: reused while the keys don't change. */
-let lastGraph: { keys: string; graph: StreetGraph } | null = null;
 
 /**
  * The street path of a route, found off the press: the tiles the hall's reach
@@ -38,21 +33,9 @@ export function useStreetPath(route: RoutePoint[]): { path: StreetPath | null; f
     let cancelled = false;
     const timer = setTimeout(() => {
       setFound((current) => ({ path: current.path, finding: true }));
-      void (async () => {
-        const keys = streetTileKeys(centre!, reach);
-        const memoKey = keys.join('|');
-        const graph =
-          lastGraph?.keys === memoKey
-            ? lastGraph.graph
-            : buildStreetGraph(
-                (await Promise.all(keys.map((tileKey) => walkableTiles.load(tileKey)))).filter(
-                  (tile): tile is WalkableTile => tile !== null,
-                ),
-              );
-        if (cancelled) return;
-        lastGraph = { keys: memoKey, graph };
-        setFound({ path: routeStreetPath(graph, centre!, positions), finding: false });
-      })();
+      void findStreetPath(save, route).then((path) => {
+        if (!cancelled) setFound({ path, finding: false });
+      });
     }, 0);
     return () => {
       cancelled = true;

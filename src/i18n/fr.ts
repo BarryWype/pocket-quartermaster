@@ -1080,6 +1080,21 @@ export const fr: Dictionary = {
     terrain: { green: 'Terrain vert', waterside: 'Bord de l’eau', built: 'Zone bâtie', water: 'Eau libre' },
     resource: { timber: 'Bois', game: 'Gibier' },
     youAreHere: 'Vous êtes ici',
+    autoRoute: {
+      added: '{name} rejoint l’itinéraire de livraison',
+      addedMany: { one: '{count} arrêt ajouté à l’itinéraire de livraison', other: '{count} arrêts ajoutés à l’itinéraire de livraison' },
+      removed: '{name} quitte l’itinéraire de livraison : son temps est écoulé',
+      removedMany: {
+        one: '{count} arrêt retiré de l’itinéraire de livraison : son temps est écoulé',
+        other: '{count} arrêts retirés de l’itinéraire de livraison : leur temps est écoulé',
+      },
+      undo: 'Annuler',
+      undoLabel: 'Annuler : remettre l’itinéraire de livraison comme avant',
+      edit: 'Modifier',
+      editLabel: 'Modifier l’itinéraire de livraison',
+      setting: 'Ajouter les nouveaux arrêts à l’itinéraire automatiquement',
+      settingHint: 'Les nouveaux bâtiments, et les lieux qui veulent ce qu’ils produisent, rejoignent l’itinéraire de livraison.',
+    },
     discover: {
       found: 'Découvert : {name}. {wants}',
       more: 'Et {count} de plus.',
