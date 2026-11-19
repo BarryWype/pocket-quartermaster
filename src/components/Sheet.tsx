@@ -1,5 +1,5 @@
 import { useContext, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { sheetMaxHeight } from '@/content/overlay';
@@ -25,6 +25,16 @@ type Props = {
   children: ReactNode;
   /** The map panels' look: parchment with a plank title band. */
   variant?: 'wood';
+  /** Wood only: drawn in place of the icon box (a map sheet's ringed icon). */
+  badge?: ReactNode;
+  /** Wood only: at the right end of the title band (a map sheet's More button). */
+  headerRight?: ReactNode;
+  /** Wood only: a tap on the title band (a map sheet switches heights). */
+  onHeaderPress?: () => void;
+  /** What a tap on the title band does, for screen readers. */
+  headerHint?: string;
+  /** Extra style on the fixed footer. */
+  footerStyle?: StyleProp<ViewStyle>;
 };
 
 /**
@@ -49,7 +59,7 @@ export function useSheetMaxHeight(): number {
  * footer's inset padding lifts the buttons. Its header can be dragged down to
  * close it, when it sits in a bottom overlay.
  */
-export function Sheet({ title, emoji, icon, subtitle, bodyStyle, footer, children, variant }: Props) {
+export function Sheet({ title, emoji, icon, subtitle, bodyStyle, footer, children, variant, badge, headerRight, onHeaderPress, headerHint, footerStyle }: Props) {
   const { bottom } = useSafeAreaInsets();
   const maxHeight = useSheetMaxHeight();
   const wood = variant === 'wood';
@@ -71,15 +81,24 @@ export function Sheet({ title, emoji, icon, subtitle, bodyStyle, footer, childre
                 <View key={i} style={[styles.bandSeam, { top: (i + 1) * 14 }]} />
               ))}
             </View>
-            {emoji !== undefined && (
-              <View style={styles.bandIcon}>
-                <GameIcon emoji={emoji} icon={icon} size={30} />
-              </View>
-            )}
-            <View style={styles.bandText}>
+            {badge ??
+              (emoji !== undefined && (
+                <View style={styles.bandIcon}>
+                  <GameIcon emoji={emoji} icon={icon} size={30} />
+                </View>
+              ))}
+            {/* The tap sits on the text, inside the dragged band: a drag takes the touch over from it. */}
+            <Pressable
+              style={[styles.bandText, headerRight !== undefined && styles.bandTextFill]}
+              onPress={onHeaderPress}
+              disabled={!onHeaderPress}
+              accessibilityRole={onHeaderPress ? 'button' : undefined}
+              accessibilityHint={onHeaderPress ? headerHint : undefined}
+            >
               {title !== undefined && <Text style={styles.bandTitle}>{title}</Text>}
               {subtitle !== undefined && <Text style={styles.bandSub}>{subtitle}</Text>}
-            </View>
+            </Pressable>
+            {headerRight}
           </View>
         ) : (
           <View style={styles.header} {...drag}>
@@ -95,7 +114,7 @@ export function Sheet({ title, emoji, icon, subtitle, bodyStyle, footer, childre
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.body, bodyStyle]}>
         {children}
       </ScrollView>
-      {footer !== undefined && <View style={[styles.footer, { paddingBottom: bottom + footerBasePadding }]}>{footer}</View>}
+      {footer !== undefined && <View style={[styles.footer, { paddingBottom: bottom + footerBasePadding }, footerStyle]}>{footer}</View>}
     </View>
   );
 }
@@ -134,6 +153,7 @@ const styles = StyleSheet.create({
     borderColor: ui.brass,
   },
   bandText: { flexDirection: 'column', flexShrink: 1 },
+  bandTextFill: { flex: 1 },
   bandTitle: { fontSize: 23, color: ui.brassLight, lineHeight: 24 },
   bandSub: { fontFamily: fonts.serif, fontSize: 13, color: '#E2CFA4' },
   header: { paddingHorizontal: 16, paddingTop: 14, gap: 2 },

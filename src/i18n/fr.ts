@@ -1570,4 +1570,17 @@ export const fr: Dictionary = {
     collectFromHere: 'Ramasser d’ici',
     locationOff: 'La localisation est coupée : rien n’apparaît autour de vous. Touchez Ramasser d’ici pour récolter.',
   },
+  mapSheet: {
+    more: 'Plus',
+    less: 'Moins',
+    here: 'Vous y êtes',
+    away: 'à {distance}',
+    leavesIn: 'part dans {time}',
+    walkTo: 'Marchez {distance} pour {verb}',
+    tabsLabel: 'Sections',
+    headerHint: 'Glissez vers le haut pour plus, vers le bas pour fermer',
+    days: 'jours',
+    hours: 'h',
+    minutes: 'min',
+  },
 };

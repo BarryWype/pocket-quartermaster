@@ -78,3 +78,13 @@ export function formatDistance(meters: number) {
   const km = (meters / 1000).toFixed(1);
   return `${getLocale() === 'fr' ? km.replace('.', ',') : km}${NBSP}km`;
 }
+
+const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+
+/** Time left, as a map sheet's status line says it: "3 days" from two days up, "5 h" from an hour, else "40 min". */
+export function formatTimeLeft(ms: number) {
+  if (ms >= 2 * DAY_MS) return `${Math.floor(ms / DAY_MS)}${NBSP}${t('mapSheet.days')}`;
+  if (ms >= HOUR_MS) return `${Math.floor(ms / HOUR_MS)}${NBSP}${t('mapSheet.hours')}`;
+  return `${Math.max(1, Math.ceil(ms / 60_000))}${NBSP}${t('mapSheet.minutes')}`;
+}

@@ -1568,4 +1568,17 @@ export const en = {
     collectFromHere: 'Collect from here',
     locationOff: 'Location is off, so nothing spawns around you. Tap Collect from here to gather.',
   },
+  mapSheet: {
+    more: 'More',
+    less: 'Less',
+    here: 'You’re here',
+    away: '{distance} away',
+    leavesIn: 'leaves in {time}',
+    walkTo: 'Walk {distance} to {verb}',
+    tabsLabel: 'Sections',
+    headerHint: 'Swipe up for more, down to close',
+    days: 'days',
+    hours: 'h',
+    minutes: 'min',
+  },
 };
