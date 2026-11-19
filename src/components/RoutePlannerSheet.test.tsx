@@ -8,7 +8,7 @@ import { createInitialSave, type SaveData } from '@/game/save';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 
-import { ISLAND_HEIGHT } from './IslandMenu';
+import { TOP_BAR_HEIGHT } from './MapTopBar';
 import { RoutePlannerSheet } from './RoutePlannerSheet';
 
 jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
@@ -203,15 +203,20 @@ describe('the route planner sheet', () => {
     // On the full sheet a map tap adds nothing.
     await tapNearFarm();
     expect(useMapPanels.getState().plannerTap).toBeNull();
-    // Adjust on the map: the sheet becomes a bar above the island menu, and a tap adds a via point.
+    // Adjust on the map: the sheet becomes a bar at the top, under the top bar (clear of the walk pills at the bottom), and a tap adds a via point.
     act(() => {
       button(renderer!, 'Adjust on the map')[0].props.onPress();
     });
     expect(renderer!.root.findAllByType(Modal)).toHaveLength(0);
     expect(text(renderer!)).toContain('Tap a street to route through it');
-    const bar = renderer!.root.findAll((node) => node.props.style && JSON.stringify(node.props.style).includes('"bottom"'))[0];
-    expect(JSON.stringify(bar.props.style)).toContain(`"bottom":${ISLAND_HEIGHT + 12}`);
+    const bar = renderer!.root.findAll((node) => node.props.style && JSON.stringify(node.props.style).includes(`"top":${TOP_BAR_HEIGHT + 8}`));
+    expect(bar.length).toBeGreaterThan(0);
+    const before = useMapPanels.getState().plannerPath;
+    expect(before).not.toBeNull();
     await tapNearFarm();
+    await settle();
+    // The map draws the route being planned: the via point changes it at once, before Done.
+    expect(useMapPanels.getState().plannerPath).not.toBe(before);
     act(() => {
       button(renderer!, 'Done')[0].props.onPress();
     });

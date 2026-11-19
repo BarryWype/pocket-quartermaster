@@ -63,10 +63,10 @@ export function DifficultyRing({ difficulty, shape, size, ringWidth, time, child
 }
 
 /** The time ring's border width, and its gap to what it wraps. */
-const TIME_WIDTH = 3;
+const TIME_WIDTH = 4;
 const TIME_GAP = 2;
-/** The track under the time left, faint over the whole perimeter. */
-const TIME_TRACK = 'rgba(30,18,10,0.45)';
+/** The track under the time left, dark over the whole perimeter, so the time left reads on any ground of the map. */
+const TIME_TRACK = ui.outline;
 
 type TimeRingProps = {
   /** The share of life left, 0 to 1. */
@@ -81,7 +81,7 @@ type TimeRingProps = {
 /**
  * A diamond outline that drains clockwise from its top vertex over the wrapped
  * marker's life: a faint track around the whole perimeter, the time left on
- * top in brass (ember in its last day). Views only, no per-frame work.
+ * top in light brass (ember in its last day). Views only, no per-frame work.
  */
 export function TimeRing({ left, last, size, children }: TimeRingProps) {
   const side = size + (TIME_GAP + TIME_WIDTH) * 2;
@@ -106,7 +106,7 @@ export function TimeRing({ left, last, size, children }: TimeRingProps) {
         {[0, 1, 2, 3]
           .filter((i) => remaining[i] > 0)
           .map((i) => (
-            <View key={i} style={[styles.timeBar, barStyle[i], { backgroundColor: last ? ui.emberLight : ui.brass }]} />
+            <View key={i} style={[styles.timeBar, barStyle[i], { backgroundColor: last ? ui.emberLight : ui.brassLight }]} />
           ))}
       </View>
       {last && (

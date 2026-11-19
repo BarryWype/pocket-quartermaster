@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import type { PlaceSpawn } from '@/game/places/generate';
 import type { PatrolSpawn } from '@/game/patrols/generate';
 import type { SanctumSpawn } from '@/game/sanctums/sanctums';
-import type { RoutePoint } from '@/game/supply/types';
+import type { RoutePoint, StreetPath } from '@/game/supply/types';
 import type { TavernSpawn } from '@/game/taverns/taverns';
 import type { LatLng } from '@/game/generation/types';
 import { cellAt } from '@/game/discovery/cells';
@@ -42,6 +42,9 @@ type MapPanelsState = {
   plannerAdjusting: boolean;
   /** A tap on the map while the planner is adjusting, waiting to become a via point. */
   plannerTap: { position: LatLng; seq: number } | null;
+  /** The planner's route as it stands, along the streets: the map draws it instead of the saved route while the planner is open. */
+  plannerPath: StreetPath | null;
+  setPlannerPath: (path: StreetPath | null) => void;
   openSanctum: (spawn: SanctumSpawn) => void;
   openTavern: (tavern: TavernSpawn) => void;
   openPlace: (place: PlaceSpawn) => void;
@@ -89,6 +92,8 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   closeChooser: () => set({ chooser: null }),
   plannerAdjusting: false,
   plannerTap: null,
+  plannerPath: null,
+  setPlannerPath: (path) => set({ plannerPath: path }),
   openSanctum: (spawn) => set({ sanctum: spawn }),
   openTavern: (tavern) => set({ tavern }),
   openPlace: (place) => set({ place }),
@@ -110,6 +115,7 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
       routePlanner: route,
       plannerAdjusting: false,
       plannerTap: null,
+      plannerPath: null,
       sanctum: null,
       tavern: null,
       place: null,
@@ -122,7 +128,7 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
     });
     useWorldStore.getState().set({ focusPatrol: null });
   },
-  closeRoutePlanner: () => set({ routePlanner: null, plannerAdjusting: false, plannerTap: null }),
+  closeRoutePlanner: () => set({ routePlanner: null, plannerAdjusting: false, plannerTap: null, plannerPath: null }),
   setPlannerAdjusting: (adjusting) => set({ plannerAdjusting: adjusting }),
   tapMap: (position) =>
     set((state) =>

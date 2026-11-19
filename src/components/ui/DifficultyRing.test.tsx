@@ -61,14 +61,14 @@ describe('DifficultyRing', () => {
 });
 
 describe('TimeRing', () => {
-  const TRACK = 'rgba(30,18,10,0.45)';
+  const TRACK = ui.outline;
 
-  it('draws the faint track over the whole perimeter, and a full brass ring when new', () => {
+  it('draws the dark track over the whole perimeter, and a full light brass ring when new', () => {
     const ring = TimeRing({ left: 1, last: false, size: 20, children: null });
-    expect(hasBorder(ring, TRACK, 3)).toBe(true);
+    expect(hasBorder(ring, TRACK, 4)).toBe(true);
     const bars = timeBars(ring);
     expect(bars).toHaveLength(4);
-    expect(bars.every((bar) => styleOf(bar).backgroundColor === ui.brass)).toBe(true);
+    expect(bars.every((bar) => styleOf(bar).backgroundColor === ui.brassLight)).toBe(true);
   });
 
   it('drains clockwise from the diamond’s top vertex: at half left, the bottom and left sides remain', () => {
@@ -79,8 +79,8 @@ describe('TimeRing', () => {
     // The elapsed half covers the square's top and right sides, so what remains sits at the bottom and left sides' far ends.
     expect(bars.map((bar) => styleOf(bar))).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ bottom: 0, left: 0, width: side, height: 3 }),
-        expect.objectContaining({ left: 0, top: 0, width: 3, height: side }),
+        expect.objectContaining({ bottom: 0, left: 0, width: side, height: 4 }),
+        expect.objectContaining({ left: 0, top: 0, width: 4, height: side }),
       ]),
     );
   });
