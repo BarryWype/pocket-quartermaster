@@ -212,7 +212,7 @@ describe('the Network tab', () => {
     act(() => {
       renderer!.root.findAll((node) => node.props.title === 'Set the route' && typeof node.props.onPress === 'function')[0].props.onPress();
     });
-    expect(useMapPanels.getState().routePlanner).toEqual([{ building: 'gone' }]);
+    expect(useMapPanels.getState().routeMode?.draft).toEqual([{ building: 'gone' }]);
     expect(navigate).toHaveBeenCalledWith('/');
   });
 });

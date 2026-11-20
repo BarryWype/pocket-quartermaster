@@ -28,23 +28,24 @@ type MapPanelsState = {
   /** The hall sheet's cell (the player's, the hall's, or one picked on the map), or the building sheet's building id. */
   hallCell: string | null;
   supplyBuilding: string | null;
-  /** Placing or moving the hall: the next map tap picks its cell. The only time an empty map tap does anything, besides the planner's via points. */
+  /** Placing or moving the hall: the next map tap picks its cell. The only time an empty map tap does anything. */
   placingHall: boolean;
   /** The cart's sheet. */
   cartOpen: boolean;
-  /** The route planner sheet: null when it is closed, else the route it opens on. */
-  routePlanner: RoutePoint[] | null;
+  /**
+   * Route mode on the map: the route being edited (`draft`) and the one it
+   * opened on (`start`, to tell whether leaving loses changes); null when off.
+   */
+  routeMode: { draft: RoutePoint[]; start: RoutePoint[] } | null;
+  /** The draft's grab point the player tapped (its index in the draft), for Remove. */
+  selectedGrab: number | null;
   /** A tap that landed on more than one marker: the list to pick from, anchored at the tapped marker's screen point. */
   chooser: { anchor: { x: number; y: number } | null; entries: ChooserEntry[] } | null;
   openChooser: (chooser: { anchor: { x: number; y: number } | null; entries: ChooserEntry[] }) => void;
   closeChooser: () => void;
-  /** The planner shrunk to a bar on its result step: only then does a map tap mean a via point. */
-  plannerAdjusting: boolean;
-  /** A tap on the map while the planner is adjusting, waiting to become a via point. */
-  plannerTap: { position: LatLng; seq: number } | null;
-  /** The planner's route as it stands, along the streets: the map draws it instead of the saved route while the planner is open. */
-  plannerPath: StreetPath | null;
-  setPlannerPath: (path: StreetPath | null) => void;
+  /** The draft's route along the streets: the map draws it instead of the saved route while route mode is on. */
+  routePath: StreetPath | null;
+  setRoutePath: (path: StreetPath | null) => void;
   openSanctum: (spawn: SanctumSpawn) => void;
   openTavern: (tavern: TavernSpawn) => void;
   openPlace: (place: PlaceSpawn) => void;
@@ -58,12 +59,14 @@ type MapPanelsState = {
   cancelPlacingHall: () => void;
   openSupplyBuilding: (id: string) => void;
   openCart: () => void;
-  /** Opens the route planner on a starting route, closing every other map sheet. */
-  openRoutePlanner: (route: RoutePoint[]) => void;
-  /** Closes the route planner. */
-  closeRoutePlanner: () => void;
-  setPlannerAdjusting: (adjusting: boolean) => void;
-  /** A tap on the empty map: a via point while the planner adjusts the route, the hall's cell while placing it, else nothing. */
+  /** Turns route mode on with a route to edit (with a stop already added for "Add to route"), closing every map sheet. */
+  openRouteMode: (route: RoutePoint[]) => void;
+  /** The draft after an edit; a selected grab point is let go. */
+  setRouteDraft: (draft: RoutePoint[]) => void;
+  selectGrab: (index: number | null) => void;
+  /** Leaves route mode, keeping nothing of the draft (Save writes the route first). */
+  closeRouteMode: () => void;
+  /** A tap on the empty map: the hall's cell while placing it, else nothing. */
   tapMap: (position: LatLng) => void;
   closeSanctum: () => void;
   closeTavern: () => void;
@@ -86,14 +89,13 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   supplyBuilding: null,
   placingHall: false,
   cartOpen: false,
-  routePlanner: null,
+  routeMode: null,
+  selectedGrab: null,
   chooser: null,
   openChooser: (chooser) => set({ chooser }),
   closeChooser: () => set({ chooser: null }),
-  plannerAdjusting: false,
-  plannerTap: null,
-  plannerPath: null,
-  setPlannerPath: (path) => set({ plannerPath: path }),
+  routePath: null,
+  setRoutePath: (path) => set({ routePath: path }),
   openSanctum: (spawn) => set({ sanctum: spawn }),
   openTavern: (tavern) => set({ tavern }),
   openPlace: (place) => set({ place }),
@@ -110,12 +112,12 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   cancelPlacingHall: () => set({ placingHall: false }),
   openSupplyBuilding: (id) => set({ supplyBuilding: id, hallCell: null }),
   openCart: () => set({ cartOpen: true }),
-  openRoutePlanner: (route) => {
+  openRouteMode: (route) => {
     set({
-      routePlanner: route,
-      plannerAdjusting: false,
-      plannerTap: null,
-      plannerPath: null,
+      routeMode: { draft: route, start: route },
+      selectedGrab: null,
+      routePath: null,
+      chooser: null,
       sanctum: null,
       tavern: null,
       place: null,
@@ -128,16 +130,10 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
     });
     useWorldStore.getState().set({ focusPatrol: null });
   },
-  closeRoutePlanner: () => set({ routePlanner: null, plannerAdjusting: false, plannerTap: null, plannerPath: null }),
-  setPlannerAdjusting: (adjusting) => set({ plannerAdjusting: adjusting }),
-  tapMap: (position) =>
-    set((state) =>
-      state.routePlanner !== null && state.plannerAdjusting
-        ? { plannerTap: { position, seq: (state.plannerTap?.seq ?? 0) + 1 } }
-        : state.placingHall
-          ? { hallCell: cellAt(position), placingHall: false, supplyBuilding: null }
-          : {},
-    ),
+  setRouteDraft: (draft) => set((state) => (state.routeMode ? { routeMode: { ...state.routeMode, draft }, selectedGrab: null } : {})),
+  selectGrab: (index) => set({ selectedGrab: index }),
+  closeRouteMode: () => set({ routeMode: null, selectedGrab: null, routePath: null }),
+  tapMap: (position) => set((state) => (state.placingHall ? { hallCell: cellAt(position), placingHall: false, supplyBuilding: null } : {})),
   closeSanctum: () => set({ sanctum: null }),
   closeTavern: () => set({ tavern: null }),
   closePlace: () => set({ place: null }),

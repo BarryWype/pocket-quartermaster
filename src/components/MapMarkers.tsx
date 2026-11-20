@@ -1,6 +1,8 @@
-import { Marker } from '@maplibre/maplibre-react-native';
 import { memo, useMemo } from 'react';
 import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
+
+import { MapMarker, RouteDimContext } from '@/components/MapMarker';
+import { useMapPanels } from '@/store/mapPanelsStore';
 
 import { GameIcon } from '@/components/GameIcon';
 import { PatrolMarker } from '@/components/PatrolMarker';
@@ -178,14 +180,16 @@ function MapMarkersBase({
   const tapRadius = gatheringConfig.collectRadiusMeters + rosterAffixBest(save, 'wanderers');
   const keyHeld = hasKey(save);
   const tavernsOpen = isTavernUnlocked(save);
+  // Route mode dims every marker; the switch alone re-renders them, once on the way in and once out.
+  const routing = useMapPanels((state) => state.routeMode !== null);
 
   return (
-    <>
+    <RouteDimContext.Provider value={routing}>
       {culledSpawns.map(({ spawn, position: spawnPosition, distance }) => {
         const read = readSpawn(save, spawn);
         const shown = resourceById[read.resourceId];
         return (
-          <Marker key={spawn.id} id={spawn.id} lngLat={toLngLat(spawnPosition)} onPress={tapped(() => onGather(spawn))}>
+          <MapMarker key={spawn.id} id={spawn.id} lngLat={toLngLat(spawnPosition)} onPress={tapped(() => onGather(spawn))}>
             <TimedSpawnMarker
               kind={spawn.kind}
               emoji={shown?.emoji ?? '❓'}
@@ -195,14 +199,14 @@ function MapMarkersBase({
               sway={read.resourceId === 'tree'}
               locked={read.state === 'locked'}
             />
-          </Marker>
+          </MapMarker>
         );
       })}
       {culledTutorial.map((node) => {
         const wood = node.materialId === 'wood';
         const material = materialById[node.materialId];
         return (
-          <Marker key={node.id} id={node.id} lngLat={toLngLat(node.position)} onPress={tapped(() => onGatherTutorial(node.id))}>
+          <MapMarker key={node.id} id={node.id} lngLat={toLngLat(node.position)} onPress={tapped(() => onGatherTutorial(node.id))}>
             <View style={styles.tutorialNode}>
               {node.id === pointedId && <Text style={styles.pointer}>👇</Text>}
               <TimedSpawnMarker
@@ -214,26 +218,26 @@ function MapMarkersBase({
                 sway={wood}
               />
             </View>
-          </Marker>
+          </MapMarker>
         );
       })}
       {culledSanctums.map((sanctum) => {
         const def = sanctumById[sanctum.sanctumId];
         return (
-          <Marker key={sanctum.id} id={sanctum.id} lngLat={toLngLat(sanctum.position)} onPress={tapped(() => onOpenSanctum(sanctum))}>
+          <MapMarker key={sanctum.id} id={sanctum.id} lngLat={toLngLat(sanctum.position)} onPress={tapped(() => onOpenSanctum(sanctum))}>
             <TimedSanctumMarker
               emoji={def.emoji}
               locked={save.sigils.length === 0}
               difficulty="hard"
               accessibilityLabel={markerLabel(tr(def.name), 'hard', t('difficulty.sanctum'))}
             />
-          </Marker>
+          </MapMarker>
         );
       })}
       {culledTaverns.map((tavern) => {
         const time = supplyOn ? timeOf(tavern, now) : undefined;
         return (
-          <Marker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={tapped(() => onOpenTavern(tavern))}>
+          <MapMarker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={tapped(() => onOpenTavern(tavern))}>
             <TimedSanctumMarker
               emoji="🍺"
               locked={!tavernsOpen}
@@ -242,7 +246,7 @@ function MapMarkersBase({
               timeLeft={time?.timeLeft}
               lastDay={time?.lastDay}
             />
-          </Marker>
+          </MapMarker>
         );
       })}
       {culledPlaces.map((place) => {
@@ -250,7 +254,7 @@ function MapMarkersBase({
         // Fight events keep only their difficulty ring; the monster lair lasts six days like the rest.
         const time = supplyOn && (!isFightPlace(place.kind) || place.kind === 'monsterLair') ? timeOf(place, now) : undefined;
         return (
-          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
+          <MapMarker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
             <TimedSanctumMarker
               emoji={placeInfo[place.kind].emoji}
               locked={false}
@@ -261,13 +265,13 @@ function MapMarkersBase({
               lastDay={time?.lastDay}
               accessibilityLabel={difficulty ? markerLabel(tr(placeInfo[place.kind].name), difficulty, t('difficulty.fight')) : undefined}
             />
-          </Marker>
+          </MapMarker>
         );
       })}
       {culledSecrets.map((place) => {
         const time = supplyOn ? timeOf(place, now) : undefined;
         return (
-          <Marker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
+          <MapMarker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
             <TimedSanctumMarker
               emoji={placeInfo[place.kind].emoji}
               secret
@@ -276,14 +280,14 @@ function MapMarkersBase({
               timeLeft={time?.timeLeft}
               lastDay={time?.lastDay}
             />
-          </Marker>
+          </MapMarker>
         );
       })}
       {culledPatrols.map(({ spawn }) => {
         const seenAt = patrolsSeen[spawn.id];
         const fleesIn = seenAt !== undefined ? fleesAt(spawn, seenAt) : null;
         return (
-          <Marker key={spawn.id} id={spawn.id} lngLat={toLngLat(patrolPositionAt(spawn, now))} onPress={tapped(() => onOpenPatrol(spawn))}>
+          <MapMarker key={spawn.id} id={spawn.id} lngLat={toLngLat(patrolPositionAt(spawn, now))} onPress={tapped(() => onOpenPatrol(spawn))}>
             <TimedPatrolMarker
               kind={spawn.kind}
               difficulty={spawn.difficulty}
@@ -295,28 +299,28 @@ function MapMarkersBase({
                   : undefined
               }
             />
-          </Marker>
+          </MapMarker>
         );
       })}
       {culledQuests.map(({ id, target }) => (
-        <Marker key={`quest:${id}`} id={`quest:${id}`} lngLat={toLngLat(target.position)} onPress={tapped(onQuest)}>
+        <MapMarker key={`quest:${id}`} id={`quest:${id}`} lngLat={toLngLat(target.position)} onPress={tapped(onQuest)}>
           <Text style={target.kind === 'mark' ? styles.questMark : styles.questTarget}>{target.kind === 'mark' ? '❓' : '📜'}</Text>
-        </Marker>
+        </MapMarker>
       ))}
       {culledTreasure.map((spot) => (
-        <Marker key={spot.id} id={spot.id} lngLat={toLngLat(spot.position)} onPress={tapped(() => onDigUp(spot.id, spot.position))}>
+        <MapMarker key={spot.id} id={spot.id} lngLat={toLngLat(spot.position)} onPress={tapped(() => onDigUp(spot.id, spot.position))}>
           <Text style={styles.treasure}>💰</Text>
-        </Marker>
+        </MapMarker>
       ))}
       {gathererHero && (
-        <Marker key="gatherer:hero" id="gatherer:hero" lngLat={toLngLat(gathererHero.position)}>
+        <MapMarker key="gatherer:hero" id="gatherer:hero" lngLat={toLngLat(gathererHero.position)}>
           <GathererHeroMarker emoji={gathererHero.emoji} icon={gathererHero.icon} />
-        </Marker>
+        </MapMarker>
       )}
-      <Marker id="player" lngLat={toLngLat(position)} onPress={onPlayer ? tapped(onPlayer) : undefined}>
+      <MapMarker id="player" lngLat={toLngLat(position)} onPress={onPlayer ? tapped(onPlayer) : undefined}>
         <Text style={styles.player}>🧙</Text>
-      </Marker>
-    </>
+      </MapMarker>
+    </RouteDimContext.Provider>
   );
 }
 

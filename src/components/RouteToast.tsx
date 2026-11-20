@@ -33,7 +33,7 @@ export function RouteToast({ style }: { style?: StyleProp<ViewStyle> }) {
       s.hallCell !== null ||
       s.supplyBuilding !== null ||
       s.cartOpen ||
-      s.routePlanner !== null ||
+      s.routeMode !== null ||
       s.placingHall ||
       s.chooser !== null,
   );
@@ -70,7 +70,7 @@ export function RouteToast({ style }: { style?: StyleProp<ViewStyle> }) {
             accessibilityLabel={t('supply.autoRoute.editLabel')}
             onPress={() => {
               dismiss(note);
-              useMapPanels.getState().openRoutePlanner(effectiveRoute(useGameStore.getState().save));
+              useMapPanels.getState().openRouteMode(effectiveRoute(useGameStore.getState().save));
             }}
           />
         </View>

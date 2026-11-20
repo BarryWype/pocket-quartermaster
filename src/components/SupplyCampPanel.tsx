@@ -264,9 +264,9 @@ export function SupplyCampPanel({ id, player, onClose }: Props) {
               <View style={styles.cardRow}>
                 <Text style={styles.line}>{t('supply.building.cartOff')}</Text>
                 {emberRoute ? (
-                  <EmberButton compact title={t('supply.building.addToRoute')} onPress={() => useMapPanels.getState().openRoutePlanner([...route, { building: building.id }])} />
+                  <EmberButton compact title={t('supply.building.addToRoute')} onPress={() => useMapPanels.getState().openRouteMode([...route, { building: building.id }])} />
                 ) : (
-                  <WoodButton compact title={t('supply.building.addToRoute')} onPress={() => useMapPanels.getState().openRoutePlanner([...route, { building: building.id }])} />
+                  <WoodButton compact title={t('supply.building.addToRoute')} onPress={() => useMapPanels.getState().openRouteMode([...route, { building: building.id }])} />
                 )}
               </View>
             )}

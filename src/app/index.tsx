@@ -17,6 +17,7 @@ import { MapTrail, MapWater } from '@/components/MapAmbience';
 import { MapSky, useSkyPan } from '@/components/MapSky';
 import { MapTopBar, TOP_BAR_HEIGHT } from '@/components/MapTopBar';
 import { RouteToast } from '@/components/RouteToast';
+import { RouteModePins } from '@/components/routeMode/RouteModePins';
 import { MapMarkers } from '@/components/MapMarkers';
 import { MapPanels } from '@/components/MapPanels';
 import { MapRanges, type RangeCircle } from '@/components/MapRanges';
@@ -859,6 +860,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           onPlayer={supplyOn ? onPlayerCell : undefined}
           supplyOn={supplyOn}
         />
+        {supplyOn && <RouteModePins />}
       </Map>
       {!noDecorations && <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />}
       <MapTopBar />

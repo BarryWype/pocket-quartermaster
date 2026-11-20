@@ -50,7 +50,7 @@ describe('routes that look after themselves', () => {
   beforeEach(() => {
     useSettingsStore.setState({ autoRoute: true });
     useWorldStore.setState({ routeNote: null });
-    useMapPanels.setState({ routePlanner: null, supplyBuilding: null });
+    useMapPanels.setState({ routeMode: null, supplyBuilding: null });
   });
   afterEach(() => {
     act(() => renderer?.unmount());
@@ -132,11 +132,11 @@ describe('routes that look after themselves', () => {
     });
     expect(text(renderer!)).toContain('Farm added');
     act(() => press(renderer!, 'Edit the delivery route'));
-    expect(useMapPanels.getState().routePlanner).toEqual(useGameStore.getState().save.supply.cart.route);
+    expect(useMapPanels.getState().routeMode?.draft).toEqual(useGameStore.getState().save.supply.cart.route);
     expect(renderer!.toJSON()).toBeNull();
 
     act(() => {
-      useMapPanels.setState({ routePlanner: null });
+      useMapPanels.setState({ routeMode: null });
       useWorldStore.setState({ routeNote: { text: 'x', undo: null, at: 1 } });
     });
     act(() => {

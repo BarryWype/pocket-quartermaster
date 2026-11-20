@@ -1,6 +1,7 @@
-import { Marker } from '@maplibre/maplibre-react-native';
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
+
+import { MapMarker, RouteDimContext } from '@/components/MapMarker';
 
 import { Countdown } from '@/components/Countdown';
 import { GameIcon } from '@/components/GameIcon';
@@ -88,16 +89,18 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
   const hall = useGameStore((s) => s.save.supply.hall);
   const buildings = useGameStore((s) => s.save.supply.buildings);
   const discovered = useGameStore((s) => s.save.supply.discovered);
+  // Route mode dims every marker; the switch alone re-renders them, once on the way in and once out.
+  const routing = useMapPanels((state) => state.routeMode !== null);
   if (!on) return null;
   return (
-    <>
+    <RouteDimContext.Provider value={routing}>
       {hall && (
-        <Marker id="supply-hall" lngLat={toLngLat(tileCenter(hall.cell))} onPress={tapped(() => useMapPanels.getState().openHall(hall.cell))}>
+        <MapMarker id="supply-hall" lngLat={toLngLat(tileCenter(hall.cell))} onPress={tapped(() => useMapPanels.getState().openHall(hall.cell))}>
           <GameIcon emoji="🏠" size={MARKER_SIZE} />
-        </Marker>
+        </MapMarker>
       )}
       {buildings.map((building) => (
-        <Marker
+        <MapMarker
           key={building.id}
           id={`supply-building:${building.id}`}
           lngLat={toLngLat(building.position)}
@@ -114,10 +117,10 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
             <BuildingBadges buildingId={building.id} />
             <RaidCountdown buildingId={building.id} />
           </View>
-        </Marker>
+        </MapMarker>
       ))}
       {sites.map((site) => (
-        <Marker
+        <MapMarker
           key={site.id}
           id={`supply-site:${site.id}`}
           lngLat={toLngLat(site.position)}
@@ -129,9 +132,9 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
             timeLeft={timeLeftShare(site.startsAt, site.expiresAt, now)}
             lastDay={isLastDay(site.expiresAt, now)}
           />
-        </Marker>
+        </MapMarker>
       ))}
-    </>
+    </RouteDimContext.Provider>
   );
 });
 

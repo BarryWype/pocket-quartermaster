@@ -114,7 +114,7 @@ export function NetworkTab() {
         <View style={styles.routeLeftRow}>
           <GameIcon emoji="⚠️" size={18} />
           <Text style={[styles.line, styles.routeLeftText]}>{t('supply.network.routeLeft')}</Text>
-          <WoodButton compact title={t('supply.cart.setRoute')} onPress={() => openOnMap(() => useMapPanels.getState().openRoutePlanner(route))} />
+          <WoodButton compact title={t('supply.cart.setRoute')} onPress={() => openOnMap(() => useMapPanels.getState().openRouteMode(route))} />
         </View>
       )}
     </View>
@@ -278,7 +278,7 @@ function firstChainStep(step: FirstChainStep, save: SaveData, player: LatLng | n
       break;
     }
     case 'route':
-      panels.openRoutePlanner(plannerRoute(save, around, now));
+      panels.openRouteMode(plannerRoute(save, around, now));
       break;
     case 'delivery': {
       const order = nearestLiveOrder(save, around, now);
@@ -386,7 +386,7 @@ function nextStep(save: SaveData, player: LatLng | null, now: number): { line: s
     return {
       line: t('supply.cart.noRoute'),
       label: t('supply.firstChain.buttons.route'),
-      onPress: () => openOnMap(() => panels.openRoutePlanner(plannerRoute(save, around, now))),
+      onPress: () => openOnMap(() => panels.openRouteMode(plannerRoute(save, around, now))),
     };
   }
   if (!save.supply.cart.crew.driver) {

@@ -458,7 +458,9 @@ export function loopPreview(save: SaveData, route: RoutePoint[], path: StreetPat
     }
     return [];
   });
-  return { stops, home: cargo, meters, minutes, ambushChance: ambushChanceTotal, straightLegs: used.straightLegs, leaving };
+  // A risky street: a cell the path crosses where an ambush can happen today (danger level 1 or more).
+  const riskyCells = crossed.filter((cell) => (dangers[cell]?.level ?? 0) >= 1).length;
+  return { stops, home: cargo, meters, minutes, ambushChance: ambushChanceTotal, riskyCells, straightLegs: used.straightLegs, leaving };
 }
 
 /**

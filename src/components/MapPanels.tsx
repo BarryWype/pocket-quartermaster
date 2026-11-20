@@ -17,7 +17,7 @@ import { MarkerChooser } from './MarkerChooser';
 import { PlaceSheet } from './places/PlaceSheet';
 import { SecretSheet } from './places/SecretSheet';
 import { TavernSheet } from './places/TavernSheet';
-import { RoutePlannerSheet } from './RoutePlannerSheet';
+import { RouteBar } from './routeMode/RouteBar';
 import { SupplyCampPanel } from './SupplyCampPanel';
 import { SupplyCartPanel } from './SupplyCartPanel';
 import { SupplySitePanel } from './SupplySitePanel';
@@ -67,8 +67,7 @@ export function MapPanels({ player, patrols }: Props) {
   const closeSite = useMapPanels((state) => state.closeSite);
   const cartOpen = useMapPanels((state) => state.cartOpen);
   const closeCart = useMapPanels((state) => state.closeCart);
-  const routePlanner = useMapPanels((state) => state.routePlanner);
-  const closeRoutePlanner = useMapPanels((state) => state.closeRoutePlanner);
+  const routing = useMapPanels((state) => state.routeMode !== null);
   const focusPatrol = useWorldStore((state) => state.focusPatrol);
   const focusedPatrol = focusPatrol ? (patrols.find((spawn) => spawn.id === focusPatrol.id) ?? null) : null;
   const selectedPatrol = openPatrol ?? focusedPatrol;
@@ -96,7 +95,7 @@ export function MapPanels({ player, patrols }: Props) {
       {supplyBuilding && <TimedSupplyBuildingPanel id={supplyBuilding} player={player} onClose={closeSupplyBuilding} />}
       {site && <TimedSupplySitePanel site={site} player={player} onClose={closeSite} />}
       {cartOpen && <TimedSupplyCartPanel onClose={closeCart} />}
-      {routePlanner !== null && <RoutePlannerSheet onClose={closeRoutePlanner} />}
+      {routing && <RouteBar />}
     </>
   );
 }

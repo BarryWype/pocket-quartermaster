@@ -231,7 +231,7 @@ export function OrderSection({ place, player, now }: Props) {
         <WoodButton
           compact
           title={t('supply.building.addToRoute')}
-          onPress={() => useMapPanels.getState().openRoutePlanner([...route, { place: place.id, position: place.position }])}
+          onPress={() => useMapPanels.getState().openRouteMode([...route, { place: place.id, position: place.position }])}
         />
       )}
       {preview ? (

@@ -190,7 +190,7 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
                 <Text style={styles.line}>{t('supply.cart.ambushChance', { percent: formatPercent(preview.ambushChance) })}</Text>
               </>
             )}
-            <WoodButton title={t('supply.cart.setRoute')} onPress={() => useMapPanels.getState().openRoutePlanner(cart.nextRoute ?? cart.route)} />
+            <WoodButton title={t('supply.cart.setRoute')} onPress={() => useMapPanels.getState().openRouteMode(cart.nextRoute ?? cart.route)} />
           </View>
 
           <View style={styles.section}>

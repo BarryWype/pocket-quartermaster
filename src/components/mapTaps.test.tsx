@@ -18,7 +18,7 @@ jest.mock('@/services/mapTiles', () => ({ walkableTiles: { load: () => Promise.r
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const reset = () =>
   act(() => {
-    useMapPanels.setState({ chooser: null, placingHall: false, hallCell: null, place: null, sanctum: null, tavern: null, patrol: null, site: null, routePlanner: null });
+    useMapPanels.setState({ chooser: null, placingHall: false, hallCell: null, place: null, sanctum: null, tavern: null, patrol: null, site: null, routeMode: null });
   });
 
 const hit = (id: string, meters: number, open = jest.fn()): MarkerHit => ({
