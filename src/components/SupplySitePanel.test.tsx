@@ -9,6 +9,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
+import { sheetKit } from './network/sheetTestKit';
 import { SupplySitePanel } from './SupplySitePanel';
 import { TimerStrip } from './TimerStrip';
 
@@ -52,53 +53,48 @@ describe('the site sheet', () => {
     useSettingsStore.setState({ haptics: false });
     useMapPanels.setState({ site: null, supplyBuilding: null });
     act(() => renderer?.unmount());
+    renderer = null;
   });
   let renderer: ReactTestRenderer | null = null;
+  const kit = sheetKit(() => renderer!);
+  const open = (save: SaveData, site: PlaceSpawn, player = origin) => {
+    act(() => {
+      useGameStore.setState({ save });
+    });
+    act(() => {
+      renderer = create(<SupplySitePanel site={site} player={player} onClose={() => {}} />);
+    });
+  };
 
-  it('shows only the walk hint and the distances while undiscovered', () => {
+  it('undiscovered: says to walk there, and the main action is the walk', () => {
     useSettingsStore.setState({ haptics: false });
     const site = siteIn();
-    act(() => {
-      useGameStore.setState({ save: createInitialSave() });
-    });
-    act(() => {
-      renderer = create(<SupplySitePanel site={site} player={origin} onClose={() => {}} />);
-    });
-    const sheet = text(renderer!);
-    expect(sheet).toContain('Empty site');
-    expect(sheet).toContain('Not visited');
-    expect(sheet).toContain('Walk here to discover it.');
-    expect(sheet).toContain('You’ll see how good it is and what you can build.');
-    expect(sheet).toContain('Leaves in');
+    open(createInitialSave(), site, offsetPosition(origin, 320, 0));
+    const sheet = kit.text();
+    expect(sheet).toContain('Walk here to see how good the ground is and what you can build.');
+    expect(sheet).toContain('leaves in');
+    expect(kit.titles()).toContain(`Walk ${formatDistance(320)} to discover it`);
     // No stars, no buildings, no costs before the ground is known.
     expect(sheet).not.toContain('Build');
     expect(sheet).not.toContain('★');
   });
 
-  it('shows a discovered site with its quality and builds the chosen kind', () => {
+  it('discovered: the ground and the picked kind in the summary; the Build tab picks and builds', () => {
     useSettingsStore.setState({ haptics: false });
     const site = siteIn();
-    act(() => {
-      useGameStore.setState({ save: saveReadyToBuild(site) });
-    });
-    act(() => {
-      renderer = create(<SupplySitePanel site={site} player={origin} onClose={() => {}} />);
-    });
-    const sheet = text(renderer!);
-    expect(sheet).toContain('Site');
-    expect(sheet).toContain('Poor ground: 1 star of 3');
-    expect(sheet).toContain(`Buildings near the hall: 0 of 3 within ${formatDistance(1000)}`);
-    // One card per kind, each saying who wants its goods.
-    for (const name of ['Farm', 'Herb garden', 'Quarry', 'Lumber camp', 'Hunting camp']) expect(sheet).toContain(name);
-    for (const who of ['Taverns', 'Smithies', 'Apothecaries', 'your workshop']) expect(sheet).toContain(who);
-    // The mines and the kiln open at later tiers.
-    expect(sheet).not.toContain('Copper mine');
-    expect(sheet).toContain('with a hero');
+    open(saveReadyToBuild(site), site);
+    expect(kit.text()).toContain('★☆☆');
+    expect(kit.text()).toContain('Poor ground · a ');
+    kit.press('See what you can build');
+    // One tile per open kind; the mines and the kiln open at later tiers.
+    for (const name of ['Farm', 'Herb garden', 'Quarry', 'Lumber camp', 'Hunting camp']) expect(kit.text()).toContain(name);
+    expect(kit.text()).not.toContain('Copper mine');
 
-    // The second tap, on the quarry's Build (the third card), raises it: the fee leaves the purse and the sheet swaps.
+    // Picking the quarry turns the main action into building it; pressing it raises it and opens its sheet.
     act(() => {
-      renderer!.root.findAll((node) => node.props.title === 'Build' && typeof node.props.onPress === 'function')[2].props.onPress();
+      renderer!.root.findAll((node) => node.props?.accessibilityRole === 'radio' && String(node.props?.accessibilityLabel).startsWith('Quarry'))[0].props.onPress();
     });
+    kit.press('Build a Quarry');
     const save = useGameStore.getState().save;
     expect(save.supply.buildings).toHaveLength(1);
     expect(save.supply.buildings[0].kind).toBe('quarry');
@@ -107,31 +103,16 @@ describe('the site sheet', () => {
     expect(useMapPanels.getState().supplyBuilding).toBe(save.supply.buildings[0].id);
   });
 
-  it('blocks every building with one banner, and says the walk under buttons it only stops', () => {
+  it('a rule that holds anywhere locks the button with its reason; away, the button walks', () => {
     useSettingsStore.setState({ haptics: false });
     const site = siteIn();
-    // No hall: one reason stops every kind, so the banner says it once.
-    act(() => {
-      useGameStore.setState({ save: { ...createInitialSave(), supply: { ...createInitialSave().supply, discovered: { [site.id]: site.expiresAt } } } });
-    });
-    act(() => {
-      renderer = create(<SupplySitePanel site={site} player={origin} onClose={() => {}} />);
-    });
-    let sheet = text(renderer!);
-    expect(sheet).toContain('Place your hall first.');
+    open({ ...createInitialSave(), supply: { ...createInitialSave().supply, discovered: { [site.id]: site.expiresAt } } }, site, offsetPosition(origin, 120, 0));
+    expect(kit.titles()).toContain('Place your hall first');
 
-    // With a hall but the player away, only the walk stops each kind: a reason line, no banner.
-    const away = offsetPosition(origin, 120, 0);
-    act(() => {
-      useGameStore.setState({ save: saveReadyToBuild(site) });
-    });
-    act(() => {
-      renderer!.unmount();
-      renderer = create(<SupplySitePanel site={site} player={away} onClose={() => {}} />);
-    });
-    sheet = text(renderer!);
-    expect(sheet).toContain(`Walk to the site to build (${formatDistance(120)}).`);
-    expect(sheet).not.toContain('Place your hall first.');
+    act(() => renderer!.unmount());
+    open(saveReadyToBuild(site), site, offsetPosition(origin, 120, 0));
+    expect(kit.titles().some((title) => title === `Walk ${formatDistance(120)} to build`)).toBe(true);
+    expect(kit.text()).not.toContain('Place your hall first');
   });
 });
 

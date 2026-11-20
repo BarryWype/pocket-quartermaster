@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
-import { MapMarker, RouteDimContext } from '@/components/MapMarker';
+import { MapMarker, markerDim, RouteDimContext } from '@/components/MapMarker';
 import { useMapPanels } from '@/store/mapPanelsStore';
 
 import { GameIcon } from '@/components/GameIcon';
@@ -180,11 +180,11 @@ function MapMarkersBase({
   const tapRadius = gatheringConfig.collectRadiusMeters + rosterAffixBest(save, 'wanderers');
   const keyHeld = hasKey(save);
   const tavernsOpen = isTavernUnlocked(save);
-  // Route mode dims every marker; the switch alone re-renders them, once on the way in and once out.
-  const routing = useMapPanels((state) => state.routeMode !== null);
+  // Route mode dims every marker, the Network toggle all but the network's; a switch alone re-renders them once.
+  const dim = useMapPanels((state) => markerDim(state.routeMode !== null, state.networkOnly));
 
   return (
-    <RouteDimContext.Provider value={routing}>
+    <RouteDimContext.Provider value={dim}>
       {culledSpawns.map(({ spawn, position: spawnPosition, distance }) => {
         const read = readSpawn(save, spawn);
         const shown = resourceById[read.resourceId];
@@ -237,7 +237,13 @@ function MapMarkersBase({
       {culledTaverns.map((tavern) => {
         const time = supplyOn ? timeOf(tavern, now) : undefined;
         return (
-          <MapMarker key={tavern.id} id={tavern.id} lngLat={toLngLat(tavern.position)} onPress={tapped(() => onOpenTavern(tavern))}>
+          <MapMarker
+            key={tavern.id}
+            id={tavern.id}
+            lngLat={toLngLat(tavern.position)}
+            network={supplyOn && tavern.id in save.supply.discovered}
+            onPress={tapped(() => onOpenTavern(tavern))}
+          >
             <TimedSanctumMarker
               emoji="🍺"
               locked={!tavernsOpen}
@@ -254,7 +260,13 @@ function MapMarkersBase({
         // Fight events keep only their difficulty ring; the monster lair lasts six days like the rest.
         const time = supplyOn && (!isFightPlace(place.kind) || place.kind === 'monsterLair') ? timeOf(place, now) : undefined;
         return (
-          <MapMarker key={place.id} id={place.id} lngLat={toLngLat(place.position)} onPress={tapped(() => onOpenPlace(place))}>
+          <MapMarker
+            key={place.id}
+            id={place.id}
+            lngLat={toLngLat(place.position)}
+            network={supplyOn && isNetworkKind(place.kind) && place.id in save.supply.discovered}
+            onPress={tapped(() => onOpenPlace(place))}
+          >
             <TimedSanctumMarker
               emoji={placeInfo[place.kind].emoji}
               locked={false}
@@ -317,7 +329,7 @@ function MapMarkersBase({
           <GathererHeroMarker emoji={gathererHero.emoji} icon={gathererHero.icon} />
         </MapMarker>
       )}
-      <MapMarker id="player" lngLat={toLngLat(position)} onPress={onPlayer ? tapped(onPlayer) : undefined}>
+      <MapMarker id="player" network lngLat={toLngLat(position)} onPress={onPlayer ? tapped(onPlayer) : undefined}>
         <Text style={styles.player}>🧙</Text>
       </MapMarker>
     </RouteDimContext.Provider>

@@ -8,6 +8,7 @@ import { createInitialSave, type SaveData } from '@/game/save';
 import { useCartTick } from '@/hooks/useCartTick';
 import { useGameStore } from '@/store/gameStore';
 
+import { sheetKit } from './network/sheetTestKit';
 import { SupplyCartPanel } from './SupplyCartPanel';
 
 jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
@@ -52,6 +53,7 @@ describe('the cart sheet', () => {
     renderer = null;
   });
 
+  const kit = sheetKit(() => renderer!);
   const open = (save: SaveData) => {
     act(() => {
       useGameStore.setState({ save });
@@ -62,18 +64,30 @@ describe('the cart sheet', () => {
     return text(renderer!);
   };
 
-  it('parked with no route: says to plan one, and why it cannot start', () => {
+  it('parked with no route: says to plan one, and planning is the main action', () => {
     const sheet = open(withNetwork());
     expect(sheet).toContain('Parked at the hall.');
-    expect(sheet).toContain('No route yet: plan one on the map.');
-    expect(sheet).toContain('Plan a route first.');
+    expect(sheet).toContain('No delivery route yet. Pick the stops on the map');
+    expect(kit.titles()).toContain('Plan the delivery route');
   });
 
-  it('running: shows the stop it is heading to and when it is back', () => {
-    const sheet = open(startCart(withNetwork({ route: [{ building: 'b1' }] }), Date.now()));
-    expect(sheet).toContain('On its way to Farm, back at the hall in');
-    expect(sheet).toContain('Stop after this loop');
-    expect(sheet).toContain('The crew can change once the cart is parked.');
+  it('parked with a route and no driver: choosing one comes first, starting stays at hand', () => {
+    open(withNetwork({ route: [{ building: 'b1' }] }));
+    expect(kit.text()).toContain('Route ready: 1 stop, loop');
+    expect(kit.titles()).toEqual(expect.arrayContaining(['Choose a driver', 'Start the cart', 'Edit delivery route']));
+    // Choose a driver opens the Crew tab on the driver's picker.
+    kit.press('Choose a driver');
+    expect(kit.byLabel('No driver: tap to choose one')).toBeTruthy();
+    expect(kit.text()).toContain('Bram');
+  });
+
+  it('running: shows the stop it is heading to, Edit and Stop after this loop', () => {
+    open(startCart(withNetwork({ route: [{ building: 'b1' }] }), Date.now()));
+    expect(kit.text()).toContain('On its way to Farm, back at the hall in');
+    expect(kit.titles()).toEqual(expect.arrayContaining(['Edit delivery route', 'Stop after this loop']));
+    kit.press('More');
+    kit.tap('Crew');
+    expect(kit.text()).toContain('The crew can change once the cart is parked.');
   });
 
   it('tells the last loops as sentences: what went where, what came home, and the empty one', () => {
@@ -81,19 +95,22 @@ describe('the cart sheet', () => {
       { n: 1, endedAt: Date.now() - 2 * 3_600_000, delivered: { stone: 4 }, places: [{ placeId: 't1', goods: { grain: 8 }, gold: 10 }], ambush: null },
       { n: 2, endedAt: Date.now() - 3_600_000, delivered: {}, places: [], ambush: null },
     ];
-    const sheet = open(withNetwork({ log }));
+    open(withNetwork({ log }));
+    kit.press('More');
+    kit.tap('Last loops');
+    const sheet = kit.text();
     expect(sheet).toContain('Delivered');
     expect(sheet).toContain('to t1');
     expect(sheet).toContain('home.');
     expect(sheet).toContain('Came home empty.');
   });
 
-  it('back with a hurt crew: names them and offers to start again', () => {
+  it('back with a hurt crew: names them, and the start is locked with the reason', () => {
     const base = withNetwork({ route: [{ building: 'b1' }], crew: { driver: 'bram', escorts: [] }, waitingForCrew: true });
     const save = { ...base, heroes: base.heroes.map((hero) => (hero.id === 'bram' ? { ...hero, hp: 1, hpAt: Date.now() } : hero)) };
     const sheet = open(save);
     expect(sheet).toContain('Bram');
-    expect(sheet).toContain('Start again');
+    expect(kit.titles()).toContain('Crew too hurt to set out');
   });
 });
 

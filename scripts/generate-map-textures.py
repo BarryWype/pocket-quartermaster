@@ -171,6 +171,26 @@ def post() -> Image.Image:
     return image
 
 
+def route_arrow() -> Image.Image:
+    """A chevron along the delivery route, pointing east: the line layer turns it with the street."""
+    art = [
+        "oo.....",
+        "oHo....",
+        ".oHo...",
+        "..oHo..",
+        ".oHo...",
+        "oHo....",
+        "oo.....",
+    ]
+    colors = {"o": "#1e120a", "H": "#fff1dc"}
+    image = Image.new("RGBA", (7, 7), (0, 0, 0, 0))
+    for y, row in enumerate(art):
+        for x, char in enumerate(row):
+            if char != ".":
+                image.putpixel((x, y), hex_color(colors[char]))
+    return image
+
+
 CLOUD_SHAPES = [
     # A round puff.
     (24, 12, [(7, 7.5, 4.5), (12.5, 5.5, 5.5), (18, 7.5, 4.5)]),
@@ -274,6 +294,7 @@ TEXTURES = {"cobble": (cobble, 2), "dirt": (dirt, 1), "floor": (floor, 2), "tram
     "butterfly-0": (lambda: butterfly(0), 2),
     "butterfly-1": (lambda: butterfly(1), 2),
     "firefly": (firefly, 2),
+    "route-arrow": (route_arrow, 2),
 }
 for frame in range(4):
     TEXTURES[f"smoke-{frame}"] = (lambda frame=frame: smoke(frame), 1)

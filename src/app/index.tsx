@@ -113,6 +113,8 @@ const MAP_TEXTURES = {
   grass: require('../../assets/sprites/grass.png'),
   'water-0': require('../../assets/sprites/water-0.png'),
   'water-1': require('../../assets/sprites/water-1.png'),
+  // The delivery route's direction arrows (SupplyRoute).
+  'route-arrow': require('../../assets/sprites/route-arrow.png'),
 };
 
 /** Sanctums and taverns snap with coarse map tiles so they can be shown from kilometres away. */

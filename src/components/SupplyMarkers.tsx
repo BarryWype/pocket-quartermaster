@@ -1,18 +1,15 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { MapMarker, RouteDimContext } from '@/components/MapMarker';
+import { MapMarker, markerDim, RouteDimContext } from '@/components/MapMarker';
 
-import { Countdown } from '@/components/Countdown';
 import { GameIcon } from '@/components/GameIcon';
-import { IconLabel } from '@/components/IconLabel';
 import { SiteMarker } from '@/components/SiteMarker';
-import { Text } from '@/components/Text';
 import { TimeRing } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
+import { buildingBadge, type NetworkBadge } from '@/game/supply/badges';
 import { buildingEmoji, buildingNameKey, isLastDay, timeLeftShare } from '@/game/supply/buildings';
-import { isAnnounced } from '@/game/supply/raids';
-import { buildingStockTotal, settleBuilding } from '@/game/supply/production';
+import { buildingCap, buildingStockTotal, settleBuilding } from '@/game/supply/production';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { formatDuration, t } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
@@ -33,46 +30,32 @@ const tapped = (action: () => void) => () => {
 
 const toLngLat = (position: { latitude: number; longitude: number }): [number, number] => [position.longitude, position.latitude];
 
-/** Under a building's marker while a raid on it is announced: the time left before it lands. */
-function RaidCountdown({ buildingId }: { buildingId: string }) {
-  const save = useGameStore((s) => s.save);
-  const now = useNow(clockConfig.minutesMs);
-  const raid = save.supply.raid;
-  if (!raid || raid.buildingId !== buildingId || !isAnnounced(save, raid, now)) return null;
-  return (
-    <IconLabel
-      emoji="⚔️"
-      size={14}
-      style={styles.raid}
-      labelStyle={styles.raidText}
-      label={<Countdown endsAt={raid.landsAt} render={(ms) => t('supply.raid.marker', { time: formatDuration(ms, false) })} />}
-    />
-  );
-}
+const badgeEmoji: Record<NetworkBadge, string> = { raid: '⚔️', last: '⏳', full: '📦', idle: '🛒', nowork: '👤' };
 
-/** A building's whole stock under its marker; the time ring's badge says its last day. */
-function BuildingBadges({ buildingId }: { buildingId: string }) {
+/**
+ * A building's one badge, the most urgent (buildingBadge), with its own icon
+ * so colour is never the only signal, and the marker's accessibility label:
+ * the building's name and what the badge means.
+ */
+function BuildingBadge({ buildingId }: { buildingId: string }) {
   const save = useGameStore((s) => s.save);
   const now = useNow(clockConfig.minutesMs);
   const building = save.supply.buildings.find((entry) => entry.id === buildingId);
   if (!building) return null;
-  const stock = buildingStockTotal(settleBuilding(save, building, now));
-  const last = isLastDay(building.expiresAt, now);
+  const name = t(buildingNameKey[building.kind]);
+  const badge = buildingBadge(save, building, now);
+  if (!badge) return <View accessible accessibilityLabel={name} style={styles.badgeSpot} />;
+  const label =
+    badge === 'raid'
+      ? t('networkBadge.raid', { name, time: formatDuration(Math.max(0, (save.supply.raid?.landsAt ?? now) - now), false) })
+      : badge === 'last'
+        ? t('networkBadge.last', { name, time: formatDuration(Math.max(0, building.expiresAt - now), false) })
+        : badge === 'full'
+          ? t('networkBadge.full', { name, n: buildingStockTotal(settleBuilding(save, building, now)), cap: buildingCap(building) })
+          : t(badge === 'idle' ? 'networkBadge.idle' : 'networkBadge.nowork', { name });
   return (
-    <View
-      style={styles.badges}
-      accessibilityLabel={[
-        t('supply.building.markerLabel', {
-          building: t(buildingNameKey[building.kind]),
-          stock,
-          time: formatDuration(Math.max(0, building.expiresAt - now), false),
-        }),
-        ...(last ? [t('supply.time.lastDayLabel')] : []),
-      ].join(', ')}
-    >
-      <View style={styles.stockBadge}>
-        <Text style={styles.badgeText}>{stock}</Text>
-      </View>
+    <View accessible accessibilityLabel={label} style={[styles.badge, styles[badge]]}>
+      <GameIcon emoji={badgeEmoji[badge]} size={12} />
     </View>
   );
 }
@@ -89,13 +72,13 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
   const hall = useGameStore((s) => s.save.supply.hall);
   const buildings = useGameStore((s) => s.save.supply.buildings);
   const discovered = useGameStore((s) => s.save.supply.discovered);
-  // Route mode dims every marker; the switch alone re-renders them, once on the way in and once out.
-  const routing = useMapPanels((state) => state.routeMode !== null);
+  // Route mode dims every marker; the Network toggle keeps these lit. A switch alone re-renders them once.
+  const dim = useMapPanels((state) => markerDim(state.routeMode !== null, state.networkOnly));
   if (!on) return null;
   return (
-    <RouteDimContext.Provider value={routing}>
+    <RouteDimContext.Provider value={dim}>
       {hall && (
-        <MapMarker id="supply-hall" lngLat={toLngLat(tileCenter(hall.cell))} onPress={tapped(() => useMapPanels.getState().openHall(hall.cell))}>
+        <MapMarker id="supply-hall" network lngLat={toLngLat(tileCenter(hall.cell))} onPress={tapped(() => useMapPanels.getState().openHall(hall.cell))}>
           <GameIcon emoji="🏠" size={MARKER_SIZE} />
         </MapMarker>
       )}
@@ -103,6 +86,7 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
         <MapMarker
           key={building.id}
           id={`supply-building:${building.id}`}
+          network
           lngLat={toLngLat(building.position)}
           onPress={tapped(() => useMapPanels.getState().openSupplyBuilding(building.id))}
         >
@@ -114,8 +98,7 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
             >
               <GameIcon emoji={buildingEmoji[building.kind]} size={MARKER_SIZE} />
             </TimeRing>
-            <BuildingBadges buildingId={building.id} />
-            <RaidCountdown buildingId={building.id} />
+            <BuildingBadge buildingId={building.id} />
           </View>
         </MapMarker>
       ))}
@@ -123,6 +106,7 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
         <MapMarker
           key={site.id}
           id={`supply-site:${site.id}`}
+          network
           lngLat={toLngLat(site.position)}
           onPress={tapped(() => useMapPanels.getState().openSite(site))}
         >
@@ -140,15 +124,21 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
 
 const styles = StyleSheet.create({
   building: { alignItems: 'center' },
-  raid: { backgroundColor: colors.danger, paddingHorizontal: 4, borderRadius: 2 },
-  raidText: { fontSize: 13, color: ui.parchment },
-  badges: { flexDirection: 'row', gap: 4 },
-  stockBadge: {
-    backgroundColor: ui.woodDark,
-    borderWidth: 1,
-    borderColor: ui.brass,
-    paddingHorizontal: 4,
-    borderRadius: 2,
+  badgeSpot: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: -10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: ui.outline,
   },
-  badgeText: { fontSize: 12, color: ui.parchment },
+  raid: { backgroundColor: colors.danger },
+  last: { backgroundColor: ui.ember },
+  full: { backgroundColor: ui.brass },
+  idle: { backgroundColor: ui.parchment },
+  nowork: { backgroundColor: ui.woodDark },
 });

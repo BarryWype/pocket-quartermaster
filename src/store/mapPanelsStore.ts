@@ -66,6 +66,9 @@ type MapPanelsState = {
   selectGrab: (index: number | null) => void;
   /** Leaves route mode, keeping nothing of the draft (Save writes the route first). */
   closeRouteMode: () => void;
+  /** The Network toggle: everything on the map that isn't part of the supply network is dimmed. */
+  networkOnly: boolean;
+  toggleNetworkOnly: () => void;
   /** A tap on the empty map: the hall's cell while placing it, else nothing. */
   tapMap: (position: LatLng) => void;
   closeSanctum: () => void;
@@ -90,6 +93,7 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   placingHall: false,
   cartOpen: false,
   routeMode: null,
+  networkOnly: false,
   selectedGrab: null,
   chooser: null,
   openChooser: (chooser) => set({ chooser }),
@@ -133,6 +137,7 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   setRouteDraft: (draft) => set((state) => (state.routeMode ? { routeMode: { ...state.routeMode, draft }, selectedGrab: null } : {})),
   selectGrab: (index) => set({ selectedGrab: index }),
   closeRouteMode: () => set({ routeMode: null, selectedGrab: null, routePath: null }),
+  toggleNetworkOnly: () => set((state) => ({ networkOnly: !state.networkOnly })),
   tapMap: (position) => set((state) => (state.placingHall ? { hallCell: cellAt(position), placingHall: false, supplyBuilding: null } : {})),
   closeSanctum: () => set({ sanctum: null }),
   closeTavern: () => set({ tavern: null }),

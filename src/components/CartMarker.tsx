@@ -15,10 +15,16 @@ import { feel } from '@/services/feel';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { useWorldStore } from '@/store/worldStore';
+import { t, tr } from '@/i18n';
+import { ui } from '@/theme';
 
 const MARKER_SIZE = 26;
 /** How long an unload's pop stays over the marker. */
 const POP_MS = 1000;
+
+/** The good the cart carries most of, or null when it is empty: the marker shows it as one icon. */
+export const mainCargo = (cargo: Record<string, number>): string | null =>
+  Object.entries(cargo).reduce<[string, number] | null>((best, [good, n]) => (n > 0 && (best === null || n > best[1]) ? [good, n] : best), null)?.[0] ?? null;
 
 /**
  * The cart on the map while a loop runs. It keeps its own clock, so its
@@ -29,6 +35,8 @@ export const CartMarker = memo(function CartMarker() {
   const on = useSupplyOn();
   const loop = useGameStore((state) => state.save.supply.cart.loop);
   const pop = useWorldStore((state) => state.cartPop);
+  // A string, so the marker re-renders only when the main good changes, not with every load.
+  const cargo = useGameStore((state) => mainCargo(state.save.supply.cart.cargo));
   const { level } = useMotion();
   const [popShown, setPopShown] = useState<{ good: string; n: number } | null>(null);
   const now = useNow(clockConfig.mapMovingMs);
@@ -65,7 +73,18 @@ export const CartMarker = memo(function CartMarker() {
             />
           </Appear>
         )}
-        <GameIcon emoji="🐴" size={MARKER_SIZE} />
+        <View
+          style={styles.cart}
+          accessible
+          accessibilityLabel={cargo ? t('networkBadge.cartCargo', { good: tr(materialById[cargo]?.name ?? cargo).toLowerCase() }) : t('supply.cart.title')}
+        >
+          <GameIcon emoji="🐴" size={MARKER_SIZE} />
+          {cargo && (
+            <View style={styles.cargo}>
+              <GameIcon emoji={materialById[cargo]?.emoji ?? '📦'} icon={materialById[cargo]?.icon} size={14} />
+            </View>
+          )}
+        </View>
       </View>
     </Marker>
   );
@@ -74,5 +93,7 @@ export const CartMarker = memo(function CartMarker() {
 const styles = StyleSheet.create({
   marker: { alignItems: 'center' },
   pop: { position: 'absolute', bottom: 30 },
+  cart: { flexDirection: 'row', alignItems: 'flex-end' },
+  cargo: { marginLeft: -6, padding: 1, borderWidth: 2, borderColor: ui.outline, backgroundColor: ui.parchment },
   popText: { color: '#8A2E1C', fontFamily: 'serif' },
 });

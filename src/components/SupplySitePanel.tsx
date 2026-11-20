@@ -1,100 +1,126 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { IconLabel } from '@/components/IconLabel';
-import { Overlay } from '@/components/Overlay';
-import { ParchmentCard, EmberButton, WoodButton } from '@/components/ui';
+import { PressScale } from '@/components/motion';
 import { Price } from '@/components/Price';
-import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
-import { TimerStrip } from '@/components/TimerStrip';
+import { WoodButton } from '@/components/ui';
+import { clockConfig } from '@/content/clockConfig';
 import { materialById } from '@/content/lookup';
 import { placeInfo, placeRules } from '@/content/places';
 import { supplyRules } from '@/content/supplyLines';
 import { distanceMeters } from '@/game/generation/geo';
 import { tileCenter } from '@/game/generation/tiles';
 import type { LatLng } from '@/game/generation/types';
+import { mainAction } from '@/game/places/mainAction';
 import type { PlaceSpawn } from '@/game/places/generate';
+import { buildCost, buildingEmoji, buildingNameKey, buildingReach, buildProblem, isLastDay, openBuildingKinds, timeLeftShare } from '@/game/supply/buildings';
 import { networkPlacesAround } from '@/game/supply/discovery';
-import { openBuildingKinds, buildCost, buildingNameKey, buildingReach, buildProblem, type BuildProblem } from '@/game/supply/buildings';
+import { orderPlaceName } from '@/game/supply/orders';
+import { serves } from '@/game/supply/planner';
 import { siteQuality } from '@/game/supply/sites';
 import type { BuildingKind } from '@/game/supply/types';
-import { highestUnlockedTier } from '@/game/expeditions/expeditions';
-import { formatDistance, t, type TextKey } from '@/i18n';
+import { tavernNameOf } from '@/game/taverns/taverns';
+import { formatDistance, formatDuration, t, tr } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
-import { clockConfig } from '@/content/clockConfig';
 import { feel } from '@/services/feel';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
-import { colors, ui } from '@/theme';
+import { useWorldStore } from '@/store/worldStore';
+import { ui } from '@/theme';
+
+import { MapSheet, mapSheetStatus, type MapSheetAction, type MapSheetSecondary, type MapSheetView } from './MapSheet';
+import { GoodsRow, InfoRow, stars } from './network/networkBits';
 
 type Props = { site: PlaceSpawn; player: LatLng; onClose: () => void };
 
-const qualityKey: Record<1 | 2 | 3, TextKey> = { 1: 'supply.site.quality.one', 2: 'supply.site.quality.two', 3: 'supply.site.quality.three' };
-const forKindKey: Record<string, TextKey> = {
-  tavern: 'supply.site.for.tavern',
-  smithy: 'supply.site.for.smithy',
-  apothecary: 'supply.site.for.apothecary',
-};
+const round2 = (n: number) => String(Math.round(n * 100) / 100);
+const groundKey = { 1: 'networkSheet.site.ground.one', 2: 'networkSheet.site.ground.two', 3: 'networkSheet.site.ground.three' } as const;
 
-/** The stars a site's quality gives: filled up to its quality, empty after. */
-const Stars = ({ quality }: { quality: 1 | 2 | 3 }) => <Text style={styles.stars}>{`${'★'.repeat(quality)}${'☆'.repeat(3 - quality)}`}</Text>;
+/** What a kind makes an hour on this ground with a hero posted, good by good. */
+function ratesOf(kind: BuildingKind, quality: 1 | 2 | 3): Record<string, number> {
+  const { makes, baseRate } = supplyRules.buildings.kinds[kind];
+  const total = Object.values(makes).reduce((sum, weight) => sum + weight, 0);
+  return Object.fromEntries(Object.entries(makes).map(([good, weight]) => [good, Math.round(baseRate * quality * (weight / total) * 100) / 100]));
+}
 
 /**
- * A site's sheet. Undiscovered it says only what to do and how far; discovered
- * it shows the ground's quality and one card per building kind, each with its
- * own Build button and the reason it cannot be pressed.
+ * A site on the map sheet template. Undiscovered, it says only to walk there.
+ * Discovered, the summary gives the ground and what the picked building would
+ * make; the Build tab lists the open kinds as tiles with their rate and who
+ * nearby wants the goods, and the main action builds the picked one, which
+ * still needs the player there.
  */
 export function SupplySitePanel({ site, player, onClose }: Props) {
   const save = useGameStore((s) => s.save);
-  const build = useGameStore((s) => s.build);
-  const debugExpireSite = useGameStore((s) => s.debugExpireSite);
   const debugOn = useDebugStore(debugEnabled);
   const now = useNow(clockConfig.minutesMs);
+  const [picked, setPicked] = useState<BuildingKind | null>(null);
+
   const discovered = site.id in save.supply.discovered;
+  const distance = distanceMeters(player, site.position);
+  const range = placeRules.interactionMeters;
+  const ring = { kind: 'time' as const, left: timeLeftShare(site.startsAt, site.expiresAt, now), last: isLastDay(site.expiresAt, now) };
+  const status = mapSheetStatus({ distance, range, expiresAt: site.expiresAt, now });
+  const focus = () => useWorldStore.getState().set({ focusPlace: { latitude: site.position.latitude, longitude: site.position.longitude } });
+
   if (!discovered) {
     return (
-      <Overlay onClose={onClose} position="bottom">
-        <Sheet
-          variant="wood"
-          emoji="🪧"
-          title={t('supply.site.emptyTitle')}
-          subtitle={t('supply.site.notVisited')}
-          footer={<WoodButton title={t('common.close')} onPress={onClose} />}
-        >
-          <TimerStrip expiresAt={site.expiresAt} />
-          <View style={styles.banner}>
-            <IconLabel emoji="👣" label={t('supply.discover.walkHere')} size={18} labelStyle={styles.bannerText} />
-            <Text style={styles.line}>{t('supply.site.discoverMore')}</Text>
-          </View>
-          <DistanceLines site={site} player={player} hall={save.supply.hall} />
-        </Sheet>
-      </Overlay>
+      <MapSheet
+        onClose={onClose}
+        emoji="❔"
+        ring={ring}
+        title={t('networkSheet.site.title')}
+        status={status}
+        summary={<Text style={styles.summaryLine}>{t('networkSheet.site.undiscovered')}</Text>}
+        action={{
+          // Discovery happens by itself on arrival; in range, the button only waits for it.
+          state: mainAction({ player, target: site.position, range, problem: 'discovering' }),
+          verb: t('networkSheet.site.discoverVerb'),
+          label: t('networkSheet.site.discovering'),
+          blockedLabel: t('networkSheet.site.discovering'),
+          onPress: () => {},
+          onWalk: focus,
+        }}
+      />
     );
   }
 
   const quality = siteQuality(site);
   const reach = buildingReach(save);
   const kinds = openBuildingKinds(save);
-  const problems = Object.fromEntries(kinds.map((kind) => [kind, buildProblem(save, site, kind, player, now)])) as Record<BuildingKind, BuildProblem>;
-  // One reason that stops every building gets the banner; the same words serve under each disabled button.
-  const blocking = kinds.length > 0 ? (['noHall', 'tooFarFromHall', 'full'] as const).find((reason) => kinds.every((kind) => problems[kind] === reason)) : undefined;
-  const blockingText =
-    blocking === 'noHall'
-      ? t('supply.site.blocked.noHall')
-      : blocking === 'tooFarFromHall'
-        ? t('supply.site.blocked.tooFarFromHall', { distance: formatDistance(reach.meters), tier: highestUnlockedTier(save) })
-        : blocking === 'full'
-          ? t('supply.site.blocked.full', { max: reach.count })
-          : null;
-  // The card that serves the nearest discovered place is the one to press.
-  const nearest = networkPlacesAround(save, site.position, now)
-    .filter((place) => place.id in save.supply.discovered && place.startsAt <= now && now < place.expiresAt)
-    .reduce<PlaceSpawn | null>((best, place) => (best === null || distanceMeters(site.position, place.position) < distanceMeters(site.position, best.position) ? place : best), null);
-  const emberKind = nearest ? (kinds.find((kind) => supplyRules.buildings.kinds[kind].for === nearest.kind) ?? 'farm') : 'farm';
+  const cost = buildCost(save);
+  // The discovered, live places near the site, with their orders, for "who wants it".
+  const places = networkPlacesAround(save, site.position, now).filter(
+    (place) => place.id in save.supply.discovered && place.startsAt <= now && now < place.expiresAt && save.supply.orders[place.id],
+  );
+  const wantedBy = (kind: BuildingKind) =>
+    places
+      .filter((place) => serves(save.supply.orders[place.id].wants, kind))
+      .map((place) => ({ place, meters: distanceMeters(site.position, place.position) }))
+      .sort((a, b) => a.meters - b.meters);
+  // Until the player picks, the kind most wanted nearby (the first open kind when none is).
+  const suggested = kinds.reduce<BuildingKind | null>((best, kind) => (best === null || wantedBy(kind).length > wantedBy(best).length ? kind : best), null);
+  const kind = picked && kinds.includes(picked) ? picked : suggested;
+  const rates = kind ? ratesOf(kind, quality) : {};
+  const mainGood = kind ? Object.keys(supplyRules.buildings.kinds[kind].makes)[0] : null;
+  const wanting = kind ? wantedBy(kind) : [];
 
-  const onBuild = (kind: BuildingKind, free: boolean) => {
-    build(site, kind, player, free);
+  const summary = [
+    t(groundKey[quality]),
+    ...(kind && mainGood
+      ? [
+          t('networkSheet.site.makesHere', { kind: t(buildingNameKey[kind]), rate: round2(rates[mainGood]), good: tr(materialById[mainGood]?.name ?? mainGood).toLowerCase() }),
+          wanting.length > 0 ? t('networkSheet.site.wantedBy', { count: wanting.length }) : t('networkSheet.site.nobodyWants'),
+        ]
+      : []),
+  ].join(' · ');
+
+  const onBuild = (free: boolean) => {
+    if (!kind) return;
+    useGameStore.getState().build(site, kind, player, free);
     feel('reward');
     const built = useGameStore.getState().save.supply.buildings.find((entry) => entry.siteId === site.id);
     if (built) {
@@ -103,161 +129,140 @@ export function SupplySitePanel({ site, player, onClose }: Props) {
     }
   };
 
-  return (
-    <Overlay onClose={onClose} position="bottom">
-      <Sheet
-        variant="wood"
-        emoji="🪧"
-        title={
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{t('supply.site.label')}</Text>
-            <Stars quality={quality} />
-          </View>
-        }
-        subtitle={t(qualityKey[quality])}
-        footer={<WoodButton title={t('common.close')} onPress={onClose} />}
-      >
-        <TimerStrip expiresAt={site.expiresAt} />
-        <DistanceLines site={site} player={player} hall={save.supply.hall} />
-        <Text style={styles.line}>
-          {t('supply.site.limits', { count: save.supply.buildings.length, max: reach.count, distance: formatDistance(reach.meters) })}
-        </Text>
-        {blockingText && (
-          <View style={[styles.banner, styles.blocked]}>
-            <Text style={styles.line}>{blockingText}</Text>
-          </View>
-        )}
-        {kinds.map((kind) => (
-          <BuildingCard
-            key={kind}
-            kind={kind}
-            quality={quality}
-            problem={problems[kind]}
-            blockingText={blockingText}
-            walkDistance={distanceMeters(player, site.position)}
-            ember={kind === emberKind}
-            onBuild={onBuild}
-          />
-        ))}
-        {debugOn && <WoodButton compact title={t('supply.site.expire')} onPress={() => debugExpireSite(site)} />}
-      </Sheet>
-    </Overlay>
-  );
-}
+  const problem = kind ? buildProblem(save, site, kind, player, now) : 'notOpen';
+  const blockedLabel = (() => {
+    switch (problem) {
+      case 'noHall':
+        return t('networkSheet.site.blocked.noHall');
+      case 'tooFarFromHall':
+        return t('networkSheet.site.blocked.tooFarFromHall');
+      case 'full':
+        return t('networkSheet.site.blocked.full', { max: reach.count });
+      case 'cost':
+        return t('networkSheet.site.blocked.cost');
+      case 'taken':
+        return t('networkSheet.site.blocked.taken');
+      default:
+        return t('networkSheet.site.blocked.notOpen');
+    }
+  })();
 
-/** The one distance line: from the player, and from the hall. */
-function DistanceLines({ site, player, hall }: { site: PlaceSpawn; player: LatLng; hall: { cell: string } | null }) {
-  return (
-    <View style={styles.distanceRow}>
-      <Text style={styles.line}>
-        {distanceMeters(player, site.position) <= placeRules.interactionMeters
-          ? t('supply.youAreHere')
-          : t('supply.site.fromYou', { distance: formatDistance(distanceMeters(player, site.position)) })}
-      </Text>
-      {hall && (
-        <Text style={styles.line}>{t('supply.site.fromHall', { distance: formatDistance(distanceMeters(tileCenter(hall.cell), site.position)) })}</Text>
+  const action = (): MapSheetAction => {
+    const build = kind ? t('networkSheet.site.build', { kind: t(buildingNameKey[kind]) }) : t('networkSheet.site.pick');
+    // The rules that hold wherever the player stands come first: no walk to a site that can't be built on.
+    const anywhere = problem === 'noHall' || problem === 'tooFarFromHall' || problem === 'full' || problem === 'taken' || problem === 'notOpen';
+    return {
+      state: mainAction({ player, target: site.position, range, problem: problem === 'notHere' ? null : problem, anywhere }),
+      verb: t('networkSheet.site.buildVerb'),
+      label: build,
+      blockedLabel,
+      onPress: () => onBuild(false),
+      onWalk: focus,
+    };
+  };
+  const secondary = (view: MapSheetView): MapSheetSecondary[] =>
+    view.full ? [] : [{ key: 'build', title: t('networkSheet.site.seeBuild'), onPress: () => view.open('build') }];
+
+  const buildTab = () => (
+    <View style={styles.tab}>
+      <View style={styles.tiles}>
+        {kinds.map((entry) => {
+          const on = entry === kind;
+          const entryRates = ratesOf(entry, quality);
+          const good = Object.keys(entryRates)[0];
+          return (
+            <PressScale
+              key={entry}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={t('networkSheet.site.kindLabel', { kind: t(buildingNameKey[entry]), rate: round2(entryRates[good]) })}
+              onPress={() => setPicked(entry)}
+              style={[styles.kindTile, on && styles.kindTileOn]}
+            >
+              <IconLabel emoji={buildingEmoji[entry]} label={t(buildingNameKey[entry])} size={20} labelStyle={styles.kindName} />
+              <IconLabel emoji={materialById[good]?.emoji ?? '📦'} icon={materialById[good]?.icon} label={t('networkSheet.site.perHour', { rate: round2(entryRates[good]) })} size={14} labelStyle={styles.kindRate} />
+            </PressScale>
+          );
+        })}
+      </View>
+      {kind && (
+        <>
+          <GoodsRow goods={rates} size={18} />
+          <InfoRow label={t('networkSheet.site.wantedList')}>
+            {wanting.length > 0 ? (
+              wanting.map(({ place, meters }) => (
+                <IconLabel
+                  key={place.id}
+                  emoji={placeInfo[place.kind].emoji}
+                  label={`${orderPlaceName(save.supply.orders[place.id], tavernNameOf)} (${formatDistance(meters)})`}
+                  size={16}
+                  labelStyle={styles.line}
+                />
+              ))
+            ) : (
+              <Text style={styles.line}>{t('networkSheet.site.goesHome')}</Text>
+            )}
+          </InfoRow>
+          {wanting.length > 0 && <Text style={styles.muted}>{t('networkSheet.site.addedOnBuild')}</Text>}
+          <InfoRow label={t('networkSheet.site.cost')}>
+            <Price amount={cost.gold} size={18} />
+            {cost.materials.map((entry) => (
+              <IconLabel key={entry.materialId} emoji={materialById[entry.materialId]?.emoji ?? '📦'} icon={materialById[entry.materialId]?.icon} label={String(entry.amount)} size={18} labelStyle={styles.line} />
+            ))}
+          </InfoRow>
+          {debugOn && <WoodButton compact title={t('supply.site.buildFree')} onPress={() => onBuild(true)} />}
+        </>
       )}
     </View>
   );
-}
 
-/** One building kind: what it makes, who wants it, and its own Build button with the cost. */
-function BuildingCard({
-  kind,
-  quality,
-  problem,
-  blockingText,
-  walkDistance,
-  ember,
-  onBuild,
-}: {
-  kind: BuildingKind;
-  quality: 1 | 2 | 3;
-  problem: BuildProblem;
-  blockingText: string | null;
-  /** How far the player stands from the site, for the walk-to-build reason. */
-  walkDistance: number;
-  ember: boolean;
-  onBuild: (kind: BuildingKind, free: boolean) => void;
-}) {
-  const debugOn = useDebugStore(debugEnabled);
-  const rules = supplyRules.buildings.kinds[kind];
-  const gold = useGameStore(({ save }) => buildCost(save).gold);
-  const { materials } = supplyRules.buildings.cost;
-  const totalWeight = Object.values(rules.makes).reduce((sum, weight) => sum + weight, 0);
+  const hall = save.supply.hall;
+  const detailsTab = () => (
+    <View style={styles.tab}>
+      <InfoRow label={t('networkSheet.building.ground')}>{t('networkSheet.building.groundLine', { stars: stars(quality), n: quality })}</InfoRow>
+      {hall && <InfoRow label={t('networkSheet.fromHall')}>{formatDistance(distanceMeters(tileCenter(hall.cell), site.position))}</InfoRow>}
+      <InfoRow label={t('networkSheet.leaves')}>{formatDuration(Math.max(0, site.expiresAt - now), false)}</InfoRow>
+      <Text style={styles.muted}>{t('supply.site.limits', { count: save.supply.buildings.length, max: reach.count, distance: formatDistance(reach.meters) })}</Text>
+      {debugOn && <WoodButton compact title={t('supply.site.expire')} onPress={() => useGameStore.getState().debugExpireSite(site)} />}
+    </View>
+  );
+
   return (
-    <ParchmentCard contentStyle={styles.card}>
-      <View style={styles.cardRow}>
-        <IconLabel
-          emoji={materialById[Object.keys(rules.makes)[0]]?.emoji ?? '❔'}
-          icon={materialById[Object.keys(rules.makes)[0]]?.icon}
-          label={t(buildingNameKey[kind])}
-          size={20}
-          labelStyle={styles.cardTitle}
-        />
-        <Text style={styles.muted}>{t('supply.site.makes')}</Text>
-      </View>
-      <View style={styles.cardRow}>
-        {Object.entries(rules.makes).map(([materialId, weight]) => (
-          <IconLabel
-            key={materialId}
-            emoji={materialById[materialId]?.emoji ?? '❔'}
-            icon={materialById[materialId]?.icon}
-            label={t('supply.site.perHour', { rate: Math.round(rules.baseRate * quality * (weight / totalWeight) * 100) / 100 })}
-            size={16}
-          />
-        ))}
-        <Text style={styles.muted}>{t('supply.site.withHero')}</Text>
-      </View>
-      <View style={styles.cardRow}>
-        <Text style={styles.muted}>{t('supply.site.forWord')}</Text>
-        {rules.for ? (
-          <IconLabel emoji={placeInfo[rules.for].emoji} label={t(forKindKey[rules.for])} size={16} />
-        ) : (
-          <IconLabel emoji="🏠" label={t('supply.site.forWorkshop')} size={16} />
-        )}
-      </View>
-      <View style={styles.cardRow}>
-        {ember ? (
-          <EmberButton compact style={styles.build} title={t('supply.site.build')} disabled={problem !== null} onPress={() => onBuild(kind, false)} />
-        ) : (
-          <WoodButton compact style={styles.build} title={t('supply.site.build')} disabled={problem !== null} onPress={() => onBuild(kind, false)} />
-        )}
-        <Price amount={gold} size={18} />
-        <IconLabel
-          emoji={materialById['wood']?.emoji ?? '🪵'}
-          icon={materialById['wood']?.icon}
-          label={String(materials[0].amount)}
-          size={18}
-        />
-      </View>
-      {problem !== null && (
-        <Text style={styles.reason}>
-          {problem === 'notHere'
-            ? t('supply.site.reason.notHere', { distance: formatDistance(walkDistance) })
-            : problem === 'cost'
-              ? t('supply.site.reason.cost')
-              : blockingText}
-        </Text>
-      )}
-      {debugOn && <WoodButton compact title={t('supply.site.buildFree')} onPress={() => onBuild(kind, true)} />}
-    </ParchmentCard>
+    <MapSheet
+      onClose={onClose}
+      emoji={kind ? buildingEmoji[kind] : '🪧'}
+      ring={ring}
+      title={t('networkSheet.site.title')}
+      status={`${stars(quality)} · ${status}`}
+      summary={<Text style={styles.summaryLine}>{summary}</Text>}
+      action={action}
+      secondary={secondary}
+      tabs={[
+        { key: 'build', label: t('networkSheet.tabs.build'), render: buildTab },
+        { key: 'details', label: t('networkSheet.tabs.details'), render: detailsTab },
+      ]}
+      inRange={distance <= range}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 23, color: ui.brassLight },
-  stars: { fontSize: 18, color: ui.brassLight },
+  summaryLine: { color: ui.ink, fontSize: 18 },
+  tab: { gap: 10 },
   line: { color: ui.ink },
-  muted: { color: ui.inkMuted },
-  banner: { gap: 6, padding: 10, borderWidth: 2, borderColor: ui.brass, backgroundColor: ui.parchmentShade },
-  blocked: { borderColor: colors.danger },
-  bannerText: { color: ui.ink },
-  distanceRow: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
-  card: { gap: 8 },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  cardTitle: { fontSize: 18, color: ui.ink },
-  build: { flex: 1 },
-  reason: { color: ui.inkMuted },
+  muted: { color: ui.inkMuted, fontSize: 16 },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  kindTile: {
+    minWidth: '47%',
+    flexGrow: 1,
+    minHeight: 56,
+    padding: 8,
+    gap: 4,
+    borderWidth: 2,
+    borderColor: ui.outline,
+    backgroundColor: ui.parchmentShade,
+  },
+  kindTileOn: { borderWidth: 3, borderColor: ui.brass, backgroundColor: ui.parchment },
+  kindName: { fontSize: 17, color: ui.ink },
+  kindRate: { fontSize: 14, color: ui.inkMuted },
 });

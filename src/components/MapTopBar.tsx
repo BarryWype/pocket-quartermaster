@@ -12,7 +12,9 @@ import { useTodaySteps } from '@/hooks/useTodaySteps';
 import { formatNumber, t } from '@/i18n';
 import { navigate } from '@/services/navigation';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
+import { useSupplyOn } from '@/hooks/useSupply';
 import { useGameStore } from '@/store/gameStore';
+import { useMapPanels } from '@/store/mapPanelsStore';
 import { fonts, ui } from '@/theme';
 
 /** The bar's own height below the safe-area inset; overlays sit below this much again. */
@@ -25,6 +27,9 @@ export function MapTopBar() {
   const insets = useSafeAreaInsets();
   const save = useGameStore((state) => state.save);
   const debugOn = useDebugStore(debugEnabled);
+  const supplyOn = useSupplyOn();
+  const hasHall = useGameStore((state) => state.save.supply.hall !== null);
+  const networkOnly = useMapPanels((state) => state.networkOnly);
   const steps = useTodaySteps();
   const day = dayKey(new Date());
   const chest =
@@ -60,6 +65,20 @@ export function MapTopBar() {
             </View>
           )}
         </View>
+        {supplyOn && hasHall && (
+          <PressScale
+            accessibilityRole="switch"
+            accessibilityState={{ checked: networkOnly }}
+            accessibilityLabel={t('networkBadge.toggleLabel')}
+            onPress={() => useMapPanels.getState().toggleNetworkOnly()}
+            style={[styles.button, networkOnly && styles.buttonOn]}
+          >
+            <View style={styles.buttonRim} pointerEvents="none" />
+            <GameIcon emoji="🕸️" size={22} />
+            {/* On is more than a colour: a check in the corner. */}
+            {networkOnly && <Text style={styles.check}>✓</Text>}
+          </PressScale>
+        )}
         {debugOn && (
           <PressScale accessibilityLabel={t('map.debug')} onPress={() => navigate('/debug')} style={styles.button}>
             <View style={styles.buttonRim} pointerEvents="none" />
@@ -107,5 +126,7 @@ const styles = StyleSheet.create({
     borderColor: ui.outline,
     backgroundColor: ui.woodDark,
   },
+  buttonOn: { backgroundColor: ui.brass },
+  check: { position: 'absolute', right: 2, bottom: -2, fontFamily: fonts.serifBold, fontSize: 14, color: ui.outline },
   buttonRim: { position: 'absolute', top: 2, left: 2, right: 2, bottom: 2, borderWidth: 2, borderColor: ui.brass },
 });

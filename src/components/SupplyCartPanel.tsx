@@ -2,39 +2,35 @@ import { Fragment, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { IconLabel } from '@/components/IconLabel';
-import { Overlay } from '@/components/Overlay';
-import { Sheet } from '@/components/Sheet';
 import { Text } from '@/components/Text';
-import { EmberButton, WoodButton } from '@/components/ui';
+import { WoodButton } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
 import { heroClasses } from '@/content/heroes';
 import { materialById } from '@/content/lookup';
 import { supplyRules } from '@/content/supplyLines';
+import { effectivePath, effectiveRoute } from '@/game/supply/autoRoute';
 import { buildingNameKey } from '@/game/supply/buildings';
-import { cartCapacity, cartProblem, cartSpeedMps, crewProblem, routePreview, settleCart } from '@/game/supply/cart';
+import { cartCapacity, cartProblem, cartSpeedMps, crewProblem, loopPreview, settleCart } from '@/game/supply/cart';
 import { orderPlaceName } from '@/game/supply/orders';
-import type { CartLogLine, CartPlaceLine } from '@/game/supply/types';
+import type { CartLogLine, CartPlaceLine, RoutePoint } from '@/game/supply/types';
 import { tavernNameOf } from '@/game/taverns/taverns';
 import { currentHp, isExhausted, maxHp } from '@/game/team/health';
 import { isBusy } from '@/game/team/team';
 import type { SaveData } from '@/game/save';
-import { formatDistance, formatDuration, formatPercent, t, tr } from '@/i18n';
+import { formatDistance, formatDuration, formatPercent, t } from '@/i18n';
 import { ambushText } from '@/hooks/useCartTick';
 import { useNow } from '@/hooks/useNow';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { ui } from '@/theme';
 
+import { MapSheet, type MapSheetAction, type MapSheetSecondary, type MapSheetView } from './MapSheet';
+import { GoodsRow, PortraitSlot } from './network/networkBits';
 import { HeroChoiceList } from './PostHeroList';
+import { stopEmoji, stopName } from './routeMode/stops';
 import { TradeLabel } from './TradeLabel';
 
 type Slot = 'driver' | 0 | 1;
-
-const amountsText = (amounts: Record<string, number>) =>
-  Object.entries(amounts)
-    .filter(([, amount]) => amount > 0)
-    .map(([id, amount]) => `${amount} ${tr(materialById[id]?.name ?? id)}`)
-    .join(', ');
 
 /** A place the cart unloaded at, by name: a tavern by its name, the rest by their kind. */
 const placeName = (save: SaveData, placeId: string): string => {
@@ -46,9 +42,7 @@ const placeName = (save: SaveData, placeId: string): string => {
 function goodsElements(goods: Record<string, number>) {
   return Object.entries(goods)
     .filter(([, amount]) => amount > 0)
-    .map(([id, amount]) => (
-      <IconLabel key={id} emoji={materialById[id]?.emoji} icon={materialById[id]?.icon} label={String(amount)} size={14} />
-    ));
+    .map(([id, amount]) => <IconLabel key={id} emoji={materialById[id]?.emoji} icon={materialById[id]?.icon} label={String(amount)} size={14} />);
 }
 
 /** One loop of the log as a plain sentence: what went where, what came home, and the ambush if any. */
@@ -93,7 +87,13 @@ function hurtNames(save: SaveData, crew: string[], now: number): string {
     .join(', ');
 }
 
-/** The cart's sheet: where it is, its route, its crew, starting and stopping it, and its last loops. */
+/**
+ * The cart on the map sheet template. The peek says where it is on the loop
+ * and what it carries; the main action is the next useful step: plan the
+ * delivery route, choose a driver, start, or edit the route while it runs.
+ * Tabs: Route (the stops in order with what is loaded and delivered), Crew
+ * (driver and escorts as portrait slots), Last loops.
+ */
 export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
   const stored = useGameStore((s) => s.save);
   const setCrew = useGameStore((s) => s.setCrew);
@@ -108,11 +108,14 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
   const loop = cart.loop;
   const crew = { driver: cart.crew.driver, escorts: cart.crew.escorts };
   const crewIds = [crew.driver, ...crew.escorts].filter((id): id is string => id !== null);
-  const preview = routePreview(save, cart.route, now);
-  const stops = cart.route.filter((point) => 'building' in point && save.supply.buildings.some((building) => building.id === point.building)).length;
+  const route = effectiveRoute(save);
+  const stopPoints = route.filter((point): point is Exclude<RoutePoint, { via: unknown }> => 'building' in point || 'place' in point);
+  const preview = loopPreview(save, route, effectivePath(save), now);
+  const loopMinutes = Math.round(preview.minutes);
   const problem = cartProblem(save, now);
   const parked = loop === null;
   const stopping = loop !== null && cart.nextRoute !== null && cart.nextRoute.length === 0;
+  const hasRoute = stopPoints.length > 0;
 
   const slotHero = (slot: Slot) => {
     const id = slot === 'driver' ? crew.driver : (crew.escorts[slot] ?? null);
@@ -133,19 +136,20 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
       .filter((hero) => !isBusy(save, hero.id) && !crewIds.includes(hero.id))
       .sort((a, b) => (slot === 'driver' ? Number(b.trade.id === 'teamster') - Number(a.trade.id === 'teamster') : 0));
 
-  // The stop the loop is heading to next, by name; the hall once it is only coming home.
-  const nextStopName = (() => {
-    if (!loop) return null;
-    const next = loop.events.find(
-      (event): event is Extract<typeof event, { kind: 'building' | 'place' }> => event.at > now && (event.kind === 'building' || event.kind === 'place'),
-    );
-    if (!next) return null;
-    if (next.kind === 'building') {
-      const building = save.supply.buildings.find((b) => b.id === next.buildingId);
-      return building ? t(buildingNameKey[building.kind]) : null;
-    }
-    return placeName(save, next.placeId);
-  })();
+  // The stop the loop is heading to next; the hall once it is only coming home.
+  const nextEvent = loop?.events.find(
+    (event): event is Extract<typeof event, { kind: 'building' | 'place' }> => event.at > now && (event.kind === 'building' || event.kind === 'place'),
+  );
+  const nextStopName = !nextEvent
+    ? null
+    : nextEvent.kind === 'building'
+      ? (() => {
+          const building = save.supply.buildings.find((b) => b.id === nextEvent.buildingId);
+          return building ? t(buildingNameKey[building.kind]) : null;
+        })()
+      : placeName(save, nextEvent.placeId);
+  // The next place the cargo is going to, for "Carrying ... to the Crooked Mug".
+  const nextPlace = loop?.events.find((event): event is Extract<typeof event, { kind: 'place' }> => event.at > now && event.kind === 'place');
   const status = loop
     ? nextStopName
       ? t('supply.cart.onItsWay', { stop: nextStopName, time: formatDuration(Math.max(0, loop.endsAt - now), false) })
@@ -153,115 +157,177 @@ export function SupplyCartPanel({ onClose }: { onClose: () => void }) {
     : cart.waitingForCrew
       ? t('supply.cart.waiting', { names: hurtNames(save, crewIds, now) })
       : t('supply.cart.parked');
-  const problemText: Record<Exclude<typeof problem, null | 'running'>, string> = {
-    noHall: t('supply.cart.noHall'),
-    noRoute: t('supply.cart.noRouteYet'),
-    crewBusy: t('supply.cart.crewBusy'),
-    crewHurt: t('supply.cart.crewHurt'),
+  const risky = preview.riskyCells > 0 ? t('supply.routeMode.risky', { count: preview.riskyCells }) : t('supply.routeMode.noRisk');
+  const hasCargo = Object.values(cart.cargo).some((amount) => amount > 0);
+
+  const openRoute = () => useMapPanels.getState().openRouteMode(cart.nextRoute ?? cart.route);
+  const pick = (view: MapSheetView, slot: Slot) => {
+    setPicking(slot);
+    view.open('crew');
   };
-  const slots: Slot[] = ['driver', ...Array.from({ length: supplyRules.cart.maxEscorts }, (_, i) => i as 0 | 1)];
 
-  return (
-    <Overlay onClose={onClose} position="bottom">
-      <Sheet variant="wood" emoji="🐴" title={t('supply.cart.title')} footer={<WoodButton title={t('common.close')} onPress={onClose} />}>
-        <View style={styles.body}>
-          <Text style={styles.line}>{status}</Text>
-          {stopping && <Text style={styles.muted}>{t('supply.cart.stopping')}</Text>}
-          {loop && amountsText(cart.cargo) !== '' && (
-            <View style={styles.materials}>
-              <Text style={styles.muted}>{t('supply.cart.aboard')}</Text>
-              {Object.entries(cart.cargo)
-                .filter(([, amount]) => amount > 0)
-                .map(([id, amount]) => (
-                  <IconLabel key={id} emoji={materialById[id]?.emoji} icon={materialById[id]?.icon} label={String(amount)} size={16} />
-                ))}
-            </View>
+  const action = (view: MapSheetView): MapSheetAction => {
+    const act = (label: string, onPress: () => void): MapSheetAction => ({ state: { kind: 'act' }, verb: '', label, onPress });
+    if (problem === 'noHall') {
+      return { state: { kind: 'blocked', reason: 'noHall' }, verb: '', label: '', blockedLabel: t('networkSheet.cart.blocked.noHall'), onPress: () => {} };
+    }
+    if (!hasRoute) return act(t('networkSheet.planRoute'), openRoute);
+    if (!parked) return act(t('networkSheet.editRoute'), openRoute);
+    if (crew.driver === null && !(view.full && view.tab === 'crew')) return act(t('networkSheet.cart.chooseDriver'), () => pick(view, 'driver'));
+    if (problem === 'crewBusy' || problem === 'crewHurt') {
+      return { state: { kind: 'blocked', reason: problem }, verb: '', label: '', blockedLabel: t(`networkSheet.cart.blocked.${problem}`), onPress: () => {} };
+    }
+    return act(t(cart.waitingForCrew ? 'supply.cart.startAgain' : 'networkSheet.cart.start'), startCart);
+  };
+
+  const secondary = (view: MapSheetView): MapSheetSecondary[] => {
+    if (!parked) return stopping ? [] : [{ key: 'stop', title: t('supply.cart.stop'), onPress: stopCart }];
+    if (!hasRoute) return [];
+    const out: MapSheetSecondary[] = [];
+    if (crew.driver === null && !(view.full && view.tab === 'crew') && problem === null) out.push({ key: 'start', title: t('networkSheet.cart.start'), onPress: startCart });
+    out.push({ key: 'route', title: t('networkSheet.editRoute'), onPress: openRoute });
+    return out;
+  };
+
+  const summary = (
+    <View style={styles.summary}>
+      {!hasRoute ? (
+        <Text style={styles.summaryLine}>{t('networkSheet.cart.noRoute')}</Text>
+      ) : loop ? (
+        <View style={styles.goodsLine}>
+          {hasCargo ? (
+            <>
+              <Text style={styles.summaryLine}>
+                {nextPlace ? t('networkSheet.cart.carryingTo', { place: placeName(save, nextPlace.placeId) }) : t('networkSheet.cart.carrying')}
+              </Text>
+              <GoodsRow goods={cart.cargo} size={18} />
+            </>
+          ) : (
+            <Text style={styles.summaryLine}>{t('networkSheet.cart.empty')}</Text>
           )}
+          <Text style={styles.summaryLine}>{`· ${t('networkSheet.cart.loop', { minutes: loopMinutes })} · ${risky}`}</Text>
+        </View>
+      ) : (
+        <Text style={styles.summaryLine}>{`${t('networkSheet.cart.ready', { count: stopPoints.length, minutes: loopMinutes })} · ${risky}`}</Text>
+      )}
+      {stopping && <Text style={styles.muted}>{t('supply.cart.stopping')}</Text>}
+    </View>
+  );
 
-          <View style={styles.section}>
-            <Text style={styles.heading}>{t('supply.cart.route')}</Text>
-            {stops === 0 ? (
-              <Text style={styles.muted}>{t('supply.cart.noRoute')}</Text>
-            ) : (
-              <>
-                <Text style={styles.line}>
-                  {t('supply.cart.routeLine', { count: stops, distance: formatDistance(preview.meters), minutes: Math.round(preview.loopMinutes) })}
-                </Text>
-                <Text style={styles.line}>{t('supply.cart.ambushChance', { percent: formatPercent(preview.ambushChance) })}</Text>
-              </>
-            )}
-            <WoodButton title={t('supply.cart.setRoute')} onPress={() => useMapPanels.getState().openRouteMode(cart.nextRoute ?? cart.route)} />
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.heading}>{t('supply.cart.crew')}</Text>
-            <Text style={styles.muted}>
-              {t('supply.cart.pace', { speed: ((cartSpeedMps(save) * 3600) / 1000).toFixed(1), capacity: cartCapacity(save) })}
-            </Text>
-            {!parked && <Text style={styles.muted}>{t('supply.cart.crewLocked')}</Text>}
-            {slots.map((slot) => {
-              const hero = slotHero(slot);
-              return (
-                <View key={String(slot)} style={styles.slot}>
-                  <View style={styles.slotRow}>
-                    <View style={styles.who}>
-                      <Text style={styles.muted}>{t(slot === 'driver' ? 'supply.cart.driver' : 'supply.cart.escort')}</Text>
-                      <Text style={styles.line}>{hero ? `${hero.name} · ${tr(heroClasses[hero.classId].name)}` : t('supply.cart.empty')}</Text>
-                    </View>
-                    {hero && <TradeLabel trade={hero.trade.id} hours={hero.trade.hours} />}
-                    {parked && (
-                      <WoodButton compact title={t('supply.cart.change')} onPress={() => setPicking(picking === slot ? null : slot)} />
-                    )}
-                  </View>
-                  {picking === slot && (
-                    <View style={styles.picker}>
-                      <HeroChoiceList heroes={candidates(slot)} action={t('supply.cart.change')} onPick={(heroId) => assign(slot, heroId)} />
-                      {hero && <WoodButton compact title={t('supply.cart.leaveEmpty')} onPress={() => assign(slot, null)} />}
-                    </View>
+  const routeTab = () => (
+    <View style={styles.tab}>
+      {!hasRoute ? (
+        <Text style={styles.muted}>{t('supply.cart.noRoute')}</Text>
+      ) : (
+        <>
+          {stopPoints.map((point, i) => {
+            const id = 'building' in point ? point.building : point.place;
+            const planned = preview.stops.find((stop) => stop.point.buildingId === id || stop.point.placeId === id);
+            const order = 'place' in point ? save.supply.orders[point.place] : undefined;
+            return (
+              <View key={`${id}-${i}`} style={styles.stopRow} accessible accessibilityLabel={t('networkSheet.cart.stopLabel', { n: i + 1, name: stopName(save, point) })}>
+                <Text style={styles.stopNumber}>{String(i + 1)}</Text>
+                <IconLabel emoji={stopEmoji(save, point)} label={stopName(save, point)} size={18} labelStyle={styles.line} />
+                <View style={styles.stopGoods}>
+                  {planned && <GoodsRow goods={planned.loads} mark="+" size={16} />}
+                  {planned && <GoodsRow goods={planned.unloads} mark="−" size={16} />}
+                  {order && preview.leaving.includes(order.placeId) && (
+                    <Text style={styles.muted}>{t('networkSheet.cart.leavesIn', { time: formatDuration(Math.max(0, order.expiresAt - now), false) })}</Text>
                   )}
                 </View>
-              );
-            })}
+              </View>
+            );
+          })}
+          <Text style={styles.line}>{t('networkSheet.cart.stats', { minutes: loopMinutes, distance: formatDistance(preview.meters) })}</Text>
+          <View style={styles.goodsLine}>
+            <Text style={styles.muted}>{t('networkSheet.cart.home')}</Text>
+            {Object.values(preview.home).some((n) => n > 0) ? <GoodsRow goods={preview.home} size={16} /> : <Text style={styles.muted}>{t('networkSheet.cart.nothingHome')}</Text>}
           </View>
+          <Text style={styles.muted}>{`${risky} · ${t('supply.cart.ambushChance', { percent: formatPercent(preview.ambushChance) })}`}</Text>
+        </>
+      )}
+    </View>
+  );
 
-          {parked ? (
-            <View style={styles.section}>
-              <EmberButton
-                title={t(cart.waitingForCrew ? 'supply.cart.startAgain' : 'supply.cart.start')}
-                disabled={problem !== null}
-                onPress={startCart}
-              />
-              {problem !== null && problem !== 'running' && <Text style={styles.muted}>{problemText[problem]}</Text>}
-            </View>
-          ) : (
-            !stopping && <WoodButton title={t('supply.cart.stop')} onPress={stopCart} />
-          )}
-
-          <View style={styles.section}>
-            <Text style={styles.heading}>{t('supply.cart.log')}</Text>
-            {cart.log.length === 0 ? (
-              <Text style={styles.muted}>{t('supply.cart.noLog')}</Text>
-            ) : (
-              [...cart.log].reverse().map((line) => <LoopSentence key={line.n} save={save} line={line} />)
-            )}
-          </View>
+  const slots: Slot[] = ['driver', ...Array.from({ length: supplyRules.cart.maxEscorts }, (_, i) => i as 0 | 1)];
+  const crewTab = () => (
+    <View style={styles.tab}>
+      <Text style={styles.muted}>{t('supply.cart.pace', { speed: ((cartSpeedMps(save) * 3600) / 1000).toFixed(1), capacity: cartCapacity(save) })}</Text>
+      {!parked && <Text style={styles.muted}>{t('supply.cart.crewLocked')}</Text>}
+      <View style={styles.slots}>
+        {slots.map((slot) => {
+          const hero = slotHero(slot);
+          const driver = slot === 'driver';
+          return (
+            <PortraitSlot
+              key={String(slot)}
+              emoji={hero ? heroClasses[hero.classId].emoji : undefined}
+              icon={hero ? heroClasses[hero.classId].icon : undefined}
+              caption={hero ? hero.name : t(driver ? 'supply.cart.driver' : 'supply.cart.escort')}
+              accessibilityLabel={
+                hero
+                  ? t(driver ? 'networkSheet.cart.slotDriver' : 'networkSheet.cart.slotEscort', { name: hero.name })
+                  : t(driver ? 'networkSheet.cart.slotEmptyDriver' : 'networkSheet.cart.slotEmptyEscort')
+              }
+              disabled={!parked}
+              onPress={() => setPicking(picking === slot ? null : slot)}
+            />
+          );
+        })}
+      </View>
+      {crew.driver === null && <Text style={styles.muted}>{t('networkSheet.cart.noDriverLine')}</Text>}
+      {picking !== null && parked && (
+        <View style={styles.picker}>
+          <Text style={styles.line}>{t(picking === 'driver' ? 'supply.cart.driver' : 'supply.cart.escort')}</Text>
+          {slotHero(picking) && <TradeLabel trade={slotHero(picking)!.trade.id} hours={slotHero(picking)!.trade.hours} />}
+          <HeroChoiceList heroes={candidates(picking)} action={t('supply.cart.change')} onPick={(heroId) => assign(picking, heroId)} />
+          {slotHero(picking) && <WoodButton compact title={t('supply.cart.leaveEmpty')} onPress={() => assign(picking, null)} />}
         </View>
-      </Sheet>
-    </Overlay>
+      )}
+    </View>
+  );
+
+  const logTab = () => (
+    <View style={styles.tab}>
+      {cart.log.length === 0 ? (
+        <Text style={styles.muted}>{t('supply.cart.noLog')}</Text>
+      ) : (
+        [...cart.log].reverse().map((line) => <LoopSentence key={line.n} save={save} line={line} />)
+      )}
+    </View>
+  );
+
+  return (
+    <MapSheet
+      onClose={onClose}
+      emoji="🐴"
+      ring={null}
+      title={t('supply.cart.title')}
+      status={status}
+      summary={summary}
+      action={action}
+      secondary={secondary}
+      tabs={[
+        { key: 'route', label: t('networkSheet.tabs.route'), render: routeTab },
+        { key: 'crew', label: t('networkSheet.tabs.crew'), render: crewTab },
+        { key: 'log', label: t('networkSheet.tabs.log'), render: logTab },
+      ]}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  body: { gap: 14 },
-  section: { gap: 6 },
-  heading: { fontSize: 18, color: ui.ink },
+  summary: { gap: 6 },
+  summaryLine: { color: ui.ink, fontSize: 18 },
+  goodsLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  tab: { gap: 10 },
   line: { color: ui.ink },
-  muted: { color: ui.inkMuted },
-  materials: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
-  slot: { gap: 6 },
-  slotRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  who: { flex: 1 },
-  picker: { paddingLeft: 8, gap: 6 },
+  muted: { color: ui.inkMuted, fontSize: 16 },
+  stopRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, flexWrap: 'wrap' },
+  stopNumber: { width: 26, height: 26, textAlign: 'center', lineHeight: 26, backgroundColor: ui.brass, color: ui.outline, fontSize: 16 },
+  stopGoods: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginLeft: 'auto' },
+  slots: { flexDirection: 'row', gap: 16 },
+  picker: { gap: 6 },
   sentence: { gap: 2 },
   sentenceParts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
 });
