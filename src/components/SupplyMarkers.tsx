@@ -2,18 +2,17 @@ import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { MapMarker, markerDim, RouteDimContext } from '@/components/MapMarker';
+import { BadgeIcon, badgeLabel } from '@/components/network/NetworkBadge';
 
 import { GameIcon } from '@/components/GameIcon';
 import { SiteMarker } from '@/components/SiteMarker';
 import { TimeRing } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
-import { buildingBadge, type NetworkBadge } from '@/game/supply/badges';
+import { buildingBadge } from '@/game/supply/badges';
 import { buildingEmoji, buildingNameKey, isLastDay, timeLeftShare } from '@/game/supply/buildings';
-import { buildingCap, buildingStockTotal, settleBuilding } from '@/game/supply/production';
 import type { PlaceSpawn } from '@/game/places/generate';
-import { formatDuration, t } from '@/i18n';
+import { t } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
-import { colors, ui } from '@/theme';
 import { tileCenter } from '@/game/generation/tiles';
 import { feel } from '@/services/feel';
 import { useSupplyOn } from '@/hooks/useSupply';
@@ -30,8 +29,6 @@ const tapped = (action: () => void) => () => {
 
 const toLngLat = (position: { latitude: number; longitude: number }): [number, number] => [position.longitude, position.latitude];
 
-const badgeEmoji: Record<NetworkBadge, string> = { raid: '⚔️', last: '⏳', full: '📦', idle: '🛒', nowork: '👤' };
-
 /**
  * A building's one badge, the most urgent (buildingBadge), with its own icon
  * so colour is never the only signal, and the marker's accessibility label:
@@ -45,17 +42,9 @@ function BuildingBadge({ buildingId }: { buildingId: string }) {
   const name = t(buildingNameKey[building.kind]);
   const badge = buildingBadge(save, building, now);
   if (!badge) return <View accessible accessibilityLabel={name} style={styles.badgeSpot} />;
-  const label =
-    badge === 'raid'
-      ? t('networkBadge.raid', { name, time: formatDuration(Math.max(0, (save.supply.raid?.landsAt ?? now) - now), false) })
-      : badge === 'last'
-        ? t('networkBadge.last', { name, time: formatDuration(Math.max(0, building.expiresAt - now), false) })
-        : badge === 'full'
-          ? t('networkBadge.full', { name, n: buildingStockTotal(settleBuilding(save, building, now)), cap: buildingCap(building) })
-          : t(badge === 'idle' ? 'networkBadge.idle' : 'networkBadge.nowork', { name });
   return (
-    <View accessible accessibilityLabel={label} style={[styles.badge, styles[badge]]}>
-      <GameIcon emoji={badgeEmoji[badge]} size={12} />
+    <View accessible accessibilityLabel={badgeLabel(save, building, badge, name, now)} style={styles.badgeAt}>
+      <BadgeIcon badge={badge} />
     </View>
   );
 }
@@ -125,20 +114,5 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
 const styles = StyleSheet.create({
   building: { alignItems: 'center' },
   badgeSpot: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  badge: {
-    position: 'absolute',
-    top: -8,
-    right: -10,
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: ui.outline,
-  },
-  raid: { backgroundColor: colors.danger },
-  last: { backgroundColor: ui.ember },
-  full: { backgroundColor: ui.brass },
-  idle: { backgroundColor: ui.parchment },
-  nowork: { backgroundColor: ui.woodDark },
+  badgeAt: { position: 'absolute', top: -8, right: -10 },
 });

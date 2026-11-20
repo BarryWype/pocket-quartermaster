@@ -38,6 +38,8 @@ export const ui = {
   woodSeam: '#4E301B',
   woodSelected: '#7A4A26',
   brass: '#C9A04E',
+  /** The delivery route's violet: no ground, street, water or marker on the map uses it. */
+  route: '#B26BFF',
   brassDim: '#8A6A34',
   brassLight: '#F6D98E',
   parchment: '#F2E4C2',

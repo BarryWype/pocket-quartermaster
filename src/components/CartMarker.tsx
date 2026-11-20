@@ -8,6 +8,7 @@ import { IconLabel } from '@/components/IconLabel';
 import { clockConfig } from '@/content/clockConfig';
 import { materialById } from '@/content/lookup';
 import { cartPositionAt } from '@/game/supply/cart';
+import { mainCargo } from '@/game/supply/flow';
 import { useMotion } from '@/hooks/useMotion';
 import { useNow } from '@/hooks/useNow';
 import { useSupplyOn } from '@/hooks/useSupply';
@@ -22,9 +23,6 @@ const MARKER_SIZE = 26;
 /** How long an unload's pop stays over the marker. */
 const POP_MS = 1000;
 
-/** The good the cart carries most of, or null when it is empty: the marker shows it as one icon. */
-export const mainCargo = (cargo: Record<string, number>): string | null =>
-  Object.entries(cargo).reduce<[string, number] | null>((best, [good, n]) => (n > 0 && (best === null || n > best[1]) ? [good, n] : best), null)?.[0] ?? null;
 
 /**
  * The cart on the map while a loop runs. It keeps its own clock, so its

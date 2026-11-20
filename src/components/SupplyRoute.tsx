@@ -10,7 +10,7 @@ import { useMapPanels } from "@/store/mapPanelsStore";
 import { ui } from "@/theme";
 
 /** The route's colour: a violet no ground, street, water or marker on the map uses, over a dark casing. */
-export const ROUTE_COLOUR = "#B26BFF";
+export const ROUTE_COLOUR = ui.route;
 const ROUTE_CASING = ui.outline;
 
 /** How far from the drawn line a tap in route mode still lands on it: the press's own hitbox does the rest. */

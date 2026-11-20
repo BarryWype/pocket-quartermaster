@@ -8,6 +8,7 @@
 import { Profiler, type ProfilerOnRenderCallback, type ReactNode } from 'react';
 import { act, create } from 'react-test-renderer';
 
+import { FlowPicture } from '@/components/network/FlowPicture';
 import { SupplyCampPanel } from '@/components/SupplyCampPanel';
 import { SupplyCartPanel } from '@/components/SupplyCartPanel';
 import { SupplyMarkers } from '@/components/SupplyMarkers';
@@ -125,6 +126,27 @@ describe('network sheets and badges', () => {
     const siteMs = sheet(<SupplySitePanel site={site} player={origin} onClose={() => {}} />);
     const cartMs = sheet(<SupplyCartPanel onClose={() => {}} />);
 
+    // The Network tab's picture: its first draw once it has its width, then a clock tick.
+    let flowMs = 0;
+    let flow!: ReturnType<typeof create>;
+    const picture = (now: number) => (
+      <Profiler id="flow" onRender={(_, __, actual) => (flowMs += actual)}>
+        <FlowPicture save={useGameStore.getState().save} now={now} onBuilding={() => {}} onPlace={() => {}} onCart={() => {}} />
+      </Profiler>
+    );
+    act(() => {
+      flow = create(picture(Date.now()));
+    });
+    flowMs = 0;
+    act(() => {
+      flow.root.findAll((node) => typeof node.props?.onLayout === 'function')[0].props.onLayout({ nativeEvent: { layout: { width: 340, height: 300, x: 0, y: 0 } } });
+    });
+    const flowFirst = flowMs;
+    flowMs = 0;
+    act(() => flow.update(picture(Date.now() + 60_000)));
+    const flowTick = flowMs;
+    act(() => flow.unmount());
+
     const line = (name: string, ms: number) => `  ${name}: ${ms.toFixed(1)} (phone ≈ ${(ms * PHONE_FACTOR).toFixed(0)})`;
     console.log(
       [
@@ -136,6 +158,8 @@ describe('network sheets and badges', () => {
         line('building sheet first open', buildingMs),
         line('site sheet first open', siteMs),
         line('cart sheet first open', cartMs),
+        line('Network tab picture, first draw', flowFirst),
+        line('Network tab picture, minute tick', flowTick),
       ].join('\n'),
     );
   });

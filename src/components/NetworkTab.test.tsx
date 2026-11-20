@@ -80,7 +80,7 @@ const NEXT_BUTTON_LABELS = [
   'Show the site',
   'Build',
   'Show the place',
-  'Plan the route',
+  'Plan the delivery route',
   'Crew the cart',
   'Post a hero',
   'Claim the reward',
@@ -126,8 +126,8 @@ describe('the Network tab', () => {
       renderer = create(<NetworkTab />);
     });
     const tab = text(renderer!);
-    expect(tab).toContain('Set the cart’s route');
-    expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Plan the route' }).length).toBeGreaterThan(0);
+    expect(tab).toContain('Plan the delivery route');
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Plan the delivery route' }).length).toBeGreaterThan(0);
     // Only the current step carries a button.
     expect(renderer!.root.findAllByProps({ accessibilityLabel: 'Place hall here' }).length).toBe(0);
   });
@@ -157,17 +157,54 @@ describe('the Network tab', () => {
     expect(buttons.length).toBe(0);
   });
 
-  it('collapses the flow picture past three buildings into a count', () => {
+  /** The picture draws once it knows its width: the test renderer runs no layout, so it is given one. */
+  const layOut = () =>
+    act(() => {
+      renderer!.root
+        .findAll((node) => typeof node.props?.onLayout === 'function' && node.props.style?.[0]?.position === 'relative')[0]
+        .props.onLayout({ nativeEvent: { layout: { width: 340, height: 200, x: 0, y: 0 } } });
+    });
+  const labelled = (start: string) =>
+    renderer!.root.findAll((node) => typeof node.props?.accessibilityLabel === 'string' && node.props.accessibilityLabel.startsWith(start) && typeof node.props.onPress === 'function')[0];
+
+  it('draws the network: what each building holds and where it goes, what each place wants and from whom', () => {
+    act(() => {
+      useGameStore.setState({ save: runningSave([buildingIn('b1', 2), { ...buildingIn('b2', 1), kind: 'quarry' }]) });
+    });
+    act(() => {
+      renderer = create(<NetworkTab />);
+    });
+    layOut();
+    // Every number with its unit and meaning; each item says in words what its lines show.
+    expect(labelled('Farm, 0 of').props.accessibilityLabel).toMatch(/^Farm, 0 of \d+ stored, goes to /);
+    expect(labelled('Quarry').props.accessibilityLabel).toContain('nothing nearby wants what it makes yet');
+    const tavern = renderer!.root.findAll(
+      (node) => typeof node.props?.accessibilityLabel === 'string' && node.props.accessibilityLabel.includes('wants 10 grain') && typeof node.props.onPress === 'function',
+    )[0];
+    expect(tavern.props.accessibilityLabel).toContain('gets it from Farm');
+    expect(text(renderer!)).toContain('carried by the delivery route');
+
+    // A tap on a building opens its sheet on the map; a tap on the cart opens route mode with the route.
+    act(() => labelled('Farm, 0 of').props.onPress());
+    expect(useMapPanels.getState().supplyBuilding).toBe('b1');
+    act(() => labelled('The cart,').props.onPress());
+    expect(useMapPanels.getState().routeMode?.draft).toEqual([{ building: 'b1' }, { place: TAVERN_ID, position: origin }]);
+    expect(navigate).toHaveBeenCalledWith('/');
+    act(() => useMapPanels.getState().closeRouteMode());
+  });
+
+  it('leaves what doesn’t fit the picture to the cards below, and says how many', () => {
     act(() => {
       useGameStore.setState({
-        save: runningSave(['b1', 'b2', 'b3', 'b4'].map((id, i) => buildingIn(id, ((i % 3) + 1) as 1 | 2 | 3))),
+        save: runningSave(['b1', 'b2', 'b3', 'b4', 'b5', 'b6'].map((id, i) => buildingIn(id, ((i % 3) + 1) as 1 | 2 | 3))),
       });
     });
     act(() => {
       renderer = create(<NetworkTab />);
     });
+    layOut();
     const tab = text(renderer!);
-    expect(tab).toContain('+1');
+    expect(tab).toContain('+1 more below');
     expect(tab).not.toContain('A building');
   });
 
@@ -198,7 +235,7 @@ describe('the Network tab', () => {
     expect(navigate).toHaveBeenCalledWith('/');
   });
 
-  it('warns when a stop on the cart’s route has left, and the button opens the planner on the map', () => {
+  it('warns when a stop on the delivery route has left, and the button opens the planner on the map', () => {
     const save = runningSave([buildingIn('b1', 1)]);
     act(() => {
       useGameStore.setState({
@@ -208,9 +245,9 @@ describe('the Network tab', () => {
     act(() => {
       renderer = create(<NetworkTab />);
     });
-    expect(text(renderer!)).toContain('A stop on the cart’s route has left. Set the route again.');
+    expect(text(renderer!)).toContain('A stop on the delivery route has left. Edit the route again.');
     act(() => {
-      renderer!.root.findAll((node) => node.props.title === 'Set the route' && typeof node.props.onPress === 'function')[0].props.onPress();
+      renderer!.root.findAll((node) => node.props.title === 'Edit the delivery route' && typeof node.props.onPress === 'function')[0].props.onPress();
     });
     expect(useMapPanels.getState().routeMode?.draft).toEqual([{ building: 'gone' }]);
     expect(navigate).toHaveBeenCalledWith('/');

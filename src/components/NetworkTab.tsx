@@ -9,7 +9,6 @@ import { IconLabel } from '@/components/IconLabel';
 import { LootGrid } from '@/components/LootGrid';
 import { EmberButton, ParchmentCard, PixelSwitch, WoodButton } from '@/components/ui';
 import { clockConfig } from '@/content/clockConfig';
-import { materials } from '@/content/materials';
 import { placeInfo } from '@/content/places';
 import { supplyRules } from '@/content/supplyLines';
 import { cellAt } from '@/game/discovery/cells';
@@ -40,6 +39,8 @@ import { useMapPanels } from '@/store/mapPanelsStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
 import { ui } from '@/theme';
+
+import { FlowPicture } from './network/FlowPicture';
 
 /** The Expeditions screen's Network tab: what to do next, how the goods flow, then each piece as a card. */
 export function NetworkTab() {
@@ -76,7 +77,7 @@ export function NetworkTab() {
       ) : (
         <NextStepCard save={save} player={player} now={now} />
       )}
-      <FlowPicture save={save} now={now} />
+      <Flow save={save} player={player} now={now} />
       {leaving.length > 0 && (
         <>
           <IconLabel emoji="⏳" label={t('supply.network.leavingSoonest')} labelStyle={styles.sectionTitle} />
@@ -445,13 +446,13 @@ function FlowNode({ emoji, text }: { emoji: string; text: string }) {
   );
 }
 
-/** The flow picture: the buildings' stock flows into the cart, its load out to the places' orders. */
-function FlowPicture({ save, now }: { save: SaveData; now: number }) {
-  const buildings = save.supply.buildings;
-  const orders = Object.values(save.supply.orders)
-    .filter((order) => order.expiresAt > now)
-    .sort((a, b) => a.expiresAt - b.expiresAt);
-  if (buildings.length === 0 && orders.length === 0) {
+/**
+ * The flow picture: the sketch of how the network works while it is empty,
+ * else the network as a picture (network/FlowPicture). A tap on a building or
+ * a place opens its sheet on the map; a tap on the cart opens route mode.
+ */
+function Flow({ save, player, now }: { save: SaveData; player: LatLng | null; now: number }) {
+  if (save.supply.buildings.length === 0 && !Object.values(save.supply.orders).some((order) => order.expiresAt > now)) {
     return (
       <View style={styles.sketchCard}>
         <View style={styles.flow}>
@@ -471,78 +472,17 @@ function FlowPicture({ save, now }: { save: SaveData; now: number }) {
       </View>
     );
   }
-  const cart = save.supply.cart;
-  const stop = cart.loop ? cart.loop.events.find((event) => event.kind === 'place' && event.at > cart.settledAt) : undefined;
-  const stopOrder = stop && 'placeId' in stop ? save.supply.orders[stop.placeId] : undefined;
-  const cartText = stopOrder
-    ? t('supply.network.flow.to', {
-        name: orderPlaceName(stopOrder, tavernNameOf),
-        time: formatDuration(Math.max(0, stop!.at - now), false),
-      })
-    : t('supply.network.flow.atHall');
+  const route = save.supply.cart.nextRoute ?? save.supply.cart.route;
   return (
-    <ParchmentCard contentStyle={styles.card}>
-      <View style={styles.flow}>
-        <View style={styles.flowCol}>
-          {buildings.slice(0, 3).map((building) => {
-            const settled = settleBuilding(save, building, now);
-            const stock = buildingStockTotal(settled);
-            const cap = buildingCap(building);
-            return (
-              <View key={building.id} style={styles.flowNode}>
-                <IconLabel emoji={buildingEmoji[building.kind]} label={String(stock)} size={16} />
-                <View style={styles.flowMarks}>
-                  <Text style={styles.flowName}>{t(buildingNameKey[building.kind])}</Text>
-                  {isLastDay(building.expiresAt, now) && <GameIcon emoji="⏳" size={12} />}
-                  {cap > 0 && stock >= cap && <Text style={styles.flowFull}>{t('supply.network.flow.full')}</Text>}
-                </View>
-              </View>
-            );
-          })}
-          {buildings.length > 3 && <Text style={styles.flowMore}>{t('supply.network.flow.more', { n: buildings.length - 3 })}</Text>}
-        </View>
-        <Text style={styles.flowArrow}>→</Text>
-        <View style={styles.flowCol}>
-          <View style={styles.flowNode}>
-            <GameIcon emoji="🐴" size={18} />
-            <View style={styles.flowMarks}>
-              {Object.entries(cart.cargo)
-                .filter(([, amount]) => amount > 0)
-                .map(([good, amount]) => (
-                  <IconLabel key={good} emoji={materialEmoji(good)} label={String(amount)} size={14} />
-                ))}
-              <Text style={styles.flowName}>{cartText}</Text>
-            </View>
-          </View>
-        </View>
-        <Text style={styles.flowArrow}>→</Text>
-        <View style={styles.flowCol}>
-          {orders.slice(0, 3).map((order) => {
-            const progress = orderProgress(order);
-            return (
-              <View key={order.placeId} style={styles.flowNode}>
-                <GameIcon emoji={placeInfo[order.kind].emoji} size={16} />
-                <View style={styles.flowMarks}>
-                  <Text style={styles.flowName}>{orderPlaceName(order, tavernNameOf)}</Text>
-                  {progress >= 1 ? (
-                    <Text style={styles.flowName}>✓</Text>
-                  ) : (
-                    <Text style={styles.flowName}>{formatPercent(progress)}</Text>
-                  )}
-                  {isLastDay(order.expiresAt, now) && <GameIcon emoji="⏳" size={12} />}
-                </View>
-              </View>
-            );
-          })}
-          {orders.length > 3 && <Text style={styles.flowMore}>{t('supply.network.flow.more', { n: orders.length - 3 })}</Text>}
-        </View>
-      </View>
-    </ParchmentCard>
+    <FlowPicture
+      save={save}
+      now={now}
+      onBuilding={(id) => openOnMap(() => useMapPanels.getState().openSupplyBuilding(id))}
+      onPlace={(order) => openOnMap(() => openOrderPlace(order, save, aroundOf(save, player), now))}
+      onCart={() => openOnMap(() => useMapPanels.getState().openRouteMode(route))}
+    />
   );
 }
-
-/** A material's emoji, for the cart's load in the flow picture. */
-const materialEmoji = (id: string) => materials.find((material) => material.id === id)?.emoji ?? '·';
 
 /** The cart's card: where it is, its route in one line, its crew, and the way into its sheet. */
 function CartCard({ now }: { now: number }) {
@@ -595,7 +535,7 @@ function BuildingCard({ building, now }: { building: Building; now: number }) {
             </Text>
             <FillBar value={cap > 0 ? stock / cap : 0} height={10} />
           </View>
-          <Text style={styles.miniCount}>{`${stock} / ${cap}`}</Text>
+          <Text style={styles.miniCount}>{t('networkSheet.building.stored', { n: stock, cap })}</Text>
           <View style={styles.miniLeft}>
             {last && <GameIcon emoji="⏳" size={14} />}
             <Text style={[styles.miniTime, last && styles.lastDayText]}>
@@ -634,7 +574,7 @@ function OrderCard({ order, now }: { order: Order; now: number }) {
               ))}
             </View>
           </View>
-          <Text style={styles.miniCount}>{formatPercent(progress)}</Text>
+          <Text style={styles.miniCount}>{t('networkFlow.delivered', { pct: formatPercent(progress) })}</Text>
           <LootGrid tiles={lootTiles(order.headline)} size={36} interactive={false} />
           <View style={styles.miniLeft}>
             {last && <GameIcon emoji="⏳" size={14} />}
@@ -676,10 +616,7 @@ const styles = StyleSheet.create({
   flow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   flowCol: { flex: 1, gap: 6 },
   flowNode: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  flowMarks: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
   flowName: { fontSize: 13, color: ui.ink },
-  flowFull: { fontSize: 11, color: ui.emberDark, fontWeight: 'bold', letterSpacing: 1 },
-  flowMore: { fontSize: 13, color: ui.inkMuted },
   flowArrow: { fontSize: 18, color: ui.brassLight },
   flowSketch: { fontSize: 13, color: ui.inkMuted, textAlign: 'center' },
   sketchCard: { opacity: 0.6, padding: 10, gap: 8, borderWidth: 3, borderColor: ui.outline, backgroundColor: ui.parchment },

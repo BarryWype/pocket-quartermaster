@@ -131,3 +131,20 @@ Replaces `RoutePlannerSheet` (removed, with its three-step sheet and the "Adjust
 - **The cart marker** shows the good it carries most of as one small icon beside the horse, and says it ("The cart, carrying grain").
 - **The Network toggle** (🕸️ in the top bar, once the supply lines are on and the hall is placed; a check in its corner when on, `accessibilityRole="switch"`): everything that isn't the network dims to 30 % and takes no taps; the hall, the buildings, the sites, the discovered network places, the player and the cart stay lit, over a lighter wash (30 %). `mapPanelsStore.networkOnly`; `RouteDimContext` now carries 'none' | 'route' | 'network' and `MapMarker` takes `network`. Not saved: it is off when the app starts.
 - **Speed** (`src/perf/networkSheets.test.tsx`, eight buildings each with a badge; this machine, phone ≈ ×4): the markers mount in 11–14 ms; the Network toggle re-renders them in 4–6 ms (≈ 20 ms on a phone); first opens: building 4 ms, site 14–16 ms (it generates the places around the site to say who wants what), cart 5 ms. The first network sheet of a session pays ≈ 45 ms for the shared pieces' first mount.
+
+## Built (prompt 2, step 5): the Network tab as a picture
+
+- **The top is unchanged**: the first-steps checklist until the first chain is done, then the one "Next:" line and its button.
+- **The flow picture** (`network/FlowPicture.tsx`, model in `src/game/supply/flow.ts`): buildings on the left, the cart in the middle, places with a live order on the right, each a box with its icon, its name and its key number with its unit ("12 of 36 stored", "wants 30 grain", "wants 20 of anything", "order filled"; the cart "back in 12 min", "parked · loop 42 min" or "no delivery route", with its main cargo as one icon). Lines:
+  - **solid, in the route's violet**: the delivery route carries it now; a building on the route to the cart, the cart to a place on the route that one of its buildings feeds;
+  - **dashed**: a building makes what a place wants, but the route doesn't join them yet (straight across, under the cart);
+  - **dotted stub**: an item nothing joins.
+  The style, not only the colour, tells them apart, and a small legend under the picture says what each means. The lines are plain views (the app has no SVG library; adding one would need a new development build).
+- **Badges** on the item they concern: a building's one map badge (shared with the markers through `network/NetworkBadge.tsx`), ⏳ on a place in its last day.
+- **Taps**: a building opens its sheet on the map; a place centres the map on it (as the order cards do); the cart opens route mode on the current route. Each box's accessibility label says what its lines show in words: "Farm, 12 of 36 stored, goes to the Crooked Mug", "Quarry, …, could go to the Smithy, not on the delivery route yet", "The Crooked Mug, wants 30 grain, gets it from Farm, last day, leaves in 5 h".
+- **Up to five a side**, last day first, then soonest to leave; the rest are counted ("+2 more below") and left to the cards.
+- **The cards below** are as before, anything in its last day first under "Leaving soonest". A building card now says "12 of 36 stored" (was "12 / 36"), an order card "40% delivered" (was "40%").
+- **Wording**: "delivery route" everywhere it was "the cart's route", "the route" or "Set the route", in English and French ("itinéraire de livraison"). The button beside "A stop on the delivery route has left" is now "Edit the delivery route".
+- **With nothing built and no order**, the greyed sketch stays as it was.
+- **Speed** (`src/perf/networkSheets.test.tsx`, eight buildings; phone ≈ ×4): the picture's first draw 5 ms, a minute tick 5 ms.
+- **Usability check**: `usability-network.md` beside this file.
