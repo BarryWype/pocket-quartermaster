@@ -204,6 +204,8 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const openPlaceAtPanel = useMapPanels((state) => state.openPlace);
   const openPatrolSpawn = useMapPanels((state) => state.patrol);
   const openPlaceId = useMapPanels((state) => state.place?.id ?? null);
+  // Route mode owns the bottom of the map: its bar sits where the map's own buttons are, so they step aside.
+  const routing = useMapPanels((state) => state.routeMode !== null);
   const cameraRef = useRef<CameraRef>(null);
   const mapRef = useRef<MapRef>(null);
   // The zoom and the markers in sight, read only when a marker is tapped: a tap on overlapping markers offers the chooser.
@@ -871,7 +873,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           <Text style={styles.bannerText}>{t('map.mockBanner')}</Text>
         </View>
       )}
-      {(!following || focusPlace) && (
+      {(!following || focusPlace) && !routing && (
         <PressScale
           accessibilityLabel={t('map.recentre')}
           onPress={() => {
@@ -895,11 +897,13 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           />
         </View>
       )}
-      <WalkEffects
-        player={position}
-        buttonStyle={{ bottom: insets.bottom + ISLAND_HEIGHT + 68 }}
-        chipsStyle={{ top: insets.top + TOP_BAR_HEIGHT + 48 }}
-      />
+      {!routing && (
+        <WalkEffects
+          player={position}
+          buttonStyle={{ bottom: insets.bottom + ISLAND_HEIGHT + 68 }}
+          chipsStyle={{ top: insets.top + TOP_BAR_HEIGHT + 48 }}
+        />
+      )}
       {save.tutorial.step === 'done' && freshGathersLeft(save, now) > 0 && (freshLegsOpen ? (
         <View style={[styles.banner, styles.freshLegs, { top: insets.top + TOP_BAR_HEIGHT + 48 }]}>
           <Text
@@ -923,8 +927,8 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
       ))}
       <MapPanels player={position} patrols={visiblePatrols} />
       <RouteToast style={{ top: insets.top + TOP_BAR_HEIGHT + 8 }} />
-      {fallbackButton}
-      {showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
+      {!routing && fallbackButton}
+      {!routing && showPill && <AutoGatherPill style={[styles.autoGather, { bottom: insets.bottom + ISLAND_HEIGHT + 12 }]} />}
       {message && <ToastBanner message={message} style={{ bottom: insets.bottom + ISLAND_HEIGHT + (showPill || fallback ? 52 : 12) }} />}
       <WalkCard />
     </View>
