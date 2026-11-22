@@ -11,6 +11,12 @@ export const walkableRules = {
    * primary roads are left out: the data doesn't say whether they have a footpath.
    */
   wayClasses: ['path', 'track', 'minor', 'service', 'tertiary', 'secondary', 'pier'],
+  /**
+   * Line classes only the supply cart drives along, on top of the walkable ones:
+   * the big roads people may not walk beside. The cart takes any street, in
+   * either direction (the data's one-way rules are never read).
+   */
+  cartOnlyWayClasses: ['primary', 'trunk'],
   /** Excluded even within those classes: indoor and railway platforms, private service roads. */
   excludedSubclasses: ['corridor', 'platform'],
   excludedServices: ['driveway', 'parking_aisle'],

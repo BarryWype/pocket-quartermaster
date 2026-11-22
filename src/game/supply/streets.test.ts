@@ -147,3 +147,27 @@ describe('performance', () => {
     expect(Date.now() - began).toBeLessThan(200);
   });
 });
+
+describe('any street, either way', () => {
+  it('drives a cart-only road when it is the short way, and the same length both ways', () => {
+    const origin = { latitude: -41.2865, longitude: 174.7762 };
+    const east = offsetPosition(origin, 0, 400);
+    const bbox = (points: LatLng[]) => ({
+      minLat: Math.min(...points.map((p) => p.latitude)),
+      maxLat: Math.max(...points.map((p) => p.latitude)),
+      minLon: Math.min(...points.map((p) => p.longitude)),
+      maxLon: Math.max(...points.map((p) => p.longitude)),
+    });
+    // A walkable detour north and a straight primary road between the two ends.
+    const detour = [origin, offsetPosition(origin, 300, 0), offsetPosition(origin, 300, 400), east];
+    const road = [origin, east];
+    const tile: WalkableTile = { ways: [{ points: detour, bbox: bbox(detour) }], roads: [{ points: road, bbox: bbox(road) }], areas: [], water: [], green: [] };
+    const graph = buildStreetGraph([tile]);
+    const there = streetPath(graph, origin, east);
+    const back = streetPath(graph, east, origin);
+    const length = (points: LatLng[]) => points.slice(1).reduce((sum, point, i) => sum + distanceMeters(points[i], point), 0);
+    expect(there.straight).toBe(false);
+    expect(length(there.points)).toBeLessThan(450);
+    expect(Math.abs(length(back.points) - length(there.points))).toBeLessThan(1);
+  });
+});

@@ -13,11 +13,16 @@ type Way = { points: LatLng[]; bbox: Bbox };
 type Area = { rings: LatLng[][]; bbox: Bbox };
 
 /** The parts of one map tile that decide where spawns may go. */
-export type WalkableTile = { ways: Way[]; areas: Area[]; water: Area[]; green: Area[] };
+/**
+ * What spawn placement and the supply cart need from a map tile. `roads` are
+ * the streets only the cart uses (spawns never snap to them); absent on tiles
+ * built by hand in tests.
+ */
+export type WalkableTile = { ways: Way[]; roads?: Way[]; areas: Area[]; water: Area[]; green: Area[] };
 
 export type MapTile = { z: number; x: number; y: number };
 
-type FeatureKind = 'way' | 'area' | 'water';
+type FeatureKind = 'way' | 'road' | 'area' | 'water';
 type Properties = Record<string, string | number | boolean>;
 
 const METERS_PER_DEGREE = 111_320;
@@ -56,7 +61,9 @@ export function classifyFeature(
     if (props.level !== undefined && Number(props.level) !== 0) return null;
     if (is(rules.forbiddenAccess, props.access) || is(rules.forbiddenAccess, props.foot)) return null;
     if (polygon) return is(rules.areaTransportClasses, props.class) ? 'area' : null;
-    if (geometryType !== 2 || !is(rules.wayClasses, props.class)) return null;
+    if (geometryType !== 2) return null;
+    if (is(rules.cartOnlyWayClasses, props.class)) return 'road';
+    if (!is(rules.wayClasses, props.class)) return null;
     if (is(rules.excludedSubclasses, props.subclass) || is(rules.excludedServices, props.service)) return null;
     return 'way';
   }
@@ -107,7 +114,7 @@ function polygonsOf(geometry: Geometry): LatLng[][][] {
 /** Decodes a vector tile and keeps only what spawn placement needs. */
 export function decodeWalkableTile(bytes: Uint8Array, tile: MapTile, rules: WalkableRules = defaultRules): WalkableTile {
   const vectorTile = new VectorTile(new Pbf(bytes));
-  const result: WalkableTile = { ways: [], areas: [], water: [], green: [] };
+  const result: WalkableTile & { roads: NonNullable<WalkableTile['roads']> } = { ways: [], roads: [], areas: [], water: [], green: [] };
 
   for (const layerName of LAYERS) {
     const layer = vectorTile.layers[layerName];
@@ -120,6 +127,8 @@ export function decodeWalkableTile(bytes: Uint8Array, tile: MapTile, rules: Walk
       const geometry = feature.toGeoJSON(tile.x, tile.y, tile.z).geometry;
       if (kind === 'way') {
         for (const points of linesOf(geometry)) result.ways.push({ points, bbox: bboxOf(points) });
+      } else if (kind === 'road') {
+        for (const points of linesOf(geometry)) result.roads.push({ points, bbox: bboxOf(points) });
       } else {
         for (const rings of polygonsOf(geometry)) {
           if (kind === 'area') result.areas.push({ rings, bbox: bboxOf(rings[0]) });

@@ -73,7 +73,8 @@ export function buildStreetGraph(tiles: WalkableTile[]): StreetGraph {
 
   let way = 0;
   for (const tile of tiles) {
-    for (const { points } of tile.ways) {
+    // Every street, walkable or cart-only, in both directions: the cart ignores one-way rules.
+    for (const { points } of [...tile.ways, ...(tile.roads ?? [])]) {
       let previous = -1;
       for (const point of points) {
         const current = nodeOf(point, way);

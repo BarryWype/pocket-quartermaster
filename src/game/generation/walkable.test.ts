@@ -61,10 +61,15 @@ describe('classifyFeature', () => {
     expect(classifyFeature('transportation', { class: 'pier' }, line)).toBe('way');
   });
 
-  it('rejects busy roads and railways', () => {
-    for (const roadClass of ['motorway', 'trunk', 'primary', 'rail', 'ferry']) {
+  it('rejects motorways and railways; keeps trunk and primary roads for the cart only', () => {
+    for (const roadClass of ['motorway', 'rail', 'ferry']) {
       expect(classifyFeature('transportation', { class: roadClass }, line)).toBeNull();
     }
+    // Spawns never snap to these (they aren't 'way'), but the cart drives along them.
+    for (const roadClass of ['trunk', 'primary']) {
+      expect(classifyFeature('transportation', { class: roadClass }, line)).toBe('road');
+    }
+    expect(classifyFeature('transportation', { class: 'primary', access: 'private' }, line)).toBeNull();
   });
 
   it('rejects private, indoor and underground ways', () => {
