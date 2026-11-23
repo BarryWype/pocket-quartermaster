@@ -6,7 +6,7 @@ import { emptyLoot } from '../loot/types';
 import { emptySupply } from './state';
 import type { Building } from './types';
 import type { Order } from './orders';
-import { plannerStops, suggestOrder } from './planner';
+import { plannerStops, suggestOrder, whyNotStop } from './planner';
 
 const origin = { latitude: -41.2865, longitude: 174.7762 };
 const now = Date.UTC(2026, 10, 2, 12);
@@ -99,5 +99,34 @@ describe('plannerStops', () => {
     // The hall’s cell centre is what the reach is measured from, not the origin.
     const stops = plannerStops(save, now).filter((stop) => stop.kind === 'building');
     expect(stops.map((stop) => (stop.kind === 'building' ? stop.building.id : ''))).toEqual(['b1']);
+  });
+});
+
+describe('whyNotStop', () => {
+  const near = offsetPosition(origin, 100, 0);
+  const far = offsetPosition(origin, 50_000, 0);
+  const save = saveWith([], { t1: orderWants('t1', { herbs: 4 }) });
+
+  it('says a site must be built on first', () => {
+    expect(whyNotStop(save, { kind: 'site', id: 's1', position: near }, now)).toBe('site');
+  });
+
+  it('says a place outside the network is no stop', () => {
+    expect(whyNotStop(save, { kind: 'monsterLair', id: 'm1', position: near }, now)).toBe('notNetwork');
+  });
+
+  it('says a place or a building beyond the reach is too far, before asking to walk there', () => {
+    expect(whyNotStop(save, { kind: 'tavern', id: 'unknown', position: far }, now)).toBe('tooFar');
+    expect(whyNotStop(save, { kind: 'building', position: far }, now)).toBe('tooFar');
+  });
+
+  it('asks to discover a place first, then says when it wants nothing', () => {
+    expect(whyNotStop(save, { kind: 'tavern', id: 'unknown', position: near }, now)).toBe('undiscovered');
+    expect(whyNotStop(save, { kind: 'tavern', id: 't1', position: near }, now + 6 * DAY)).toBe('noOrder');
+  });
+
+  it('finds nothing wrong with a stop the planner offers', () => {
+    expect(whyNotStop(save, { kind: 'tavern', id: 't1', position: near }, now)).toBeNull();
+    expect(whyNotStop(save, { kind: 'building', position: near }, now)).toBeNull();
   });
 });

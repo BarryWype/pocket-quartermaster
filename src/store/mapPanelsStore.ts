@@ -64,6 +64,9 @@ type MapPanelsState = {
   /** The draft after an edit; a selected grab point is let go. */
   setRouteDraft: (draft: RoutePoint[]) => void;
   selectGrab: (index: number | null) => void;
+  /** Why a tapped marker can't be a stop, shown on the route bar until the next edit (or a few seconds). */
+  routeTapNote: string | null;
+  setRouteTapNote: (note: string | null) => void;
   /** Leaves route mode, keeping nothing of the draft (Save writes the route first). */
   closeRouteMode: () => void;
   /** The Network toggle: everything on the map that isn't part of the supply network is dimmed. */
@@ -95,6 +98,7 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
   routeMode: null,
   networkOnly: false,
   selectedGrab: null,
+  routeTapNote: null,
   chooser: null,
   openChooser: (chooser) => set({ chooser }),
   closeChooser: () => set({ chooser: null }),
@@ -120,6 +124,7 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
     set({
       routeMode: { draft: route, start: route },
       selectedGrab: null,
+      routeTapNote: null,
       routePath: null,
       chooser: null,
       sanctum: null,
@@ -134,9 +139,10 @@ export const useMapPanels = create<MapPanelsState>()((set) => ({
     });
     useWorldStore.getState().set({ focusPatrol: null });
   },
-  setRouteDraft: (draft) => set((state) => (state.routeMode ? { routeMode: { ...state.routeMode, draft }, selectedGrab: null } : {})),
+  setRouteDraft: (draft) => set((state) => (state.routeMode ? { routeMode: { ...state.routeMode, draft }, selectedGrab: null, routeTapNote: null } : {})),
   selectGrab: (index) => set({ selectedGrab: index }),
-  closeRouteMode: () => set({ routeMode: null, selectedGrab: null, routePath: null }),
+  setRouteTapNote: (note) => set({ routeTapNote: note }),
+  closeRouteMode: () => set({ routeMode: null, selectedGrab: null, routePath: null, routeTapNote: null }),
   toggleNetworkOnly: () => set((state) => ({ networkOnly: !state.networkOnly })),
   tapMap: (position) => set((state) => (state.placingHall ? { hallCell: cellAt(position), placingHall: false, supplyBuilding: null } : {})),
   closeSanctum: () => set({ sanctum: null }),

@@ -2,10 +2,12 @@ import { supplyRules } from '@/content/supplyLines';
 
 import { distanceMeters } from '../generation/geo';
 import { tileCenter } from '../generation/tiles';
+import type { PlaceKind } from '@/content/places';
+import type { LatLng } from '../generation/types';
 import type { PlaceSpawn } from '../places/generate';
 import type { SaveData } from '../save';
 import { buildingReach } from './buildings';
-import { networkPlacesAround } from './discovery';
+import { isNetworkKind, networkPlacesAround } from './discovery';
 import type { Building, BuildingKind, RoutePoint } from './types';
 
 /** The goods a building kind makes. */
@@ -88,4 +90,29 @@ export function stopPosition(save: SaveData, point: RoutePoint) {
   if ('building' in point) return save.supply.buildings.find((b) => b.id === point.building)?.position ?? null;
   if ('place' in point) return point.position;
   return point.via;
+}
+
+/** Why a marker isn't a pin in route mode. */
+export type NotStopReason = 'site' | 'notNetwork' | 'tooFar' | 'undiscovered' | 'noOrder';
+
+/**
+ * Why a building or a place on the map can't be a stop of the delivery route
+ * (null when it can, or when there is no hall): the same tests as
+ * plannerStops, the lasting ones first, so a far place says it is too far
+ * rather than asking the player to walk there.
+ */
+export function whyNotStop(
+  save: SaveData,
+  target: { kind: 'building'; position: LatLng } | { kind: PlaceKind; id: string; position: LatLng },
+  now: number,
+): NotStopReason | null {
+  const hall = save.supply.hall;
+  if (!hall) return null;
+  if (target.kind === 'site') return 'site';
+  if (target.kind !== 'building' && !isNetworkKind(target.kind)) return 'notNetwork';
+  if (distanceMeters(tileCenter(hall.cell), target.position) > buildingReach(save).meters) return 'tooFar';
+  if (target.kind === 'building') return null;
+  if (!(target.id in save.supply.discovered)) return 'undiscovered';
+  if ((save.supply.orders[target.id]?.expiresAt ?? 0) <= now) return 'noOrder';
+  return null;
 }

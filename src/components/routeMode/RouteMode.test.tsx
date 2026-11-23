@@ -211,4 +211,33 @@ describe('route mode', () => {
     act(() => useMapPanels.getState().closeRouteMode());
     expect(commits.length).toBeGreaterThan(entered);
   });
+
+  it('a tap on a marker that can’t be a stop says why on the bar, until the next edit', async () => {
+    act(() => {
+      useGameStore.setState({ save: saveWith([building('near', 'farm', 150), building('far', 'quarry', 50_000)]) });
+      useMapPanels.getState().openRouteMode([]);
+    });
+    act(() => {
+      renderer = create(
+        <>
+          <SupplyMarkers sites={[]} now={Date.now()} />
+          <RouteModePins />
+          <RouteBar />
+        </>,
+      );
+    });
+    const r = renderer!;
+    // The map's Marker (the mocked piece), not MapMarker around it: route mode swaps the press handler between the two.
+    const pressMarker = (id: string) =>
+      act(() => {
+        r.root.findAll((node) => node.props?.id === id && typeof node.props?.onPress === 'function').at(-1)!.props.onPress();
+      });
+    pressMarker('supply-building:far');
+    expect(text(r)).toMatch(/Quarry is too far from your hall\. Stops must be within [\d.,]+\W+k?m of it\./);
+    pressMarker('supply-hall');
+    expect(text(r)).toContain('Not a stop.');
+    pressPin(r, 'near');
+    expect(useMapPanels.getState().routeTapNote).toBeNull();
+    await settle();
+  });
 });

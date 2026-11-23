@@ -1844,4 +1844,12 @@ export const en = {
     more: { one: '+{count} more below', other: '+{count} more below' },
     delivered: '{pct} delivered',
   },
+  routeTap: {
+    generic: 'Not a stop. Only your buildings, and places you have visited that want goods, can be on the delivery route: tap a large pin.',
+    site: 'A site is not a stop: build on it first, then its building can be.',
+    notNetwork: '{name} doesn’t trade with your network, so it can’t be a stop.',
+    tooFar: '{name} is too far from your hall. Stops must be within {distance} of it.',
+    undiscovered: 'Visit {name} first: walk up to it, then it can be a stop.',
+    noOrder: '{name} wants nothing right now, so there is nothing to deliver.',
+  },
 };

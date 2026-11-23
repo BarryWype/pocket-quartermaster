@@ -1848,4 +1848,12 @@ export const fr: Dictionary = {
     more: { one: '+{count} de plus ci-dessous', other: '+{count} de plus ci-dessous' },
     delivered: '{pct} livré',
   },
+  routeTap: {
+    generic: 'Pas un arrêt. Seuls vos bâtiments, et les lieux visités qui demandent des marchandises, peuvent être sur l’itinéraire de livraison : touchez une grande épingle.',
+    site: 'Un chantier n’est pas un arrêt : bâtissez-y d’abord, son bâtiment pourra l’être.',
+    notNetwork: '{name} ne commerce pas avec votre réseau, ce n’est pas un arrêt possible.',
+    tooFar: '{name} : trop loin de votre hall. Les arrêts doivent être à moins de {distance} de lui.',
+    undiscovered: 'Visitez d’abord {name} : approchez-vous-en pour pouvoir en faire un arrêt.',
+    noOrder: '{name} : aucune demande pour l’instant, rien à livrer.',
+  },
 };

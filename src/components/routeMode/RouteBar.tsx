@@ -32,6 +32,8 @@ import { stopEmoji, stopId, stopName } from './stops';
 
 /** Up to this many goods on a chip; the rest are in the stats line's home goods. */
 const CHIP_GOODS = 2;
+/** How long the bar says why a tapped marker isn't a stop. */
+const TAP_NOTE_MS = 5000;
 
 /**
  * Route mode's slim bar above the island menu: the draft's stops as chips
@@ -43,6 +45,7 @@ const CHIP_GOODS = 2;
 export function RouteBar() {
   const mode = useMapPanels((s) => s.routeMode);
   const selectedGrab = useMapPanels((s) => s.selectedGrab);
+  const tapNote = useMapPanels((s) => s.routeTapNote);
   const save = useGameStore((s) => s.save);
   const now = useNow(clockConfig.minutesMs);
   const insets = useSafeAreaInsets();
@@ -62,6 +65,15 @@ export function RouteBar() {
     if (changed) setConfirming(true);
     else useMapPanels.getState().closeRouteMode();
   };
+  // Why a tapped marker isn't a stop: read, then gone (an edit clears it sooner).
+  useEffect(() => {
+    if (tapNote === null) return;
+    const timer = setTimeout(() => {
+      if (useMapPanels.getState().routeTapNote === tapNote) useMapPanels.getState().setRouteTapNote(null);
+    }, TAP_NOTE_MS);
+    return () => clearTimeout(timer);
+  }, [tapNote]);
+
   // The phone's back button leaves route mode the same way.
   const leaveRef = useRef(leave);
   useEffect(() => {
@@ -133,6 +145,11 @@ export function RouteBar() {
   return (
     <>
       <View style={[styles.bar, { bottom: insets.bottom + ISLAND_HEIGHT + 8 }]} accessibilityLiveRegion="polite">
+        {tapNote !== null && (
+          <Text style={styles.tapNote} accessibilityRole="alert">
+            {tapNote}
+          </Text>
+        )}
         {stops.length === 0 ? (
           <Text style={styles.hint}>{t('supply.routeMode.hint')}</Text>
         ) : (
@@ -336,6 +353,7 @@ const styles = StyleSheet.create({
     borderColor: ui.outline,
   },
   hint: { color: ui.ink, fontSize: 16 },
+  tapNote: { color: ui.ink, fontSize: 15, borderLeftWidth: 4, borderLeftColor: ui.ember, paddingLeft: 8 },
   chips: { flexDirection: 'row', gap: 6, paddingVertical: 2 },
   chip: {
     minHeight: 44,
