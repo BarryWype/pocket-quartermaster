@@ -24,6 +24,7 @@ import { MapRanges, type RangeCircle } from '@/components/MapRanges';
 import { markerHits, offerChooser, type MarkerHit } from '@/components/markerHits';
 import { PANEL_KINDS } from '@/components/places/placeText';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
+import { PickupPops } from '@/components/PickupPops';
 import { SupplyLayers } from '@/components/SupplyLayers';
 import { SupplyMarkers } from '@/components/SupplyMarkers';
 import { SupplyRoute } from '@/components/SupplyRoute';
@@ -48,6 +49,7 @@ import { walkableRules } from '@/content/walkable';
 import { freshGathersLeft, showsOnMap, type CollectFailure } from '@/game/gathering/gathering';
 import { cellAt } from '@/game/discovery/cells';
 import { requiredPickaxeTier } from '@/game/gathering/lockedNodes';
+import { spawnPositionAt } from '@/game/generation/animalPaths';
 import { ambienceConfig, decorationMode, inSpan, type DecorationMode } from '@/game/generation/ambience';
 import type { Bounds } from '@/game/generation/foliage';
 import { distanceMeters, offsetPosition } from '@/game/generation/geo';
@@ -97,6 +99,7 @@ import { appendFixesNow } from '@/services/walkTracking';
 import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
+import { usePickupPops } from '@/store/pickupPopsStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorldStore } from '@/store/worldStore';
 import { fonts, ui } from '@/theme';
@@ -703,6 +706,12 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
       if (!position) return;
       const result = collect(spawn, { position, speed }, Date.now());
       if (result.ok) {
+        const first = result.gained[0];
+        usePickupPops.getState().show(
+          spawnPositionAt(spawn, Date.now()),
+          spawn.kind,
+          first ? materialById[first.materialId]?.emoji : undefined,
+        );
         setMessage({ text: `+ ${result.gained.map((g) => `${g.amount} ${tr(materialById[g.materialId]?.name ?? g.materialId)}`).join(', ')}` });
         return;
       }
@@ -864,6 +873,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
           onPlayer={supplyOn ? onPlayerCell : undefined}
           supplyOn={supplyOn}
         />
+        <PickupPops />
         {supplyOn && <RouteModePins />}
       </Map>
       {!noDecorations && <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />}
