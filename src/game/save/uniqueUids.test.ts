@@ -2,7 +2,6 @@ import { recipeById } from '@/content/lookup';
 import { relics } from '@/content/loot/relics';
 import { secretRules } from '@/content/secrets';
 import { trinketId } from '@/content/trinkets';
-import { useGameStore } from '@/store/gameStore';
 
 import { craft } from '../crafting/crafting';
 import { forgeWithIngredient } from '../forging/ingredients';
@@ -201,17 +200,6 @@ describe('unique uids', () => {
       save = craftSword(save);
       expectUniqueIds(save);
     }
-  });
-
-  it('debug gear and hero grants give every piece and hero a fresh uid', () => {
-    useGameStore.getState().resetSave();
-    for (let i = 0; i < 6; i++) {
-      useGameStore.getState().addGear('sword1', 'common');
-      useGameStore.getState().addHero('warrior', 3, 'quickLearner');
-      useGameStore.setState({ save: craftSword(useGameStore.getState().save) });
-      expectUniqueIds(useGameStore.getState().save);
-    }
-    useGameStore.getState().resetSave();
   });
 
   it('challenging Sanctums keeps every uid unique across wins', () => {

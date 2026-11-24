@@ -7,7 +7,6 @@ import { motion } from '@/content/motion';
 import { useAnimationsEnabled } from '@/hooks/useAnimationFrame';
 import { useMotion } from '@/hooks/useMotion';
 import { recordTapToContent } from '@/services/timings';
-import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { ui } from '@/theme';
 
 /** What the content will look like: stacked cards, a slot grid, or a hero sheet. */
@@ -106,8 +105,7 @@ function ContentMark({ name, children }: { name: string; children: ReactNode }) 
  */
 export function Deferred({ name, ghost, children }: { name: string; ghost: ReactNode; children: ReactNode }) {
   const ready = useAfterFirstFrame();
-  const noDeferral = useDebugStore((state) => debugEnabled(state) && state.noContentDeferral);
-  return ready || noDeferral ? <ContentMark name={name}>{children}</ContentMark> : <GhostFade>{ghost}</GhostFade>;
+  return ready ? <ContentMark name={name}>{children}</ContentMark> : <GhostFade>{ghost}</GhostFade>;
 }
 
 const styles = StyleSheet.create({

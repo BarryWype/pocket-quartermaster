@@ -11,7 +11,6 @@ import {
   currentHp,
   drinkPotion,
   drinkProblem,
-  fastForwardHealing,
   isExhausted,
   maxHp,
   setHeroHp,
@@ -110,11 +109,6 @@ describe('hero HP', () => {
     const ko = (trait: string) => applyRunHp({ ...createInitialSave(), heroes: [newHero('a', 'A', 'warrior', trait)] }, [{ heroId: 'a', hp: 0, maxHp: 30 }], 0);
     expect(ko('quickHealer').heroes[0].exhaustedUntil).toBe(10 * MIN);
     expect(ko('thrifty').heroes[0].exhaustedUntil).toBe(20 * MIN);
-  });
-
-  it('fast-forwards healing (debug)', () => {
-    const save = fastForwardHealing(hurt(0), 30);
-    expect(currentHp(save, hero(save), 0)).toBeCloseTo(maxHp(save, hero(save)) / 2);
   });
 });
 

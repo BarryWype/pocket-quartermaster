@@ -4,32 +4,29 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { dungeons } from '@/content/dungeons';
 import { gatheringConfig } from '@/content/gatheringConfig';
-import { newHero, xpRules } from '@/content/heroes';
 import { items } from '@/content/items';
 import { recipeById } from '@/content/lookup';
 import { materials } from '@/content/materials';
 import { supplyRules } from '@/content/supplyLines';
-import { craft, craftMany, forgetRecipe, forgeResult, learnAllRecipes, learnTier, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
-import { unlockAllPartRecipes } from '@/game/crafting/partRecipes';
+import { craft, craftMany, forgeResult, unlockRecipe, type ForgeResult } from '@/game/crafting/crafting';
 import { applyStone } from '@/game/crafting/infusion';
 import { forgeWithIngredient } from '@/game/forging/ingredients';
 import { reroll as rerollPiece } from '@/game/forging/reroll';
 import { restoreRelic } from '@/game/forging/relics';
 import { salvage } from '@/game/forging/salvage';
-import { convertShards, shardId, stoneId, type Element } from '@/game/elements';
+import type { Element } from '@/game/elements';
 import { fastForward, resolveExpedition, startExpedition, type Loadout } from '@/game/expeditions/expeditions';
 import { dressWith } from '@/game/expeditions/party';
 import type { GearSwap } from '@/game/threats/suggest';
 import { markWalksSeen, processWalkPath, recordWalk, type WalkFix, type WalkOptions, type WalkPatrols, type WalkSummary } from '@/game/gathering/autoGather';
 import { collectSpawn, type CollectResult, type Gatherer } from '@/game/gathering/gathering';
-import { endWalkEffect, startWalkEffect } from '@/game/gathering/walkEffects';
+import { startWalkEffect } from '@/game/gathering/walkEffects';
 import type { LatLng, Spawn } from '@/game/generation/types';
 import type { WalkableTile } from '@/game/generation/walkable';
 import { addMaterials } from '@/game/inventory';
 import { dayKey, openChest, recordSteps, syncSteps } from '@/game/rewards/chests';
 import { activateLure, isLureActive } from '@/game/rewards/lures';
 import { collectTreasure, liveTreasureMaps, readTreasureMap } from '@/game/rewards/treasure';
-import { grantLoot } from '@/game/loot/grant';
 import { migrateSave } from '@/game/migrations';
 import { readManual } from '@/game/loot/manuals';
 import type { Loot, ManualRarity } from '@/game/loot/types';
@@ -44,7 +41,7 @@ import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patro
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { closeTip as closeTipRule, dueTips, noteTips as queueTips } from '@/game/reveal/reveal';
 import { createInitialSave, type SaveData, type TutorialStep } from '@/game/save';
-import { careProblem, drinkPotion, drinkProblem, fastForwardHealing, giveHomeCare, healAll, setHeroHp, settleHp } from '@/game/team/health';
+import { careProblem, drinkPotion, drinkProblem, giveHomeCare, healAll, settleHp } from '@/game/team/health';
 import { buy, sellGear, sellMaterial } from '@/game/places/shops';
 import { apothecaryCare, chapelCare, takeChapelBlessing, trainHero, type CareKind } from '@/game/places/services';
 import type { PlaceSpawn } from '@/game/places/generate';
@@ -53,12 +50,11 @@ import { resolvePlaceFights, startPlaceFight } from '@/game/places/fights';
 import { resolveHeists, startHeist } from '@/game/places/heists';
 import { digRuin } from '@/game/places/ruins';
 import { launchUnderwater } from '@/game/secrets/dungeon';
-import { grantTip, type TipOutcome } from '@/game/secrets/tips';
+import type { TipOutcome } from '@/game/secrets/tips';
 import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/places';
-import { secretRules, type PlaceTipSource } from '@/content/secrets';
 import type { TipId } from '@/content/reveal';
 import { claimFreePick } from '@/game/taverns/freePick';
-import { dismissHero, equip, heroStats, isAway, keepHpShare, markClassesSeen, unequip } from '@/game/team/team';
+import { dismissHero, equip, isAway, markClassesSeen, unequip } from '@/game/team/team';
 import { chooseTitle } from '@/game/team/record';
 import { buySupply, recruit, tavernNameOf, withTavernName, type RecruitOffer } from '@/game/taverns/taverns';
 import { checkPersonalTavern } from '@/game/taverns/personal';
@@ -67,16 +63,13 @@ import { applyTraining } from '@/game/guild/training';
 import { guildRules, type GuildTrackId } from '@/content/guild';
 import { advanceTutorial, finishTutorial, nextTutorialStep } from '@/game/tutorial/tutorial';
 import { collectFromHere, collectRadiusNow, collectTutorialSpawn, placeTutorialSpawns, type TutorialCollectAllResult, type TutorialCollectResult } from '@/game/tutorial/spawns';
-import { skipTutorial, restartTutorial, jumpToStep } from '@/game/tutorial/skip';
+import { skipTutorial } from '@/game/tutorial/skip';
 import { pruneExpired } from '@/game/upkeep';
-import { questRules, type QuestBand, type QuestObjective } from '@/content/quests';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
-import { newQuest, questUpkeep, rerollQuest } from '@/game/quests/arrival';
-import { complete, deliver, maybeSecretQuest, markSeen, noteMarksReached, questEvent, refreshWalks } from '@/game/quests/progress';
+import { questUpkeep, rerollQuest } from '@/game/quests/arrival';
+import { deliver, markSeen, noteMarksReached, questEvent, refreshWalks } from '@/game/quests/progress';
 import { claimQuest, reachMark } from '@/game/quests/rewards';
 import { acceptQuests, retargetQuests, targetFirstQuest } from '@/game/quests/targets';
-import { createRng } from '@/game/generation/rng';
-import { makeGearPiece } from '@/game/gear/make';
 import { distanceMeters } from '@/game/generation/geo';
 import { placeHall as placeHallInSave } from '@/game/supply/hall';
 import { discoverAlong, discoverAt, discoveryNote, networkPlacesAround } from '@/game/supply/discovery';
@@ -92,11 +85,11 @@ import { settleNetwork } from '@/game/supply/settle';
 import { autoAddBuilding, autoAddStops, effectiveRoute, placesForRoute, pruneRoute, restoreRoute, sameRoute, type RouteSnapshot } from '@/game/supply/autoRoute';
 import { routeProblem, setCrew as setCrewInSave, setRoute as setRouteInSave, startCart as startCartInSave, stopCart as stopCartInSave } from '@/game/supply/cart';
 import type { BuildingKind, RoutePoint, StreetPath } from '@/game/supply/types';
-import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, HeroRoll, PlaceFight, Rarity } from '@/game/types';
+import type { EquipmentSlot, ExpeditionReport, Heist, HeroClassId, PlaceFight } from '@/game/types';
 
 import { t, tr } from '@/i18n';
 
-import { currentRotation, debugEnabled, useDebugStore } from './debugStore';
+import { currentRotation } from './debugStore';
 import { useSettingsStore } from './settingsStore';
 import { useWorldStore } from './worldStore';
 
@@ -282,12 +275,10 @@ type GameState = {
   buyAtBlackMarket: (place: PlaceSpawn, key: string, player: LatLng) => void;
   /** Spends a mysterious key and sends the party into the tipped underwater dungeon. */
   launchUnderwater: (place: PlaceSpawn, heroIds: string[], player: LatLng, loadout?: Loadout) => void;
-  /** Debug: a tip for any secret place, found here; with `spot`, the place sits there (replacing an active one). */
-  giveTip: (source: PlaceTipSource, position: LatLng, spot?: LatLng) => void;
   buyRank: (trackId: GuildTrackId) => void;
   /** Credits Guild Hall training XP since the last check. */
   train: () => void;
-  startExpedition: (dungeonId: string, heroIds: string[], durationScale: number, loadout?: Loadout) => void;
+  startExpedition: (dungeonId: string, heroIds: string[], loadout?: Loadout) => void;
   /** Drops expired maps, lures and used Sanctums. */
   prune: () => void;
   /** Brings a finished expedition home: rewards, XP and HP are applied now. */
@@ -310,14 +301,6 @@ type GameState = {
   deliverQuest: (questId: string, place: PlaceSpawn, player: LatLng) => void;
   /** At the secret quest's strange mark: done, and a secret place tipped off (`isNearWater` once map tiles are in). */
   reachMark: (questId: string, isNearWater?: (point: LatLng) => boolean) => void;
-  /** Debug: a quest of any objective and band, arrived now. */
-  grantQuest: (objective: QuestObjective, band: QuestBand) => void;
-  /** Debug: completes a quest on the spot. */
-  completeQuest: (questId: string) => void;
-  /** Debug: pops today's secret quest. */
-  triggerSecretQuest: () => void;
-  /** Debug: frees the day's reroll again. */
-  resetQuestReroll: () => void;
   /** Spawns the current tutorial step's nodes around the player, once per step. */
   placeTutorialSpawns: (player: LatLng | null, tile: WalkableTile | null | undefined) => void;
   /** Picks up a tutorial node; `anywhere` is the "Collect from here" fallback. */
@@ -339,10 +322,6 @@ type GameState = {
   nextTutorialStep: (step: TutorialStep) => void;
   /** Debug: skips the whole tutorial. */
   finishTutorial: () => void;
-  /** Debug: the tutorial starts over, the first quest dropped. */
-  restartTutorial: () => void;
-  /** Debug: the tutorial jumps to `step`, playing out everything in between. */
-  jumpToStep: (step: TutorialStep) => void;
   /** Debug: every map kind shows; off removes the flag. */
   setRevealAll: (on: boolean) => void;
   /** Debug: tips back to never seen. */
@@ -353,49 +332,9 @@ type GameState = {
   /** Marks the lowest unbeaten boss as beaten, revealing the next dungeon tier. */
   beatNextBoss: () => void;
   addGold: (amount: number) => void;
-  /** Debug: forgets every purchase and used-up place, refilling shops. */
-  refillPlaces: () => void;
-  setRuinsProgress: (progress: number) => void;
   addAllMaterials: (amount: number) => void;
-  addSigil: (tier: number) => void;
-  addElemental: (element: Element, kind: 'shard' | 'stone', amount: number) => void;
-  /** Debug: pays any loot as if a source had dropped it. */
-  debugGrantLoot: (loot: Loot) => void;
-  resetFirstWin: () => void;
-  /** Debug: a hero of any class and level, with an average roll or one landing on a grade. */
-  addHero: (classId: HeroClassId, level: number, trait: string, roll?: HeroRoll) => void;
-  /** Debug: sets a hero's level (1–15), XP to 0. */
-  debugSetHeroLevel: (heroId: string, level: number) => void;
-  setGuildRank: (trackId: GuildTrackId, rank: number) => void;
-  resetGuild: () => void;
-  /** Debug: adds a GearInstance, roll 1, no luck. */
-  addGear: (itemId: string, rarity: Rarity) => void;
-  /** Debug: teaches a recipe. */
-  learnRecipe: (recipeId: string) => void;
-  /** Debug: removes a recipe from the known list. */
-  forgetRecipe: (recipeId: string) => void;
-  /** Debug: teaches every recipe. */
-  learnAllRecipes: () => void;
-  /** Debug: sees every part and gem, unlocking every part recipe. */
-  unlockAllPartRecipes: () => void;
-  /** Debug: teaches every gear blueprint of a tier. */
-  learnTier: (tier: number) => void;
-  addLure: () => void;
-  /** Forgets used Sanctums and the Sigil pity counter. */
-  resetSanctums: () => void;
-  /** Debug: forgets beaten patrols, helped travellers and trader uses. */
-  resetPatrols: () => void;
   fastForwardExpeditions: () => void;
-  /** Sets a hero's HP share; `exhausted` also knocks them out for a while. */
-  setHeroHp: (heroId: string, share: number, exhausted: boolean) => void;
   healAll: () => void;
-  /** Adds this many of every provision. */
-  addProvisions: (amount: number) => void;
-  /** Adds one of every elixir, provision, walking and home care item (debug only). */
-  addConsumables: () => void;
-  /** Ends a walking effect now (debug only). */
-  endWalkEffect: (itemId: string) => void;
-  fastForwardHealing: (minutes: number) => void;
   resetSave: () => void;
 };
 
@@ -517,7 +456,7 @@ export const useGameStore = create<GameState>()(
       debugDiscoverAround: (position) => {
         const now = Date.now();
         const save = get().save;
-        const places = [...networkPlacesAround(save, position, now), ...useDebugStore.getState().debugSites];
+        const places = [...networkPlacesAround(save, position, now)];
         const discovered = { ...save.supply.discovered };
         const orders = { ...save.supply.orders };
         // The seed save carries the orders made so far, so two places of one kind differ in their headline.
@@ -570,14 +509,10 @@ export const useGameStore = create<GameState>()(
       },
       craft: (recipeId, count = 1) => {
         const before = get().save;
-        const debug = useDebugStore.getState();
-        const rarity = debugEnabled(debug) ? (debug.forcedRarity ?? undefined) : undefined;
         const recipe = recipeById[recipeId];
-        const save = advanceTutorial(recipe.station === 'provisions' ? craftMany(before, recipe, count) : craft(before, recipe, rarity));
+        const save = advanceTutorial(recipe.station === 'provisions' ? craftMany(before, recipe, count) : craft(before, recipe));
         set({ save });
-        const result = forgeResult(before, save);
-        if (result && rarity) debug.set({ forcedRarity: null });
-        return result;
+        return forgeResult(before, save);
       },
       forgeWithIngredient: (recipeId, ingredientId) => {
         const before = get().save;
@@ -688,22 +623,11 @@ export const useGameStore = create<GameState>()(
       buyAtBlackMarket: (place, key, player) => set(({ save }) => ({ save: buyAtBlackMarket(save, place, key, player, Date.now()) })),
       launchUnderwater: (place, heroIds, player, loadout) =>
         set(({ save }) => ({ save: launchUnderwater(save, place, heroIds, player, Date.now(), loadout) })),
-      giveTip: (source, position, spot) => {
-        const now = Date.now();
-        const secret = secretRules.tips[source].secret;
-        const start = spot ? { ...get().save, secretTips: get().save.secretTips.filter((tip) => tip.secret !== secret) } : get().save;
-        const { save, outcome } = grantTip(start, { source, sourceId: `debug:${now}`, anchor: position }, now);
-        const placed = spot && outcome.kind === 'tip'
-          ? { ...save, secretTips: save.secretTips.map((tip) => (tip.id === outcome.tip.id ? { ...tip, position: spot } : tip)) }
-          : save;
-        set({ save: placed });
-        noteTips([outcome]);
-      },
-      buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId, guildRules, useDebugStore.getState().guildGatesOpen) })),
+      buyRank: (trackId) => set(({ save }) => ({ save: buyRank(save, trackId, guildRules) })),
       train: () => set(({ save }) => ({ save: applyTraining(save, Date.now()) })),
-      startExpedition: (dungeonId, heroIds, durationScale, loadout) =>
+      startExpedition: (dungeonId, heroIds, loadout) =>
         set(({ save }) => ({
-          save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), durationScale, currentRotation(), loadout)),
+          save: advanceTutorial(startExpedition(save, dungeonId, heroIds, Date.now(), 1, currentRotation(), loadout)),
         })),
       prune: () => {
         const save = get().save;
@@ -714,10 +638,7 @@ export const useGameStore = create<GameState>()(
         const now = Date.now();
         const expedition = get().save.expeditions.find((e) => e.id === expeditionId);
         if (!expedition || expedition.endsAt > now) return null;
-        const debug = useDebugStore.getState();
-        const force = debug.forcedLootCategory ?? undefined;
-        const { save, report } = resolveExpedition(get().save, expedition, { loot: { force } });
-        if (force && report.success) debug.set({ forcedLootCategory: null });
+        const { save, report } = resolveExpedition(get().save, expedition);
         set({ save: advanceTutorial(pruneExpired(save, now)) });
         return report;
       },
@@ -764,25 +685,6 @@ export const useGameStore = create<GameState>()(
         set({ save });
         noteTips(tip ? [tip] : []);
       },
-      grantQuest: (objective, band) => {
-        const now = Date.now();
-        const save = get().save;
-        const quest = newQuest(`debug|${now}`, band, objective, save, createRng(`debug|${now}`), now);
-        set({ save: { ...save, quests: { ...save.quests, list: [...save.quests.list, quest] } } });
-      },
-      completeQuest: (questId) => {
-        const save = get().save;
-        const quest = save.quests.list.find((q) => q.id === questId);
-        if (!quest || quest.doneAt !== null) return;
-        set({ save: complete(save, { ...quest, progress: quest.amount, acceptedAt: quest.acceptedAt ?? Date.now() }, Date.now()) });
-      },
-      triggerSecretQuest: () => {
-        const now = Date.now();
-        const save = get().save;
-        const completions = Array.from({ length: questRules.secret.completions }, () => now);
-        set({ save: maybeSecretQuest({ ...save, quests: { ...save.quests, secretDay: null, completions } }, now) });
-      },
-      resetQuestReroll: () => set(({ save }) => ({ save: { ...save, quests: { ...save.quests, rerollDay: null, rerolls: 0 } } })),
       openChest: (chestId, steps) => {
         const { save, reward } = openChest(get().save, chestId, steps, dayKey(new Date()), Date.now());
         set({ save });
@@ -828,8 +730,6 @@ export const useGameStore = create<GameState>()(
         set(({ save }) => ((save.consumables[itemId] ?? 0) < 1 ? {} : { save: startWalkEffect(save, itemId, position, Date.now()) })),
       nextTutorialStep: (step) => set(({ save }) => ({ save: nextTutorialStep(save, step, Date.now()) })),
       finishTutorial: () => set(({ save }) => ({ save: finishTutorial(save, Date.now()) })),
-      restartTutorial: () => set(({ save }) => ({ save: restartTutorial(save) })),
-      jumpToStep: (step) => set(({ save }) => ({ save: jumpToStep(save, step, Date.now()) })),
       setRevealAll: (on) =>
         set(({ save }) => {
           const { revealAll, ...rest } = save;
@@ -853,8 +753,6 @@ export const useGameStore = create<GameState>()(
           return boss ? { save: { ...save, clearedDungeons: [...save.clearedDungeons, boss.id] } } : { save };
         }),
       addGold: (amount) => set(({ save }) => ({ save: { ...save, gold: save.gold + amount } })),
-      refillPlaces: () => set(({ save }) => ({ save: { ...save, placePurchases: {}, usedPlaces: {} } })),
-      setRuinsProgress: (progress) => set(({ save }) => ({ save: { ...save, ruinsProgress: progress } })),
       addAllMaterials: (amount) =>
         set(({ save }) => ({
           save: {
@@ -862,87 +760,8 @@ export const useGameStore = create<GameState>()(
             materials: addMaterials(save.materials, materials.map((m) => ({ materialId: m.id, amount }))),
           },
         })),
-      addSigil: (tier) => set(({ save }) => ({ save: { ...save, sigils: [...save.sigils, tier] } })),
-      addElemental: (element, kind, amount) =>
-        set(({ save }) => ({
-          save: {
-            ...save,
-            materials: convertShards(
-              addMaterials(save.materials, [{ materialId: kind === 'shard' ? shardId(element) : stoneId(element), amount }]),
-            ),
-          },
-        })),
-      debugGrantLoot: (loot) => set(({ save }) => ({ save: grantLoot(save, save.heroes.map((h) => h.id), loot, Date.now()) })),
-      addGear: (itemId, rarity) =>
-        set(({ save }) => ({
-          save: {
-            ...save,
-            gear: [...save.gear, makeGearPiece(`g${save.nextUid}`, itemId, rarity)],
-            nextUid: save.nextUid + 1,
-          },
-        })),
-      learnRecipe: (recipeId) => set(({ save }) => ({ save: unlockRecipe(save, recipeId) })),
-      forgetRecipe: (recipeId) => set(({ save }) => ({ save: forgetRecipe(save, recipeId) })),
-      learnAllRecipes: () => set(({ save }) => ({ save: learnAllRecipes(save) })),
-      unlockAllPartRecipes: () => set(({ save }) => ({ save: unlockAllPartRecipes(save) })),
-      learnTier: (tier) => set(({ save }) => ({ save: learnTier(save, tier) })),
-      resetFirstWin: () => set(({ save }) => ({ save: { ...save, firstWinDay: null } })),
-      setGuildRank: (trackId, rank) => set(({ save }) => ({ save: { ...save, guild: { ...save.guild, [trackId]: rank } } })),
-      resetGuild: () => set(({ save }) => ({ save: { ...save, guild: {} } })),
-      addHero: (classId, level, trait, roll) =>
-        set(({ save }) => ({
-          save: {
-            ...save,
-            heroes: [...save.heroes, { ...newHero(`h${save.nextUid}`, `Debug ${classId}`, classId, trait, level), ...(roll ? { roll } : {}) }],
-            nextUid: save.nextUid + 1,
-          },
-        })),
-      debugSetHeroLevel: (heroId, level) =>
-        set(({ save }) => {
-          // The hero's HP keeps its share of the new max HP.
-          const settled = settleHp(save, Date.now());
-          const hero = settled.heroes.find((h) => h.id === heroId);
-          if (!hero) return { save: settled };
-          const clamped = Math.min(xpRules.maxLevel, Math.max(1, level));
-          const next = {
-            ...settled,
-            heroes: settled.heroes.map((h) => (h.id === heroId ? { ...h, level: clamped, xp: 0 } : h)),
-          };
-          const updated = next.heroes.find((h) => h.id === heroId)!;
-          return {
-            save: {
-              ...next,
-              heroes: next.heroes.map((h) =>
-                h.id === heroId ? keepHpShare(updated, heroStats(settled, hero).hp, heroStats(next, updated).hp) : h,
-              ),
-            },
-          };
-        }),
-      addLure: () => set(({ save }) => ({ save: { ...save, lures: save.lures + 1 } })),
-      resetSanctums: () => set(({ save }) => ({ save: { ...save, usedSanctums: {}, sigilPity: 0 } })),
-      resetPatrols: () =>
-        set(({ save }) => ({ save: { ...save, beatenPatrols: {}, helpedTravellers: {}, traderUses: {} } })),
       fastForwardExpeditions: () => set(({ save }) => ({ save: fastForward(save, Date.now()) })),
-      setHeroHp: (heroId, share, exhausted) => set(({ save }) => ({ save: setHeroHp(save, heroId, share, Date.now(), exhausted) })),
       healAll: () => set(({ save }) => ({ save: healAll(save) })),
-      addProvisions: (amount) =>
-        set(({ save }) => {
-          const consumables = { ...save.consumables };
-          for (const item of items.filter((i) => i.slot === 'provision')) {
-            consumables[item.id] = (consumables[item.id] ?? 0) + amount;
-          }
-          return { save: { ...save, consumables } };
-        }),
-      addConsumables: () =>
-        set(({ save }) => {
-          const consumables = { ...save.consumables };
-          for (const item of items.filter((i) => (i.slot === 'consumable' && i.elixir) || i.slot === 'provision' || i.slot === 'utility')) {
-            consumables[item.id] = (consumables[item.id] ?? 0) + 1;
-          }
-          return { save: { ...save, consumables } };
-        }),
-      endWalkEffect: (itemId) => set(({ save }) => ({ save: endWalkEffect(save, itemId, Date.now()) })),
-      fastForwardHealing: (minutes) => set(({ save }) => ({ save: fastForwardHealing(save, minutes) })),
       resetSave: () => {
         set({ save: createInitialSave() });
       },

@@ -4,7 +4,6 @@ import { AppState } from 'react-native';
 import { dayKey, stepsRecorded } from '@/game/rewards/chests';
 import { deviceLocation } from '@/services/location';
 import { devicePedometer } from '@/services/pedometer';
-import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 
 /**
@@ -41,7 +40,5 @@ export function useStepTracking() {
 }
 
 export function useTodaySteps() {
-  const recorded = useGameStore((state) => stepsRecorded(state.save, dayKey(new Date())));
-  const extraSteps = useDebugStore((state) => (debugEnabled(state) ? state.extraSteps : 0));
-  return recorded + extraSteps;
+  return useGameStore((state) => stepsRecorded(state.save, dayKey(new Date())));
 }

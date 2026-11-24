@@ -15,7 +15,6 @@ import type { MotionLevel } from '@/content/motion';
 import { useLiveChange } from '@/hooks/useLiveChange';
 import { spring, timing, useMotion } from '@/hooks/useMotion';
 import { t, tr } from '@/i18n';
-import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { fonts, ui } from '@/theme';
 
@@ -82,10 +81,9 @@ function FillingPip({ level }: { level: MotionLevel }) {
 /** One upgrade: rank diamonds, the current and next effect, then the cost with Buy or a locked note. */
 function UpgradeCard({ track, onBuy }: { track: GuildTrack; onBuy: () => void }) {
   const save = useGameStore((state) => state.save);
-  const gatesOpen = useDebugStore((state) => state.guildGatesOpen);
   const rank = guildRank(save, track.id);
   const maxed = rank >= track.ranks;
-  const problem = rankProblem(save, track.id, undefined, gatesOpen);
+  const problem = rankProblem(save, track.id);
   const locked = !maxed && (problem?.kind === 'gate' || problem?.kind === 'requires');
   const missing = !maxed && !locked && problem?.kind === 'missing';
   const lockedText =

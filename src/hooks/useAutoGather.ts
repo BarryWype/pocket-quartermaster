@@ -229,7 +229,7 @@ export async function playBack(fixes: WalkFix[]) {
 }
 
 /** Keeps auto-gather running and processed: on launch, on return to the app, and every few seconds while open. */
-export function useAutoGather(paused = false) {
+export function useAutoGather() {
   useEffect(() => {
     const unsubscribe = [useGameStore, useSettingsStore].map((store) => store.persist.onFinishHydration(() => refreshAutoGather(true)));
     refreshAutoGather(true);
@@ -257,10 +257,9 @@ export function useAutoGather(paused = false) {
   }, []);
 
   useEffect(() => {
-    if (paused) return;
     const timer = setInterval(() => {
       if (AppState.currentState === 'active' && pocketTracking(useSettingsStore.getState().pocketMode)) refreshAutoGather(false);
     }, LIVE_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [paused]);
+  }, []);
 }

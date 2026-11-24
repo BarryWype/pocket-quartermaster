@@ -10,7 +10,6 @@ import { t } from '@/i18n';
 
 import { HallSheet } from './HallSheet';
 import { statusText } from './HeroPicker';
-import { SupplyLayers } from './SupplyLayers';
 import { SupplyMarkers } from './SupplyMarkers';
 
 jest.mock('react-native-safe-area-context', () => jest.requireActual('react-native-safe-area-context/jest/mock').default);
@@ -42,7 +41,6 @@ describe('the supply lines on the map', () => {
       renderer = create(
         <>
           <SupplyMarkers sites={[]} now={Date.now()} />
-          <SupplyLayers bounds={null} position={position} />
         </>,
       );
     });

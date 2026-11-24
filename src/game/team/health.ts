@@ -207,12 +207,3 @@ export function setHeroHp(save: SaveData, heroId: string, share: number, now: nu
   };
 }
 
-/** Moves every stored HP timestamp back, as if `minutes` had passed (debug). */
-export const fastForwardHealing = (save: SaveData, minutes: number): SaveData => ({
-  ...save,
-  heroes: save.heroes.map((hero) => ({
-    ...hero,
-    ...(hero.hpAt !== undefined ? { hpAt: hero.hpAt - minutes * MINUTE } : {}),
-    ...(hero.exhaustedUntil !== undefined ? { exhaustedUntil: hero.exhaustedUntil - minutes * MINUTE } : {}),
-  })),
-});

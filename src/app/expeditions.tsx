@@ -52,7 +52,7 @@ import { useNow } from '@/hooks/useNow';
 import { syncPlan } from '@/hooks/useNotifications';
 import { formatDuration, formatPercent, t, tr } from '@/i18n';
 import { deviceNotifications } from '@/services/notifications';
-import { currentRotation, debugEnabled, useDebugStore } from '@/store/debugStore';
+import { currentRotation } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useSupplyOn } from '@/hooks/useSupply';
@@ -119,8 +119,6 @@ function ExpeditionsContent() {
   const closeCookingHint = useGameStore((state) => state.closeCookingHint);
   const askedPermission = useSettingsStore((state) => state.askedNotificationPermission);
   const setSettings = useSettingsStore((state) => state.set);
-  const fastExpeditions = useDebugStore((state) => debugEnabled(state) && state.fastExpeditions);
-  const durationScale = fastExpeditions ? 1 / 60 : 1;
   const now = useNow(clockConfig.minutesMs);
   const ready = readyExpeditions(save, now);
 
@@ -165,14 +163,12 @@ function ExpeditionsContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setTab comes from this render and is stable.
   }, [tabParam]);
 
-  // Re-read when the day changes or a debug override does.
+  // Re-read when the day changes.
   const day = rotationDay(now);
-  const dayOffset = useDebugStore((state) => state.rotationDayOffset);
-  const forcedBriefings = useDebugStore((state) => state.forcedBriefings);
   const rotation = useMemo(
     () => currentRotation(now),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [day, dayOffset, forcedBriefings],
+    [day],
   );
 
   /** The first launch asks, in game, before the OS permission prompt. */
@@ -180,7 +176,7 @@ function ExpeditionsContent() {
     const setOut = async () => {
       // The pure send rule refuses working heroes: recall them first, in the same tap.
       recallWorkingHeroes(party);
-      start(dungeonId, party, durationScale, loadout);
+      start(dungeonId, party, loadout);
       syncBackground();
       if (askedPermission) return;
       setSettings({ askedNotificationPermission: true });
@@ -294,7 +290,7 @@ function ExpeditionsContent() {
               key={dungeon.id}
               dungeon={dungeon}
               briefing={briefings[dungeon.id]}
-              sub={`${t(`expeditions.kind.${dungeon.isBoss ? 'boss' : dungeon.difficulty === 'easy' ? 'short' : 'long'}`)} · ${formatDuration(expeditionMinutes(save, dungeon) * 60_000 * durationScale)}`}
+              sub={`${t(`expeditions.kind.${dungeon.isBoss ? 'boss' : dungeon.difficulty === 'easy' ? 'short' : 'long'}`)} · ${formatDuration(expeditionMinutes(save, dungeon) * 60_000)}`}
               source={dungeonLootSource(dungeon)}
               firstWin={firstWinAvailable(save, dungeon, now)}
               readiness={available ? readiness[dungeon.id] : null}
@@ -422,7 +418,6 @@ function ExpeditionsContent() {
       {confirmingDungeon && (
         <ExpeditionDialog
           dungeon={confirmingDungeon}
-          durationScale={durationScale}
           now={now}
           onClose={() => setConfirming(null)}
           onSend={(party, loadout) => {

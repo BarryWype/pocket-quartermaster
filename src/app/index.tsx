@@ -25,7 +25,6 @@ import { markerHits, offerChooser, type MarkerHit } from '@/components/markerHit
 import { PANEL_KINDS } from '@/components/places/placeText';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { PickupPops } from '@/components/PickupPops';
-import { SupplyLayers } from '@/components/SupplyLayers';
 import { SupplyMarkers } from '@/components/SupplyMarkers';
 import { SupplyRoute } from '@/components/SupplyRoute';
 import { CartMarker } from '@/components/CartMarker';
@@ -42,7 +41,6 @@ import { placeGroups, placeRules } from '@/content/places';
 import { placeRevealKinds, type TipId } from '@/content/reveal';
 import { sanctumRules } from '@/content/sanctums';
 import { siteGroup } from '@/content/supplyLines';
-import { spawnConfig } from '@/content/spawnConfig';
 import { tavernRules } from '@/content/taverns';
 import { tutorialRules } from '@/content/tutorial';
 import { walkableRules } from '@/content/walkable';
@@ -57,7 +55,7 @@ import { gathererFinds, gathererHeroAt } from '@/game/jobs/gatherer';
 import { heroClasses } from '@/content/heroes';
 import { useSupplyOn } from '@/hooks/useSupply';
 import { generateSpawnsAround } from '@/game/generation/spawns';
-import type { LatLng, Spawn, SpawnConfig } from '@/game/generation/types';
+import type { LatLng, Spawn } from '@/game/generation/types';
 import { visibleSpawns } from '@/game/generation/visibility';
 import { patrolRulesAt, trackedRange, trackWindows, walkEffectAt, walkEffectSpawns } from '@/game/gathering/walkEffects';
 import { patrolPositionAt, patrolsAround, pruneByWindow, type PatrolSpawn } from '@/game/patrols/generate';
@@ -156,7 +154,6 @@ function MapRoute() {
     return () => unsubscribe.forEach((fn) => fn());
   }, [navigation]);
   const autoMode = useWorldStore((state) => state.autoGather);
-  const unmountWhenCovered = useDebugStore((state) => debugEnabled(state) && state.unmountMapWhenCovered);
 
   // Other screens (quests, the launch dialog) read the player's position here, also while the map is frozen.
   const position = player.status === 'ready' ? player.location.position : null;
@@ -176,8 +173,6 @@ function MapRoute() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode, fixAt]);
 
-  if (unmountWhenCovered && covered) return <View style={styles.covered} />;
-
   return (
     <Freeze freeze={covered}>
       <MapScreen player={player} />
@@ -190,17 +185,11 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const insets = useSafeAreaInsets();
   const setDebug = useDebugStore((state) => state.set);
   const debugOn = useDebugStore(debugEnabled);
-  const timeOfDay = useDebugStore((state) => state.timeOfDay);
-  const windowMinutes = useDebugStore((state) => state.windowMinutes);
   const save = useGameStore((state) => state.save);
   const collect = useGameStore((state) => state.collect);
   const collectTreasure = useGameStore((state) => state.collectTreasure);
   const collectTutorialSpawn = useGameStore((state) => state.collectTutorialSpawn);
   const collectFromHere = useGameStore((state) => state.collectFromHere);
-  const debugSanctum = useDebugStore((state) => state.debugSanctum);
-  const debugTavern = useDebugStore((state) => state.debugTavern);
-  const debugPlaces = useDebugStore((state) => state.debugPlaces);
-  const debugSites = useDebugStore((state) => state.debugSites);
   // The panels' open state lives in its own store (MapPanels reads it), so opening
   // or closing one never re-renders the markers; only the narrow slices the map
   // screen itself needs are subscribed to here.
@@ -238,9 +227,6 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const autoEnabled = useSettingsStore((state) => pocketTracking(state.pocketMode));
   const supplyOn = useSupplyOn();
   const sight = useSettingsStore((s) => s.sightRange);
-  const showAutoRadius = useDebugStore((state) => debugOn && state.showAutoRadius);
-  const showNodeRanges = useDebugStore((state) => debugOn && state.showNodeRanges);
-  const noDecorations = useDebugStore((state) => debugOn && state.noMapDecorations);
 
   useEffect(
     () =>
@@ -268,16 +254,8 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   // Spawn windows are whole minutes, so regenerating once a minute is enough.
   const spawns = useMemo(() => {
     if (!position) return [];
-    const config: SpawnConfig = windowMinutes
-      ? {
-          ...spawnConfig,
-          kinds: Object.fromEntries(
-            Object.entries(spawnConfig.kinds).map(([kind, settings]) => [kind, { ...settings, windowMinutes }]),
-          ) as SpawnConfig['kinds'],
-        }
-      : spawnConfig;
-    return recordTiming('map: generateSpawnsAround', () => generateSpawnsAround(position, minute * 60_000, { config, timeOfDay: timeOfDay ?? undefined }));
-  }, [position?.latitude, position?.longitude, minute, timeOfDay, windowMinutes]);
+    return recordTiming('map: generateSpawnsAround', () => generateSpawnsAround(position, minute * 60_000));
+  }, [position?.latitude, position?.longitude, minute]);
   // A lure adds private herbs and animals for a while.
   // Hunter's musk draws animals the same way.
   const lured = useMemo(
@@ -299,7 +277,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const sanctumsInSight = useMemo(
     () =>
       recordTiming('map: sanctumsInSight', () =>
-        [...(sanctumsShown ? placedSanctums : []), ...(debugSanctum ? [debugSanctum] : [])].filter(
+        [...(sanctumsShown ? placedSanctums : [])].filter(
           (s) =>
             s.expiresAt > now &&
             !(s.id in save.usedSanctums) &&
@@ -309,7 +287,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
       ),
     // Keyed by the coordinates, not the object: GPS fixes would recompute every list each second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placedSanctums, sanctumsShown, debugSanctum, now, save.usedSanctums, sight, position?.latitude, position?.longitude],
+    [placedSanctums, sanctumsShown, now, save.usedSanctums, sight, position?.latitude, position?.longitude],
   );
 
   // Tavern windows last days, so regenerating once a minute is enough.
@@ -324,13 +302,13 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const tavernsInSight = useMemo(
     () =>
       recordTiming('map: tavernsInSight', () =>
-        [...(tavernsShown ? [...placedTaverns, ...personal] : []), ...(debugTavern ? [debugTavern] : [])].filter(
+        [...(tavernsShown ? [...placedTaverns, ...personal] : [])].filter(
           (t) => position !== null && distanceMeters(position, t.position) <= tavernRules.visibilityMeters * sight,
         ),
       ),
     // Keyed by the coordinates, not the object: GPS fixes would recompute every list each second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placedTaverns, personal, tavernsShown, debugTavern, sight, position?.latitude, position?.longitude],
+    [placedTaverns, personal, tavernsShown, sight, position?.latitude, position?.longitude],
   );
 
   // Places and fight events within sight (plus snapping room), and this player's replacement ruins, placed on walkable places.
@@ -359,11 +337,11 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     if (!position || !supplyOn) return [];
     const reach = siteGroup.visibilityMeters * sight + placePlacement.maxSnapMeters;
     return recordTiming('map: siteCandidates', () =>
-      [...sitesAround(position, minute * 60_000), ...personalSite, ...debugSites].filter(
+      [...sitesAround(position, minute * 60_000), ...personalSite].filter(
         (site) => distanceMeters(position, site.position) <= reach,
       ),
     );
-  }, [position, minute, sight, supplyOn, personalSite, debugSites]);
+  }, [position, minute, sight, supplyOn, personalSite]);
   const placedSites = usePlacedPoints(siteCandidates, placePlacement, keepPlace);
   const sitesInSight = useMemo(
     () =>
@@ -385,7 +363,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
   const placesInSight = useMemo(
     () =>
       recordTiming('map: placesInSight', () =>
-        [...placedPlaces.filter((place) => isPlaceRevealed(save, place.kind)), ...debugPlaces].filter(
+        placedPlaces.filter((place) => isPlaceRevealed(save, place.kind)).filter(
           (place) =>
             position !== null &&
             isPlaceVisible(place, position, now, sight) &&
@@ -394,7 +372,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
       ),
     // Keyed by the coordinates, not the object: GPS fixes would recompute every list each second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placedPlaces, debugPlaces, position?.latitude, position?.longitude, now, save, sight],
+    [placedPlaces, position?.latitude, position?.longitude, now, save, sight],
   );
   // This player's tipped secret places: shown at any distance until they move on.
   const tippedSecrets = useSecretPlaces(save, now);
@@ -777,13 +755,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
     ...(selectedPatrol
       ? [{ id: 'patrol', center: patrolPositionAt(selectedPatrol, now), radius: patrolRules.engageMeters, kind: 'patrol' as const }]
       : []),
-    ...(autoOn || showAutoRadius ? [{ id: 'auto', center: position, radius: autoRadius, kind: 'auto' as const }] : []),
-    ...(showNodeRanges
-      ? [
-          { id: 'tap', center: position, radius: collectRadius, kind: 'tap' as const },
-          ...visible.map(({ spawn, position: at }) => ({ id: spawn.id, center: at, radius: gatheringConfig.autoGather.radiusMeters, kind: 'node' as const })),
-        ]
-      : []),
+    ...(autoOn ? [{ id: 'auto', center: position, radius: autoRadius, kind: 'auto' as const }] : []),
   ];
   const showPill = pocketModeAvailable(save);
 
@@ -834,11 +806,10 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
       >
         <Camera ref={cameraRef} initialViewState={{ center: toLngLat(position), zoom: 17 }} />
         <Images images={MAP_TEXTURES} />
-        {!noDecorations && <MapWater mode={decor} />}
-        {!noDecorations && <MapTrail position={position} />}
-        {!noDecorations && <MapFoliage data={foliage.data} mode={decor} />}
+        <MapWater mode={decor} />
+        <MapTrail position={position} />
+        <MapFoliage data={foliage.data} mode={decor} />
         <MapRanges circles={ranges} />
-        {supplyOn && <SupplyLayers bounds={bounds} position={position} />}
         {supplyOn && <SupplyRoute />}
         {supplyOn && <SupplyMarkers sites={sitesInSight} now={now} />}
         {supplyOn && <CartMarker />}
@@ -876,7 +847,7 @@ function MapScreen({ player }: { player: PlayerLocationState }) {
         <PickupPops />
         {supplyOn && <RouteModePins />}
       </Map>
-      {!noDecorations && <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />}
+      <MapSky pan={skyPan} hour={ambience.hour} raining={ambience.raining} decor={decor !== 'hidden'} />
       <MapTopBar />
       {player.mocked && (
         <View style={[styles.banner, { top: insets.top + TOP_BAR_HEIGHT + 48 }]}>
@@ -960,7 +931,6 @@ const TOAST_TILE = 34;
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  covered: { flex: 1, backgroundColor: ui.woodDark },
   // Below the map attribution; leaves the right side to the walk effect chips.
   freshLegs: { left: 16, maxWidth: '60%', alignSelf: 'auto' },
   freshLegsButton: { left: 16 },

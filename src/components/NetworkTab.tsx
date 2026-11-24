@@ -33,7 +33,6 @@ import { generateTavernsAround, tavernNameOf } from '@/game/taverns/taverns';
 import { formatDistance, formatDuration, formatPercent, t } from '@/i18n';
 import { useNow } from '@/hooks/useNow';
 import { navigate } from '@/services/navigation';
-import { useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -177,7 +176,7 @@ function openOrderPlace(order: Order, save: SaveData, around: LatLng | null, now
   if (at && 'place' in at) useWorldStore.getState().set({ focusPlace: at.position });
 }
 
-/** The nearest live site: the world's within 1.5 km plus the personal and debug ones, undiscovered; `any` drops both filters. */
+/** The nearest live site: the world's within 1.5 km plus the personal ones, undiscovered; `any` drops both filters. */
 function nearestSite(save: SaveData, player: LatLng | null, now: number, any: boolean): PlaceSpawn | null {
   if (!player) return null;
   const live = (site: PlaceSpawn) => site.startsAt <= now && now < site.expiresAt;
@@ -187,7 +186,6 @@ function nearestSite(save: SaveData, player: LatLng | null, now: number, any: bo
     [
       ...sitesAround(player, now).filter((site) => live(site) && fresh(site) && near(site)),
       ...personalSites(save, now).filter((site) => live(site) && fresh(site)),
-      ...useDebugStore.getState().debugSites.filter((site) => live(site) && fresh(site)),
     ],
     player,
   );

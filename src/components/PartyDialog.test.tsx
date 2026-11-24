@@ -44,7 +44,7 @@ describe('the party dialog', () => {
   it('opens empty, fills from Suggest with the gear pending, and equips from the pickers', () => {
     let renderer!: ReactTestRenderer;
     act(() => {
-      renderer = create(<ExpeditionDialog dungeon={dungeon} briefing={briefing} now={0} durationScale={1} onSend={() => {}} onClose={() => {}} />);
+      renderer = create(<ExpeditionDialog dungeon={dungeon} briefing={briefing} now={0} onSend={() => {}} onClose={() => {}} />);
     });
     expect(byLabel(renderer, (l) => l === 'Add a hero')).toHaveLength(3);
     expect(text(renderer)).toContain('"?"');
@@ -79,7 +79,7 @@ describe('the party dialog', () => {
     });
     let renderer!: ReactTestRenderer;
     act(() => {
-      renderer = create(<ExpeditionDialog dungeon={dungeon} briefing={briefing} now={0} durationScale={1} onSend={() => {}} onClose={() => {}} />);
+      renderer = create(<ExpeditionDialog dungeon={dungeon} briefing={briefing} now={0} onSend={() => {}} onClose={() => {}} />);
     });
     press(byLabel(renderer, (l) => l === 'Add a hero')[0]);
     press(byLabel(renderer, (l) => /^Add (?!a hero)/.test(l))[0]);
@@ -109,8 +109,7 @@ describe('the party dialog', () => {
             dungeon={dungeon}
             briefing={briefing}
             now={0}
-            durationScale={1}
-            onSend={(party) => useGameStore.getState().startExpedition(dungeon.id, party, 1)}
+            onSend={(party) => useGameStore.getState().startExpedition(dungeon.id, party)}
             onClose={() => {}}
           />,
         );

@@ -11,7 +11,6 @@ import { rolledTrade } from '@/game/supply/trades';
 import { buySupplyProblem, recruitProblem, supplyPrice, tavernOffers, type RecruitOffer, type TavernSpawn } from '@/game/taverns/taverns';
 import { t, tr } from '@/i18n';
 import { feel } from '@/services/feel';
-import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
 
@@ -50,8 +49,7 @@ export function TavernSheet({ tavern, player, now, onClose }: Props) {
   const [openedAt] = useState(() => Date.now());
   const base = usePlaceSheet(tavern, player, now, tavernRules.interactionMeters);
   const { save } = base;
-  const offerSeed = useDebugStore((state) => (debugEnabled(state) ? state.offerSeed : ''));
-  const offers = tavernOffers(save, tavern.id, openedAt, offerSeed);
+  const offers = tavernOffers(save, tavern.id, openedAt);
   const seeClasses = useGameStore((state) => state.seeClasses);
   const offeredClasses = offers.map((o) => o.classId).join(',');
   useEffect(() => seeClasses(offeredClasses.split(',') as RecruitOffer['classId'][]), [offeredClasses, seeClasses]);

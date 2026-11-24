@@ -238,7 +238,6 @@ export function SecretSheet({ place, player, now, onClose }: PlaceSheetProps) {
         <ExpeditionDialog
           dungeon={underwaterDungeonFor(save)}
           now={now}
-          durationScale={1}
           briefing={underwaterBriefing(save, place)}
           onClose={() => setConfirming(false)}
           onSend={(party, loadout) => {

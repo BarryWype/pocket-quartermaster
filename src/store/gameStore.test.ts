@@ -90,15 +90,4 @@ describe('gameStore', () => {
 
     expect(useGameStore.getState().save.gold).toBe(0);
   });
-
-  it('clamps the debug hero level between 1 and 15', () => {
-    const { debugSetHeroLevel } = useGameStore.getState();
-    const hero = useGameStore.getState().save.heroes[0];
-    debugSetHeroLevel(hero.id, 99);
-
-    expect(useGameStore.getState().save.heroes.find((h) => h.id === hero.id)!.level).toBe(15);
-
-    debugSetHeroLevel(hero.id, 0);
-    expect(useGameStore.getState().save.heroes.find((h) => h.id === hero.id)!.level).toBe(1);
-  });
 });

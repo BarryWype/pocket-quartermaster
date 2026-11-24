@@ -2,7 +2,6 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { Text } from 'react-native';
 
 import { Deferred } from './GhostScreen';
-import { useDebugStore } from '@/store/debugStore';
 
 // The ghost shows first by design; the test only cares about the very first render.
 jest.mock('@/hooks/useAfterFirstFrame', () => ({ useAfterFirstFrame: () => false }));
@@ -25,14 +24,5 @@ describe('Deferred', () => {
     expect(text()).toContain('ghost');
     expect(text()).not.toContain('content');
     act(() => tree.unmount());
-  });
-
-  it('renders the content on the first render when content deferral is off', () => {
-    useDebugStore.setState({ enabled: true, noContentDeferral: true });
-    const { tree, text } = mount();
-    expect(text()).toContain('content');
-    expect(text()).not.toContain('ghost');
-    act(() => tree.unmount());
-    useDebugStore.setState({ noContentDeferral: false });
   });
 });

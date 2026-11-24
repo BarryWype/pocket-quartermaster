@@ -7,7 +7,7 @@ import { recipes } from '@/content/recipes';
 
 import { createInitialSave, type SaveData } from '../save';
 import type { GearType, ProvisionDef } from '../types';
-import { canCraft, craft, forgetRecipe, isKnown, learnAllRecipes, ownsTool, unlockRecipe } from './crafting';
+import { canCraft, craft, isKnown, ownsTool, unlockRecipe } from './crafting';
 
 const withMaterials = (counts: Record<string, number>, extra: Partial<SaveData> = {}): SaveData => ({
   ...createInitialSave(),
@@ -218,22 +218,6 @@ describe('consumable recipes', () => {
     expect(isKnown({ ...tier5, partRecipes: ['revivalDraught'] }, recipeById.revivalDraught)).toBe(true);
     expect(isKnown(tier5, recipeById.greaterHealingPotion)).toBe(true);
     expect(isKnown(tier4, recipeById.greaterHealingPotion)).toBe(false);
-  });
-});
-
-describe('debug recipe tools', () => {
-  it('forgets only the asked recipe', () => {
-    const save = forgetRecipe(createInitialSave(), 'sword1');
-    expect(save.knownRecipes).not.toContain('sword1');
-    expect(save.knownRecipes).toContain('mail1');
-    expect(isKnown(save, recipeById.sword1)).toBe(false);
-    expect(forgetRecipe(save, 'sword1').knownRecipes).toEqual(save.knownRecipes);
-  });
-
-  it('learns every recipe', () => {
-    const save = learnAllRecipes(createInitialSave());
-    expect(save.knownRecipes).toHaveLength(Object.keys(recipeById).length);
-    expect(isKnown(save, recipeById.warhammer1)).toBe(true);
   });
 });
 

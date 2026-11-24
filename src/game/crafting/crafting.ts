@@ -1,10 +1,9 @@
-import { itemById, recipeById } from '@/content/lookup';
+import { itemById } from '@/content/lookup';
 import type { Rarity } from '@/content/gear';
 
 import { highestUnlockedTier } from '../dungeons/unlock';
 import { ELEMENTS, shardId, type Element } from '../elements';
 import { makeGearPiece, type GearPieceOptions } from '../gear/make';
-import { tierRecipes } from './recipeUnlocks';
 import { addMaterials, hasMaterials, removeMaterials } from '../inventory';
 import type { SaveData } from '../save';
 import type { GearDef, GearInstance, MaterialStack, RecipeDef } from '../types';
@@ -58,19 +57,6 @@ export function forgedItem(recipe: RecipeDef) {
 export function unlockRecipe(save: SaveData, recipeId: string): SaveData {
   if (save.knownRecipes.includes(recipeId)) return save;
   return { ...save, knownRecipes: [...save.knownRecipes, recipeId] };
-}
-
-/** Removes a recipe from the known list (debug). */
-export function forgetRecipe(save: SaveData, recipeId: string): SaveData {
-  return { ...save, knownRecipes: save.knownRecipes.filter((id) => id !== recipeId) };
-}
-
-/** Teaches every gear blueprint of a tier (debug). */
-export const learnTier = (save: SaveData, tier: number): SaveData => tierRecipes(tier).reduce(unlockRecipe, save);
-
-/** Teaches every recipe (debug). */
-export function learnAllRecipes(save: SaveData): SaveData {
-  return Object.keys(recipeById).reduce<SaveData>((next, id) => unlockRecipe(next, id), save);
 }
 
 /**

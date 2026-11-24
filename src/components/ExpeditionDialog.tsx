@@ -38,7 +38,6 @@ import { ParchmentCard, WoodButton } from './ui';
 type Props = {
   dungeon: DungeonDef;
   now: number;
-  durationScale: number;
   /** A secret dungeon's own briefing, instead of the day's. */
   briefing?: Briefing;
   onSend: (party: string[], loadout: Loadout) => void;
@@ -83,7 +82,6 @@ function ExpeditionDetails({
   loadout,
   setLoadout,
   now,
-  durationScale,
 }: {
   save: SaveData;
   party: string[];
@@ -92,7 +90,6 @@ function ExpeditionDetails({
   loadout: Required<Loadout>;
   setLoadout: (loadout: Required<Loadout>) => void;
   now: number;
-  durationScale: number;
 }) {
   const drinkPotion = useGameStore((state) => state.drinkPotion);
   const buySupply = useGameStore((state) => state.buySupply);
@@ -197,7 +194,7 @@ function ExpeditionDetails({
         </View>
       ))}
       <View style={styles.row}>
-        <IconLabel emoji="⏳" label={formatDuration((party.length > 0 ? plan.minutes : expeditionMinutes(save, dungeon)) * 60_000 * durationScale)} labelStyle={styles.text} />
+        <IconLabel emoji="⏳" label={formatDuration((party.length > 0 ? plan.minutes : expeditionMinutes(save, dungeon)) * 60_000)} labelStyle={styles.text} />
         {plan.shortcut && <FamilyTag family="cunning" named={false} size={18} />}
         {plan.shortcut && <Text style={styles.good}>{t('families.shortcut')}</Text>}
       </View>
@@ -227,7 +224,7 @@ function ExpeditionDetails({
 }
 
 /** An expedition's party dialog: the shared one, with the run's supplies and meal under the plates. */
-export function ExpeditionDialog({ dungeon, now, durationScale, briefing: fixedBriefing, onSend, onClose }: Props) {
+export function ExpeditionDialog({ dungeon, now, briefing: fixedBriefing, onSend, onClose }: Props) {
   const save = useGameStore((state) => state.save);
   const [loadout, setLoadout] = useState<Required<Loadout>>({ mealId: null, optIn: false });
   // Once a minute is enough: the briefing, HP and the odds follow the minute.
@@ -254,7 +251,7 @@ export function ExpeditionDialog({ dungeon, now, durationScale, briefing: fixedB
   return (
     <PartyDialog
       title={tr(dungeon.name)}
-      subtitle={`${kind === 'overnight' ? t('expeditions.overnight.title') : t(`expeditions.kind.${kind}`)} · ${formatDuration(expeditionMinutes(save, dungeon) * 60_000 * durationScale)}`}
+      subtitle={`${kind === 'overnight' ? t('expeditions.overnight.title') : t(`expeditions.kind.${kind}`)} · ${formatDuration(expeditionMinutes(save, dungeon) * 60_000)}`}
       slots={rosterRules.partySize}
       draftKey={`expedition:${dungeon.id}`}
       briefing={briefing}
@@ -277,7 +274,6 @@ export function ExpeditionDialog({ dungeon, now, durationScale, briefing: fixedB
           loadout={loadout}
           setLoadout={setLoadout}
           now={minute}
-          durationScale={durationScale}
         />
       )}
       onSend={(party) => onSend(party, loadout)}

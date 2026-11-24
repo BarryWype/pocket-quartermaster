@@ -3,7 +3,7 @@ import '@/services/walkTracking';
 
 import { Alegreya_500Medium, Alegreya_700Bold } from '@expo-google-fonts/alegreya';
 import { useFonts } from 'expo-font';
-import { Stack, usePathname } from 'expo-router';
+import { Stack } from 'expo-router';
 import { memo, useEffect, useMemo } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,7 +23,6 @@ import { usePatrols } from '@/hooks/usePatrols';
 import { useStepTracking } from '@/hooks/useTodaySteps';
 import { t } from '@/i18n';
 import { configureChannels, configureNotifications } from '@/services/notifications';
-import { debugEnabled, useDebugStore } from '@/store/debugStore';
 import { useGameStore } from '@/store/gameStore';
 import { colors, fonts, ui } from '@/theme';
 
@@ -38,10 +37,8 @@ const BackgroundServices = memo(function BackgroundServices() {
   useUpkeep();
   useStepTracking();
   useNotifications();
-  const pathname = usePathname();
-  const paused = useDebugStore((s) => debugEnabled(s) && s.pauseBackgroundHooks) && pathname !== '/';
-  useAutoGather(paused);
-  usePatrols(paused);
+  useAutoGather();
+  usePatrols();
   useCartTick();
   return null;
 });
@@ -100,7 +97,6 @@ export default function RootLayout() {
   // Memoized so the stack never reconfigures a screen for an options object it
   // cannot tell apart from the last one; the headers are module-level for the
   // same reason. Rebuilt when the language or the safe area changes.
-  const noAnimation = useDebugStore((s) => debugEnabled(s) && s.noScreenAnimation);
   const screenOptions = useMemo(
     () => ({
       headerStyle: { backgroundColor: colors.wood },
@@ -108,9 +104,8 @@ export default function RootLayout() {
       headerTitleStyle: { fontFamily: fonts.body, fontSize: 26 },
       headerBackTitleStyle: { fontFamily: fonts.body },
       contentStyle: [{ backgroundColor: colors.parchment }, below],
-      ...(noAnimation ? { animation: 'none' as const } : {}),
     }),
-    [below, noAnimation],
+    [below],
   );
   const options = useMemo(
     () => ({
