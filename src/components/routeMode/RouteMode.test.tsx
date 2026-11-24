@@ -240,4 +240,33 @@ describe('route mode', () => {
     expect(useMapPanels.getState().routeTapNote).toBeNull();
     await settle();
   });
+
+  it('a tap on a building’s own marker, not its pin, puts it on the route like the pin', async () => {
+    act(() => {
+      useGameStore.setState({ save: saveWith([building('farm', 'farm', 150)]) });
+      useMapPanels.getState().openRouteMode([]);
+    });
+    act(() => {
+      renderer = create(
+        <>
+          <SupplyMarkers sites={[]} now={Date.now()} />
+          <RouteModePins />
+          <RouteBar />
+        </>,
+      );
+    });
+    const r = renderer!;
+    // The building's dimmed marker sits on the same spot as its pin and can catch the tap.
+    const pressMarker = () =>
+      act(() => {
+        r.root.findAll((node) => node.props?.id === 'supply-building:farm' && typeof node.props?.onPress === 'function').at(-1)!.props.onPress();
+      });
+    pressMarker();
+    expect(draft()).toEqual([{ building: 'farm' }]);
+    expect(useMapPanels.getState().routeTapNote).toBeNull();
+    expect(text(r)).not.toContain('Not a stop.');
+    pressMarker();
+    expect(draft()).toEqual([]);
+    await settle();
+  });
 });

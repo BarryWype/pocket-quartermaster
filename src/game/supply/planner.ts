@@ -103,7 +103,7 @@ export type NotStopReason = 'site' | 'notNetwork' | 'tooFar' | 'undiscovered' | 
  */
 export function whyNotStop(
   save: SaveData,
-  target: { kind: 'building'; position: LatLng } | { kind: PlaceKind; id: string; position: LatLng },
+  target: { kind: 'building' | PlaceKind; id: string; position: LatLng },
   now: number,
 ): NotStopReason | null {
   const hall = save.supply.hall;

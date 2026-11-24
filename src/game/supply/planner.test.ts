@@ -117,7 +117,7 @@ describe('whyNotStop', () => {
 
   it('says a place or a building beyond the reach is too far, before asking to walk there', () => {
     expect(whyNotStop(save, { kind: 'tavern', id: 'unknown', position: far }, now)).toBe('tooFar');
-    expect(whyNotStop(save, { kind: 'building', position: far }, now)).toBe('tooFar');
+    expect(whyNotStop(save, { kind: 'building', id: 'b1', position: far }, now)).toBe('tooFar');
   });
 
   it('asks to discover a place first, then says when it wants nothing', () => {
@@ -127,6 +127,6 @@ describe('whyNotStop', () => {
 
   it('finds nothing wrong with a stop the planner offers', () => {
     expect(whyNotStop(save, { kind: 'tavern', id: 't1', position: near }, now)).toBeNull();
-    expect(whyNotStop(save, { kind: 'building', position: near }, now)).toBeNull();
+    expect(whyNotStop(save, { kind: 'building', id: 'b1', position: near }, now)).toBeNull();
   });
 });

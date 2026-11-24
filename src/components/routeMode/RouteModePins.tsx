@@ -9,11 +9,9 @@ import { tileCenter } from '@/game/generation/tiles';
 import { sameStop } from '@/game/supply/autoRoute';
 import { loopPreview } from '@/game/supply/cart';
 import { plannerStops } from '@/game/supply/planner';
-import { isStop, moveGrab, toggleStop } from '@/game/supply/routeEdit';
-import type { RoutePoint } from '@/game/supply/types';
+import { isStop, moveGrab } from '@/game/supply/routeEdit';
 import { useNow } from '@/hooks/useNow';
 import { t } from '@/i18n';
-import { feel } from '@/services/feel';
 import { snapGrab } from '@/services/streetPath';
 import { useGameStore } from '@/store/gameStore';
 import { useMapPanels } from '@/store/mapPanelsStore';
@@ -21,17 +19,11 @@ import { ui } from '@/theme';
 
 import { ROUTE_COLOUR } from '../SupplyRoute';
 
+import { toggleRouteStop } from './routeTap';
 import { stopEmoji, stopId, stopName } from './stops';
 
 const PIN = 48;
 const toLngLat = (position: { latitude: number; longitude: number }): [number, number] => [position.longitude, position.latitude];
-
-/** A tapped pin goes on the draft as the next stop, or off it. */
-const toggle = (point: RoutePoint) => {
-  feel('press');
-  const mode = useMapPanels.getState().routeMode;
-  if (mode) useMapPanels.getState().setRouteDraft(toggleStop(mode.draft, point));
-};
 
 /** A grab point let go: it snaps to the nearest street, and the route redraws through it. */
 const dropGrab = (index: number, at: { latitude: number; longitude: number }) => {
@@ -82,7 +74,7 @@ export const RouteModePins = memo(function RouteModePins() {
         const on = draft.some((picked) => sameStop(picked, point));
         const name = stopName(save, point);
         return (
-          <Marker key={id} id={`route-pin:${id}`} lngLat={toLngLat(position)} onPress={() => toggle(point)}>
+          <Marker key={id} id={`route-pin:${id}`} lngLat={toLngLat(position)} onPress={() => toggleRouteStop(point)}>
             <View
               style={[styles.pin, on && styles.pinOn]}
               accessibilityRole="button"

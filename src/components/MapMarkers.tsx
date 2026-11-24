@@ -3,7 +3,7 @@ import { StyleSheet, View, type ImageSourcePropType } from 'react-native';
 
 import { MapMarker, markerDim, RouteDimContext } from '@/components/MapMarker';
 import { useMapPanels } from '@/store/mapPanelsStore';
-import { routeTapNote } from '@/components/routeMode/routeTap';
+import { routeTap } from '@/components/routeMode/routeTap';
 
 import { GameIcon } from '@/components/GameIcon';
 import { PatrolMarker } from '@/components/PatrolMarker';
@@ -243,7 +243,7 @@ function MapMarkersBase({
             id={tavern.id}
             lngLat={toLngLat(tavern.position)}
             network={supplyOn && tavern.id in save.supply.discovered}
-            notAStop={() => routeTapNote({ kind: 'tavern', id: tavern.id, position: tavern.position }, tavern.name)}
+            onRouteTap={() => routeTap({ kind: 'tavern', id: tavern.id, position: tavern.position }, tavern.name)}
             onPress={tapped(() => onOpenTavern(tavern))}
           >
             <TimedSanctumMarker
@@ -267,7 +267,7 @@ function MapMarkersBase({
             id={place.id}
             lngLat={toLngLat(place.position)}
             network={supplyOn && isNetworkKind(place.kind) && place.id in save.supply.discovered}
-            notAStop={() => routeTapNote(place, tr(placeInfo[place.kind].name))}
+            onRouteTap={() => routeTap(place, tr(placeInfo[place.kind].name))}
             onPress={tapped(() => onOpenPlace(place))}
           >
             <TimedSanctumMarker

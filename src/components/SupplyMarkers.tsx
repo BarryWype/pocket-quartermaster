@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { MapMarker, markerDim, RouteDimContext } from '@/components/MapMarker';
 import { BadgeIcon, badgeLabel } from '@/components/network/NetworkBadge';
-import { routeTapNote } from '@/components/routeMode/routeTap';
+import { routeTap } from '@/components/routeMode/routeTap';
 
 import { GameIcon } from '@/components/GameIcon';
 import { SiteMarker } from '@/components/SiteMarker';
@@ -78,7 +78,7 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
           id={`supply-building:${building.id}`}
           network
           lngLat={toLngLat(building.position)}
-          notAStop={() => routeTapNote({ kind: 'building', position: building.position }, t(buildingNameKey[building.kind]))}
+          onRouteTap={() => routeTap({ kind: 'building', id: building.id, position: building.position }, t(buildingNameKey[building.kind]))}
           onPress={tapped(() => useMapPanels.getState().openSupplyBuilding(building.id))}
         >
           <View style={styles.building}>
@@ -99,7 +99,7 @@ export const SupplyMarkers = memo(function SupplyMarkers({ sites, now }: Props) 
           id={`supply-site:${site.id}`}
           network
           lngLat={toLngLat(site.position)}
-          notAStop={() => routeTapNote(site, '')}
+          onRouteTap={() => routeTap(site, '')}
           onPress={tapped(() => useMapPanels.getState().openSite(site))}
         >
           <SiteMarker

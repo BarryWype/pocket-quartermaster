@@ -21,14 +21,14 @@ export const markerDim = (routing: boolean, networkOnly: boolean): MarkerDim => 
  * A map marker that route mode and the Network toggle can dim: the same
  * element whether dimmed or not, so a switch re-renders the markers once
  * without remounting them. `network` marks a marker that stays lit with the
- * Network toggle on. `notAStop` says why it can’t be a stop of the
- * delivery route (the general rule when left out).
+ * Network toggle on. `onRouteTap` answers a tap in route mode (the general
+ * "not a stop" rule when left out).
  */
-export function MapMarker({ onPress, children, network, notAStop, ...props }: MarkerProps & { network?: boolean; notAStop?: () => string | null }) {
+export function MapMarker({ onPress, children, network, onRouteTap, ...props }: MarkerProps & { network?: boolean; onRouteTap?: () => void }) {
   const dim = useContext(RouteDimContext);
   const routing = dim === 'route';
   const dimmed = routing || (dim === 'network' && !network);
-  const press = routing ? () => explain(notAStop) : dimmed ? undefined : onPress;
+  const press = routing ? (onRouteTap ?? notAStop) : dimmed ? undefined : onPress;
   return (
     <Marker {...props} onPress={press}>
       <View style={dimmed ? styles.dimmed : undefined} pointerEvents={dimmed && !routing ? 'none' : 'auto'}>
@@ -38,10 +38,10 @@ export function MapMarker({ onPress, children, network, notAStop, ...props }: Ma
   );
 }
 
-/** A tap on a marker route mode dimmed: the route bar says why it isn't a stop. */
-const explain = (notAStop?: () => string | null) => {
+/** A tap in route mode on a marker that can never be a stop: the route bar gives the general rule. */
+const notAStop = () => {
   feel('press');
-  useMapPanels.getState().setRouteTapNote(notAStop?.() ?? t('routeTap.generic'));
+  useMapPanels.getState().setRouteTapNote(t('routeTap.generic'));
 };
 
 const styles = StyleSheet.create({ dimmed: { opacity: 0.3 } });
