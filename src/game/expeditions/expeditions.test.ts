@@ -24,6 +24,7 @@ import {
   tutorialLoot,
 } from './expeditions';
 import { estimateOdds, oddsBand } from './odds';
+import { stepEffectKeys } from './steps';
 
 const ALL = ['bram', 'lyra', 'mira'];
 const MIN = 60_000;
@@ -187,6 +188,27 @@ describe('resolveExpedition', () => {
     const a = resolveExpedition(save, save.expeditions[0]);
     expect(resolveExpedition(save, save.expeditions[0])).toEqual(a);
     expect(a.report.log.length).toBeGreaterThan(0);
+  });
+
+  it('keeps the run as journey steps', () => {
+    const save = startExpedition(geared(), 'goblinWarren', ALL, 0);
+    const { report } = resolveExpedition(save, save.expeditions[0]);
+    const steps = report.steps;
+    expect(steps).toBeDefined();
+    // Every step's kind is one of the five, and its blows are whole numbers.
+    for (const step of steps!) {
+      expect(['fight', 'boss', 'trap', 'quiet', 'mishap']).toContain(step.kind);
+      if (step.kind === 'fight') expect(step.mobs.length).toBeGreaterThan(0);
+      for (const amount of Object.values(step.dealt ?? {})) expect(Number.isInteger(amount)).toBe(true);
+      for (const amount of Object.values(step.taken ?? {})) expect(Number.isInteger(amount)).toBe(true);
+      for (const key of step.effects ?? []) expect(stepEffectKeys).toContain(key);
+    }
+    // Quiet steps that said nothing are left out, so the strip never outgrows the run.
+    expect(steps!.length).toBeGreaterThan(0);
+    expect(steps!.length).toBeLessThanOrEqual(report.encounterCount);
+    const bossAt = steps!.map((step) => step.kind).lastIndexOf('boss');
+    const lastFightAt = steps!.map((step) => step.kind).lastIndexOf('fight');
+    if (bossAt >= 0) expect(bossAt).toBeGreaterThan(lastFightAt);
   });
 
   it('pays in full for the boss and the cleared share on a retreat', () => {

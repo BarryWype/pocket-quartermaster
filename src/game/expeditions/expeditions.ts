@@ -40,6 +40,7 @@ import type { ActiveExpedition, Briefing, DungeonDef, ExpeditionReport, HeroStat
 import { noteRunOnGear } from '../gear/history';
 import { companionPairs, factsOfReport, noteRunOnHeroes } from '../team/record';
 import { buildLog, withCompanionLine } from './log';
+import { reportSteps } from './steps';
 import { reportTally, type RunTally } from './tally';
 import { heroSupplyNeed, hungerFor, pickSupply, supplyHeld, type SupplyPick } from './provisions';
 import {
@@ -656,6 +657,7 @@ export function resolveExpedition(
     families: run.families,
     ...(gearRun.named.length > 0 ? { gearNames: gearRun.named } : {}),
     tally: withAffixPieces(save, reportTally(run.tally!, run.hp.reduce((sum, h) => sum + h.maxHp, 0) / Math.max(1, run.hp.length))),
+    steps: reportSteps(run),
     consumablesUsed,
     log,
     seen: false,

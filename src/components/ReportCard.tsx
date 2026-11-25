@@ -16,6 +16,7 @@ import { fonts, ui } from '@/theme';
 
 import { FamilySheet } from './FamilySheet';
 import { FreePickPanel } from './FreePickPanel';
+import { JourneyStrip } from './JourneyStrip';
 import { LootGrid } from './LootGrid';
 import { reportNote } from './LootReveal';
 import { GainsLine, IconLabel } from './IconLabel';
@@ -173,6 +174,8 @@ export function ReportCard({ report, heroes, now, expanded, onToggle }: Props) {
           </View>
         );
       })}
+
+      <JourneyStrip report={report} heroes={heroes} />
 
       <PressScale accessibilityRole="button" accessibilityState={{ expanded: logOpen }} onPress={() => setLogOpen(!logOpen)} style={styles.logToggle}>
         <Text style={styles.heading}>{t('expeditions.card.heading.log')}</Text>

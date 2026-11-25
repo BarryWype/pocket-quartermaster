@@ -914,6 +914,25 @@ export type SanctumDef = {
 /** A Sanctum fighter with its family tags. */
 export type SanctumFoe = { name: string; tags: Tag[] };
 
+/** One step of the run's journey, as the report's strip draws it (see expeditions/steps.ts). */
+export type ReportStep = {
+  kind: 'fight' | 'boss' | 'trap' | 'quiet' | 'mishap';
+  /** The trap's, NPC's, event's or boss's name, as the log would say it. */
+  name: string;
+  /** A fight's foes, by mob id; every other step has none. */
+  mobs: { mobId: string; count: number }[];
+  cleared: boolean;
+  /** A trap that went off (a met threat's trap never catches anyone). */
+  trapTriggered: boolean;
+  /** This step's blows by hero, rounded whole; only heroes with any. */
+  dealt?: Record<string, number>;
+  taken?: Record<string, number>;
+  /** Heroes knocked out at this step, including any a revival undid. */
+  knockedOut?: string[];
+  /** What happened here besides the blows: the effect keys worth a badge (expeditions/steps.ts keeps the order). */
+  effects?: string[];
+};
+
 export type ExpeditionReport = {
   id: string;
   dungeonId: string;
@@ -961,6 +980,8 @@ export type ExpeditionReport = {
   freePick?: HeroClassId[];
   /** Who did what in the run, trimmed (see expeditions/tally.ts); reports from before it have none. */
   tally?: RunTally;
+  /** The run's encounters, as the report's journey strip draws them (see expeditions/steps.ts); reports from before the strip have none. */
+  steps?: ReportStep[];
   /** Titles earned and companionships formed on this run. */
   heroNews?: { titles: { heroId: string; titleId: string }[]; companions: [string, string][] };
   /** Gear that earned or grew its name on this run. */
