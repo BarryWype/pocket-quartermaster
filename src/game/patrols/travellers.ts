@@ -1,9 +1,7 @@
-import { newHero } from '@/content/heroes';
 import { patrolRules, travellerRules, type PatrolRules } from '@/content/patrols';
-import { heroNames } from '@/content/roster';
-import { traits } from '@/content/traits';
+import { lootConfig } from '@/content/loot/config';
+import { lootMatrix } from '@/content/loot/matrix';
 import { mealItems, pickSupply, supplyHeld } from '../expeditions/provisions';
-import { highestUnlockedTier } from '../expeditions/expeditions';
 import { rosterCap } from '../guild/guild';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
@@ -12,14 +10,11 @@ import { pickaxeTier } from '../gathering/gathering';
 import { rollForSave } from '../loot/context';
 import { grantLoot } from '../loot/grant';
 import type { Loot } from '../loot/types';
-import { rolledTrade } from '../supply/trades';
 import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
-import { recruitGrade, rollRecruit, type Grade } from '../taverns/roll';
-import { offerLevel, pickRecruitClass } from '../taverns/taverns';
+import { rollFreeRecruit, type FreeRecruit } from '../taverns/freeRecruit';
 import type { SaveData } from '../save';
 import { isAway } from '../team/team';
-import { rolledSpecial } from '../team/specials';
-import type { HeroClassId, HeroRoll, MaterialStack, SpecialId } from '../types';
+import type { MaterialStack } from '../types';
 import { isTravellerKind, pruneByWindow, type PatrolSpawn, type TravellerKind } from './generate';
 import { distanceTo, isGone } from './visibility';
 
@@ -40,19 +35,7 @@ export type TravellerAsk =
   | { kind: 'trades'; trades: TradeOffer[] };
 
 /** A helped traveller's loot (a pilgrim may also bless the heroes at home), or a recruit offer instead. */
-export type TravellerReward = { kind: 'loot'; loot: Loot; blessing: boolean } | { kind: 'recruit'; offer: TravellerRecruit };
-
-export type TravellerRecruit = {
-  id: string;
-  classId: HeroClassId;
-  name: string;
-  trait: string;
-  /** The recruit's special, rolled from the offer id (see game/team/specials.ts). */
-  special: SpecialId;
-  level: number;
-  roll: HeroRoll;
-  grade: Grade;
-};
+export type TravellerReward = { kind: 'loot'; loot: Loot; blessing: boolean } | { kind: 'recruit'; offer: FreeRecruit };
 
 export type HelpProblem = 'tooFar' | 'gone' | 'noStock' | 'trader' | null;
 export type TradeProblem = 'tooFar' | 'gone' | 'usedUp' | 'noMaterials' | null;
@@ -88,25 +71,8 @@ export function helpProblem(
   return null;
 }
 
-/** A recruit offer from a traveller: a pool class for the player's tier, at the tavern offers' level. */
-function travellerRecruit(save: SaveData, spawn: PatrolSpawn): TravellerRecruit {
-  const rng = createRng(`traveller-recruit|${spawn.id}`);
-  const classId = pickRecruitClass(rng, highestUnlockedTier(save), undefined, new Set(save.heroes.map((h) => h.classId)));
-  const names = heroNames[classId];
-  const positive = traits.filter((t) => t.positive);
-  const id = `traveller:${spawn.id}`;
-  const roll = rollRecruit(id, undefined, classId);
-  return {
-    id,
-    classId,
-    name: names[rng.int(0, names.length - 1)],
-    trait: positive[rng.int(0, positive.length - 1)].id,
-    special: rolledSpecial(id, classId),
-    level: offerLevel(save),
-    roll,
-    grade: recruitGrade(roll),
-  };
-}
+/** The Traveller row's recruit mark, as a chance (see lootConfig.markChances). */
+const travellerRecruitChance = () => lootConfig.markChances[lootMatrix.traveller.recruit];
 
 /** The reward a traveller gives: the Traveller row of the loot matrix, seeded on the spawn so it never changes. */
 function rollReward(save: SaveData, spawn: PatrolSpawn, kind: TravellerKind): TravellerReward {
@@ -128,6 +94,7 @@ export function helpTraveller(
   now: number,
   choice: 'meal' | 'supply' | undefined = undefined,
   rules: PatrolRules = patrolRules,
+  recruitChance: number = travellerRecruitChance(),
 ): { save: SaveData; reward: TravellerReward; rosterFull: boolean; tip?: TipOutcome } {
   const problem = helpProblem(save, spawn, player, now, rules);
   const kind = spawn.kind;
@@ -152,12 +119,12 @@ export function helpTraveller(
   }
 
   const rng = createRng(`traveller-join|${spawn.id}`);
-  const recruit = save.heroes.length >= rules.recruitMinRoster && rng.chance(rules.recruitChance);
+  const recruit = save.heroes.length >= rules.recruitMinRoster && rng.chance(recruitChance);
   const room = save.heroes.length < rosterCap(save);
   let reward = rollReward(save, spawn, kind);
   let rosterFull = false;
   if (recruit && room) {
-    reward = { kind: 'recruit', offer: travellerRecruit(save, spawn) };
+    reward = { kind: 'recruit', offer: rollFreeRecruit(save, `traveller-recruit|${spawn.id}`, `traveller:${spawn.id}`, true) };
   } else if (recruit) {
     rosterFull = true;
   }
@@ -246,11 +213,4 @@ export function trade(
     traderUses: { ...pruneByWindow(save.traderUses, now, rules), [key]: (save.traderUses[key] ?? 0) + 1 },
     helpedTravellers: { ...pruneByWindow(save.helpedTravellers, now, rules), [spawn.id]: spawn.endsAt },
   };
-}
-
-/** Takes a traveller up on joining the roster. */
-export function acceptRecruit(save: SaveData, offer: TravellerRecruit): SaveData {
-  if (save.heroes.length >= rosterCap(save)) throw new Error('Roster is full');
-  const hero = { ...newHero(`h${save.nextUid}`, offer.name, offer.classId, offer.trait, offer.level, offer.special, rolledTrade(offer.id)), roll: offer.roll };
-  return { ...save, heroes: [...save.heroes, hero], nextUid: save.nextUid + 1 };
 }

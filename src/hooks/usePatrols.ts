@@ -32,11 +32,15 @@ export function usePatrols() {
         const tiles = fight.won ? lootTiles(fight.rewards, { before }) : undefined;
         useWorldStore.getState().set({ patrolMessage: { text, tiles, at: Date.now() } });
       }
-      const { fights, heists } = useGameStore.getState().resolvePlaces();
+      const { fights, heists, rescues } = useGameStore.getState().resolvePlaces();
       for (const fight of fights) {
         const place = tr(placeInfo[fight.kind].name);
+        const rescue = rescues[fight.id];
+        const rescueText = rescue
+          ? '. ' + (rescue.joined ? t('places.rescueJoined', { name: rescue.offer.name }) : t('places.rescuePaid', { gold: rescue.gold }))
+          : '';
         const text = fight.won
-          ? gainsPrefix(t('places.fightWon', { place, gains: '' }))
+          ? gainsPrefix(t('places.fightWon', { place, gains: '' })) + rescueText
           : t('places.fightLost', { place });
         const tiles = fight.won ? lootTiles(fight.reward, { before }) : undefined;
         useWorldStore.getState().set({ patrolMessage: { text, tiles, at: Date.now() } });

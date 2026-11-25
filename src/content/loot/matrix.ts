@@ -21,6 +21,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'R',
       keyFragments: 'R/2',
     },
+    recruit: '—',
     notes: 'Launched from the phone: no materials',
   },
 
@@ -43,6 +44,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'S',
       keyFragments: 'R',
     },
+    recruit: '—',
     notes: 'The first won dungeon of the day (one per day in total)',
   },
 
@@ -65,6 +67,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'S',
       keyFragments: 'A',
     },
+    recruit: '—',
     notes: 'Gear at least Uncommon',
   },
 
@@ -87,6 +90,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'R',
       keyFragments: 'R/2',
     },
+    recruit: '—',
     notes: 'Paid once per chain dungeon; stacks with the difficulty multiplier',
   },
 
@@ -109,6 +113,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'S',
       keyFragments: 'R',
     },
+    recruit: '—',
     notes: 'Trophies are relics; Legendary gear possible',
   },
 
@@ -131,6 +136,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'R',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: '',
   },
 
@@ -153,6 +159,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: 'Materials by patrol kind (lootConfig.patrolThemes)',
   },
 
@@ -175,6 +182,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: 'R',
     },
+    recruit: 'R',
     notes: 'Also a blessing, trades, a rare recruit',
   },
 
@@ -197,6 +205,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: 'S',
     notes: '',
   },
 
@@ -219,6 +228,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: 'S',
     notes: '',
   },
 
@@ -241,6 +251,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: '',
   },
 
@@ -263,6 +274,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: 'S',
     },
+    recruit: '—',
     notes: 'Bone',
   },
 
@@ -285,6 +297,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: 'Trophies are elemental stones',
   },
 
@@ -307,6 +320,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: '',
   },
 
@@ -329,6 +343,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: 'Gold bounty; Rare gear possible',
   },
 
@@ -351,6 +366,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'S',
       keyFragments: 'S',
     },
+    recruit: 'S',
     notes: 'Gear at least Rare; Legendary possible',
   },
 
@@ -373,6 +389,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: 'S',
     },
+    recruit: '—',
     notes: 'The 5th dig gives a relic',
   },
 
@@ -395,6 +412,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: 'Sometimes the black market tip',
   },
 
@@ -417,6 +435,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: 'Fish; rarely a sunken chest (under 10%) with one rare item; sometimes the underwater dungeon tip',
   },
 
@@ -439,6 +458,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: "Scales with the map's rarity",
   },
 
@@ -461,6 +481,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: 'Trophies are elemental stones',
   },
 
@@ -483,6 +504,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'R',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: 'Rewards walking',
   },
 
@@ -505,6 +527,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: 'R/2',
     },
+    recruit: '—',
     notes: '',
   },
 
@@ -527,6 +550,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'R',
       keyFragments: 'R',
     },
+    recruit: '—',
     notes: '',
   },
 
@@ -549,6 +573,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: 'S',
       keyFragments: 'R',
     },
+    recruit: 'R',
     notes: '',
   },
 
@@ -571,6 +596,7 @@ export const lootMatrix: Record<LootSourceId, LootSourceRow> = {
       manuals: '—',
       keyFragments: '—',
     },
+    recruit: '—',
     notes: 'Gives a secret place tip within ~1 km',
   },
 };

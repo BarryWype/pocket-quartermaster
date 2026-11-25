@@ -149,6 +149,8 @@ export type ProfileSummary = {
     classes: { neverOffered: string[]; offeredNeverRecruited: string[]; recruitedNeverFielded: string[] };
     /** Per class, over all seeds: offers seen, heroes recruited, party slots fielded. */
     classCounts: Record<string, { offered: number; recruited: number; fielded: number }>;
+    /** Recruits per game by where they came from, averaged over seeds. */
+    recruitsBySource: Record<string, number>;
     classSpread: Record<string, number>;
     milestones: Record<string, Stat>;
     skipped: Record<string, number>;
@@ -666,6 +668,13 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
   const classCounts = Object.fromEntries(
     allClasses.map((c) => [c, { offered: count(offeredList, c), recruited: count(recruitedList, c), fielded: spread[c] ?? 0 }]),
   );
+  const recruitSources = ['tavern', 'freePick', 'traveller', 'rescue', 'quest', 'secret'];
+  const recruitsBySource = Object.fromEntries(
+    recruitSources.map((source) => [
+      source,
+      logs.reduce((sum, log) => sum + log.recruits.filter((r) => r.source === source).length, 0) / Math.max(1, logs.length),
+    ]),
+  );
   const classes = {
     neverOffered: allClasses.filter((c) => !offered.has(c)),
     offeredNeverRecruited: allClasses.filter((c) => offered.has(c) && !recruited.has(c)),
@@ -737,6 +746,7 @@ export function summarize(logs: RunLog[], t: Targets = defaultTargets): ProfileS
       },
       classes,
       classCounts,
+      recruitsBySource,
       classSpread: Object.fromEntries(Object.entries(spread).map(([c, n]) => [c, n / Math.max(1, fielded.length)])),
       milestones: Object.fromEntries(keys.map((k) => [k, stat(logs.map((l) => l.milestones[k]))])),
       skipped: medianTotals(logs.map((l) => l.skipped)),

@@ -1,12 +1,17 @@
 import { monsterPartById } from '@/content/lookup';
+import { newHero } from '@/content/heroes';
 import { placeFightRules } from '@/content/placeFights';
 import { patrolRules } from '@/content/patrols';
+import { recruitRules } from '@/content/roster';
 import { secretRules } from '@/content/secrets';
+import { lootConfig } from '@/content/loot/config';
+import { lootMatrix } from '@/content/loot/matrix';
 import type { PlaceKind } from '@/content/places';
 
 import { offsetPosition } from '../generation/geo';
 import { createRng } from '../generation/rng';
 import { tileAt } from '../generation/tiles';
+import { rosterCap } from '../guild/guild';
 import { grantLoot } from '../loot/grant';
 import { emptyLoot } from '../loot/types';
 import { rollTip } from '../secrets/tips';
@@ -14,6 +19,7 @@ import { setHeroHp } from '../team/health';
 import { isAway } from '../team/team';
 import type { LatLng } from '../generation/types';
 import type { PlaceFight } from '../types';
+import type { SaveData } from '../save';
 import type { PlaceSpawn } from './generate';
 import { generateTilePatrols, patrolsAround } from '../patrols/generate';
 import { HOME, tierTeam } from '../patrols/testHelpers';
@@ -145,6 +151,58 @@ describe('fighting at a place', () => {
       lost = true;
     }
     expect(lost).toBe(true);
+  });
+
+  /** A won fight whose rescue roll came up: the roll is seeded on the fight id, so it varies with `nextUid`. */
+  const withRescue = (save: SaveData, kind: 'banditCamp' = 'banditCamp') => {
+    for (let i = 0; i < 200; i++) {
+      const varied = { ...save, nextUid: save.nextUid + i };
+      const run = startPlaceFight(varied, spawnOf(kind), ['bram', 'lyra', 'mira'], HOME, now);
+      const fight = run.placeFights[0];
+      if (fight.won && fight.rescue) return { save: varied, started: run, fight: fight as PlaceFight & { rescue: NonNullable<PlaceFight['rescue']> } };
+    }
+    throw new Error('No won fight freeing a prisoner');
+  };
+
+  it('frees a prisoner on a won camp, who joins when the fight ends', () => {
+    const { started, fight } = withRescue(tierTeam());
+    const { save: done, rescues } = resolvePlaceFights(started, fight.endsAt);
+    expect(rescues[fight.id]).toMatchObject({ offer: fight.rescue, joined: true, gold: 0 });
+    expect(done.heroes).toHaveLength(started.heroes.length + 1);
+    expect(done.heroes.at(-1)).toMatchObject({ name: fight.rescue.name, classId: fight.rescue.classId, trait: fight.rescue.trait });
+  });
+
+  it('pays the tier’s full-roster gold instead when the roster is full', () => {
+    let save = tierTeam();
+    while (save.heroes.length < rosterCap(save)) save = { ...save, heroes: [...save.heroes, newHero(`x${save.heroes.length}`, 'X', 'warrior', 'resilient')] };
+    const { started, fight } = withRescue(save);
+    const { save: done, rescues } = resolvePlaceFights(started, fight.endsAt);
+    expect(rescues[fight.id].joined).toBe(false);
+    expect(rescues[fight.id].gold).toBe(recruitRules.fullRosterGold[fight.tier - 1]);
+    expect(done.gold).toBe(started.gold + fight.reward.gold + recruitRules.fullRosterGold[fight.tier - 1]);
+    expect(done.heroes).toHaveLength(started.heroes.length);
+  });
+
+  it('never frees a prisoner on a lost fight', () => {
+    const weak = setHeroHp(tierTeam(), 'mira', 0.02, now, false);
+    const chance = lootConfig.markChances[lootMatrix.banditCamp.recruit];
+    for (let i = 0; i < 200; i++) {
+      if (!createRng(`f${weak.nextUid + i}|rescue`).chance(chance)) continue;
+      const started = startPlaceFight({ ...weak, nextUid: weak.nextUid + i }, spawnOf('banditCamp'), ['mira'], HOME, now);
+      const fight = started.placeFights[0];
+      expect(fight.won).toBe(false);
+      expect(fight.rescue).toBeUndefined();
+      expect(resolvePlaceFights(started, fight.endsAt).rescues).toEqual({});
+      return;
+    }
+    throw new Error('No lost fight whose rescue roll came up');
+  });
+
+  it('fixes the rescue at the fight’s start', () => {
+    const { save, started, fight } = withRescue(tierTeam());
+    const again = startPlaceFight(save, spawnOf('banditCamp'), ['bram', 'lyra', 'mira'], HOME, now).placeFights[0];
+    expect(again.rescue).toEqual(fight.rescue);
+    expect(resolvePlaceFights(started, fight.endsAt).rescues[fight.id].offer).toEqual(fight.rescue);
   });
 });
 

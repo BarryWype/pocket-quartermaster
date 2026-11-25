@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { familyById } from '@/content/families';
 import { heroClasses } from '@/content/heroes';
+import { recruitRules } from '@/content/roster';
 import { tavernRules } from '@/content/taverns';
 import { traitById } from '@/content/traits';
 import type { LatLng } from '@/game/generation/types';
@@ -162,7 +163,14 @@ export function TavernSheet({ tavern, player, now, onClose }: Props) {
               />
             ))}
           </View>
-          {wanted && <IconLabel emoji={wanted.emoji} icon={wanted.icon} label={t('tavern.wanted', { family: tr(wanted.name) })} labelStyle={styles.muted} />}
+          {wanted && (
+            <IconLabel
+              emoji={wanted.emoji}
+              icon={wanted.icon}
+              label={t('tavern.wanted', { family: tr(wanted.name), count: recruitRules.wantedOffers })}
+              labelStyle={styles.muted}
+            />
+          )}
           {base.discoverLine}
         </View>
       }

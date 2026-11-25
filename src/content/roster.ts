@@ -35,12 +35,16 @@ export const recruitRules = {
   newClassWeight: 1.5,
   /** A class the roster already has is this much less likely to be offered. */
   ownedClassWeight: 0.3,
-  /** Days in a "Wanted this week" rotation: one family is in town, and every tavern's first offer is of its classes. */
+  /** Days in a "Wanted this week" rotation: one family is in town, and every tavern's first offers are of its classes. */
   wantedDays: 7,
+  /** The week's wanted family fills this many of each tavern's first offers. */
+  wantedOffers: 2,
   /** A tier boss's first clear offers one free recruit among `choices` classes of the `poolTier` pool, from families the roster lacks. */
   freePick: { afterBossTier: 1, poolTier: 2, choices: 3 },
   /** Chance an offer has a positive trait rather than a negative one. */
   positiveTraitChance: 0.6,
+  /** Gold a freed prisoner or a quest's recruit pays when the roster has no room, by tier 1–5. */
+  fullRosterGold: [30, 50, 75, 110, 170] as number[],
   /** The lowest level recruits join at, by highest unlocked tier: the bottom of the tier's band. Above it, one level under the roster's median. */
   levelByTier: [1, 4, 7, 10, 13] as number[],
   price: {

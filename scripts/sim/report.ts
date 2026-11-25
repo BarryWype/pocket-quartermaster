@@ -496,6 +496,9 @@ function health(s: ProfileSummary) {
         .sort((a, b) => b[1].fielded - a[1].fielded || b[1].offered - a[1].offered)
         .map(([c, v]) => [c, String(v.offered), String(v.recruited), String(v.fielded), pct(h.classSpread[c] ?? 0)]),
     ),
+    `- Recruits per game by source: ${Object.entries(h.recruitsBySource)
+      .map(([source, perGame]) => `${source} ${n(perGame, 1)}`)
+      .join(', ')}`,
     ...(s.rotation ? rotationBlock(s) : []),
     '**Milestones** (day, median over seeds that got there)',
     '',

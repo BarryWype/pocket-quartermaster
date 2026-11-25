@@ -12,6 +12,7 @@ import type { RunTally } from './expeditions/tally';
 
 import type { Element } from './elements';
 import type { LatLng } from './generation/types';
+import type { Grade } from './taverns/roll';
 export type { Rarity };
 
 export type MaterialStack = {
@@ -991,6 +992,19 @@ export type ExpeditionReport = {
   seen: boolean;
 };
 
+/** A free recruit offer: a traveller who wants to join, a freed prisoner, a quest's reward (see game/taverns/freeRecruit.ts). */
+export type FreeRecruit = {
+  id: string;
+  classId: HeroClassId;
+  name: string;
+  trait: string;
+  /** The recruit's special, rolled from the offer id (see game/team/specials.ts). */
+  special: SpecialId;
+  level: number;
+  roll: HeroRoll;
+  grade: Grade;
+};
+
 /** A fight at a fight event or monster lair, played out at the start and settled when its time is up. */
 export type PlaceFight = {
   id: string;
@@ -1006,6 +1020,8 @@ export type PlaceFight = {
   hp: { heroId: string; hp: number; maxHp: number }[];
   salvaged: ExpeditionReport['salvaged'];
   reward: Loot;
+  /** A prisoner freed by the win, who joins (or pays gold) when the fight ends. */
+  rescue?: FreeRecruit;
   /** A won fight's secret tip, granted when it ends. */
   tip?: { source: PlaceTipSource; sourceId: string; anchor: LatLng };
 };

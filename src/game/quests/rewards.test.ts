@@ -1,13 +1,15 @@
 import { lootMatrix } from '@/content/loot/matrix';
-import { growthRules } from '@/content/heroes';
+import { recruitRules } from '@/content/roster';
+import { growthRules, newHero } from '@/content/heroes';
 import { secretRules } from '@/content/secrets';
 
 import { distanceMeters } from '../generation/geo';
 import type { LatLng } from '../generation/types';
+import { rosterCap } from '../guild/guild';
 import { LOOT_CATEGORIES } from '../loot/types';
 import { createInitialSave, type SaveData } from '../save';
 import { grantTip, tipPosition } from '../secrets/tips';
-import { claimProblem, claimQuest, QUEST_SOURCES, questLoot, questLuck, reachMark } from './rewards';
+import { claimProblem, claimQuest, QUEST_SOURCES, questLoot, questLuck, questRecruit, reachMark } from './rewards';
 import type { Quest } from './types';
 
 const DAY = 86_400_000;
@@ -67,6 +69,45 @@ describe('quest rewards', () => {
     const lucky = save.heroes.map((hero) => ({ ...hero, level: growthRules.luckLevel }));
     expect(questLuck({ ...save, heroes: lucky })).toBe(Math.min(3, lucky.length) * growthRules.luck);
     expect(questLuck({ ...save, heroes: [...lucky, ...lucky.map((h) => ({ ...h, id: `${h.id}2` }))] })).toBe(3 * growthRules.luck);
+  });
+});
+
+describe('quest recruits', () => {
+  it('roll on long quests only, fixed by the save and the quest', () => {
+    const save = createInitialSave();
+    expect(questRecruit(save, quest('short'))).toBe(false);
+    expect(questRecruit(save, quest('medium'))).toBe(false);
+    expect(questRecruit(save, quest('secret'))).toBe(false);
+    const rolled = questRecruit(save, quest('long'));
+    expect(questRecruit(save, quest('long'))).toBe(rolled);
+    // Some long quests roll one and some do not, or the mark would be dead content.
+    const ids = Array.from({ length: 200 }, (_, i) => `q|long|${i}`);
+    expect(ids.some((id) => questRecruit(save, quest('long', { id })))).toBe(true);
+    expect(ids.some((id) => !questRecruit(save, quest('long', { id })))).toBe(true);
+  });
+
+  it('add a hero when a claimed long quest rolls a recruit', () => {
+    const save = createInitialSave();
+    const id = Array.from({ length: 200 }, (_, i) => `q|long|${i}`).find((candidate) => questRecruit(save, quest('long', { id: candidate })))!;
+    const withQuest = { ...save, quests: { ...save.quests, list: [quest('long', { id })] } };
+    const { save: claimed, recruit } = claimQuest(withQuest, id, 20);
+    expect(recruit?.joined).toBe(true);
+    expect(claimed.heroes).toHaveLength(withQuest.heroes.length + 1);
+    expect(claimed.heroes.at(-1)).toMatchObject({ name: recruit!.offer.name, classId: recruit!.offer.classId });
+  });
+
+  it('pay the tier’s full-roster gold when the roster is full', () => {
+    const save = createInitialSave();
+    const id = Array.from({ length: 200 }, (_, i) => `q|long|${i}`).find((candidate) => questRecruit(save, quest('long', { id: candidate })))!;
+    let withQuest = { ...save, quests: { ...save.quests, list: [quest('long', { id })] } };
+    while (withQuest.heroes.length < rosterCap(withQuest)) {
+      withQuest = { ...withQuest, heroes: [...withQuest.heroes, newHero(`x${withQuest.heroes.length}`, 'X', 'warrior', 'resilient')] };
+    }
+    const { save: claimed, loot, recruit } = claimQuest(withQuest, id, 20);
+    expect(recruit?.joined).toBe(false);
+    expect(recruit?.gold).toBe(recruitRules.fullRosterGold[0]);
+    expect(claimed.gold).toBe(withQuest.gold + loot.gold + recruitRules.fullRosterGold[0]);
+    expect(claimed.heroes).toHaveLength(withQuest.heroes.length);
   });
 });
 

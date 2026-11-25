@@ -18,7 +18,7 @@ import { PATROL_KINDS, TRAVELLER_KINDS, isPatrolKind, isTravellerKind, patrolsAr
 import { isElitePatrolKind } from '@/content/enemies';
 import { patrolOdds, resolvePatrolFights, startPatrolFight } from '../patrols/fight';
 import { isGone } from '../patrols/visibility';
-import { acceptRecruit, helpProblem, helpTraveller, trade, traderOffers } from '../patrols/travellers';
+import { helpProblem, helpTraveller, trade, traderOffers } from '../patrols/travellers';
 import { activateLure, isLureActive } from '../rewards/lures';
 import { chestState, openChest, recordSteps, stepChests, stepsRecorded } from '../rewards/chests';
 import { generateSanctumsAround } from '../sanctums/sanctums';
@@ -26,6 +26,7 @@ import { hasKey } from '../secrets/keys';
 import { isPlaceRevealed, isRevealed } from '../reveal/reveal';
 import { createInitialSave, type SaveData } from '../save';
 import { generateTavernsAround } from '../taverns/taverns';
+import { joinFreeRecruit } from '../taverns/freeRecruit';
 import { currentHp, isExhausted } from '../team/health';
 import { equip } from '../team/team';
 import { advanceTutorial, finishTutorial, nextTutorialStep } from '../tutorial/tutorial';
@@ -258,9 +259,9 @@ function helpTravellerSpawn(sim: Sim, spawn: PatrolSpawn, at: number, player: La
   }
   if (reward.kind === 'recruit') sim.log.offered[reward.offer.id] = reward.offer.classId;
   if (reward.kind === 'recruit' && save.heroes.length < rosterCap(save)) {
-    act(sim, 'traveller', (next) => acceptRecruit(next, reward.offer));
+    act(sim, 'traveller', (next) => joinFreeRecruit(next, reward.offer));
     log.recruits.push(sim.day);
-    sim.log.recruits.push({ day: sim.day, classId: reward.offer.classId, price: 0, trait: reward.offer.trait });
+    sim.log.recruits.push({ day: sim.day, classId: reward.offer.classId, price: 0, trait: reward.offer.trait, source: 'traveller' });
     mark(sim, `recruit:${sim.save.heroes.length}`);
   }
 }

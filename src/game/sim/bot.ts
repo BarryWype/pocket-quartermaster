@@ -185,7 +185,7 @@ export type RunLog = {
   /** Tier → material → how often it was missing for a forge the bot wanted. */
   missing: Record<number, Record<string, number>>;
   sanctums: { day: number; tier: number; odds: number; win: boolean }[];
-  recruits: { day: number; classId: string; price: number; trait: string }[];
+  recruits: { day: number; classId: string; price: number; trait: string; source: 'tavern' | 'freePick' | 'traveller' | 'rescue' | 'quest' | 'secret' }[];
   /** Offers seen, by offer id: at the tavern, from a traveller, or at a secret place. */
   offered: Record<string, string>;
   guildBuys: { day: number; track: string; rank: number; gold: number }[];
@@ -903,7 +903,7 @@ export function takeFreePick(sim: Sim) {
   if (!choices || rosterFull(sim.save)) return;
   const classId = choices.find((c) => answersThreat(sim, c)) ?? choices[0];
   act(sim, 'recruit', (save) => claimFreePick(save, classId));
-  sim.log.recruits.push({ day: sim.day, classId, price: 0, trait: sim.save.heroes[sim.save.heroes.length - 1].trait });
+  sim.log.recruits.push({ day: sim.day, classId, price: 0, trait: sim.save.heroes[sim.save.heroes.length - 1].trait, source: 'freePick' });
   mark(sim, `recruit:${sim.save.heroes.length}`);
 }
 
@@ -934,7 +934,7 @@ export function recruitHeroes(sim: Sim) {
     if (!pick) return;
     act(sim, 'recruit', (save) => recruit(save, pick, sim.tavern.position, sim.tavern.position));
     sim.log.places.push({ day: sim.day, kind: 'tavern', tier: highestTier(sim.save), odds: null, won: null });
-    sim.log.recruits.push({ day: sim.day, classId: pick.classId, price: pick.price, trait: pick.trait });
+    sim.log.recruits.push({ day: sim.day, classId: pick.classId, price: pick.price, trait: pick.trait, source: 'tavern' });
     mark(sim, `recruit:${sim.save.heroes.length}`);
   }
 }
@@ -1505,5 +1505,12 @@ export function doQuests(sim: Sim, walking: boolean) {
     countLoot(sim, claimed.loot, QUEST_SOURCE[quest.band]);
     act(sim, 'quest', () => claimed.save);
     sim.log.quests.claimed[quest.band]++;
+    if (claimed.recruit) {
+      sim.log.offered[claimed.recruit.offer.id] = claimed.recruit.offer.classId;
+      if (claimed.recruit.joined) {
+        sim.log.recruits.push({ day: sim.day, classId: claimed.recruit.offer.classId, price: 0, trait: claimed.recruit.offer.trait, source: 'quest' });
+        mark(sim, `recruit:${sim.save.heroes.length}`);
+      }
+    }
   }
 }

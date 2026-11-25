@@ -36,6 +36,7 @@ Loot is designed from scratch on top of the new dungeons, bosses, places, events
 - **Quantities per drop**: gold and XP by tier and source (existing scaling); materials 2–4 of the tier's materials; shards 2–4 of one element; monster parts 1–2 (2–3 on A sources); everything else 1.
 - **Step chests**: at 2,000, 5,000, 8,000 and 12,000 steps each day, each rolling the Step chest row; the third and fourth roll at ×1.5.
 - **Ruins**: every 5th dig gives a relic (progress kept across ruins).
+- **The Recruit column**: a source's free-recruit chance, read like any other mark through `lootConfig.markChances` (never a loot category, so loot rolls don't see it). Travellers offer to join (R), a won bandit camp, goblin raid or monster lair frees a prisoner (S), and a long quest's claim rolls one (R). A recruit with no room on the roster pays gold instead, by tier (`recruitRules.fullRosterGold`).
 
 ### Tuning
 - Every source's chances come from `matrix.csv`, generated into content. Logic only reads it.

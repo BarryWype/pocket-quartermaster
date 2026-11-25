@@ -73,6 +73,7 @@ function fightAt(sim: Sim, kind: FightPlaceKind): PlaceMiss | null {
   if (placeFightProblem(sim.save, spawn, party.heroIds, spawn.position, sim.now) !== null) return 'odds';
   const endsAt = sim.now + dungeon.durationMinutes * MINUTE;
   let won = false;
+  let rescues: ReturnType<typeof resolvePlaceFights>['rescues'] = {};
   act(sim, 'place', (save) => startPlaceFight(save, spawn, party.heroIds, spawn.position, sim.now));
   act(sim, 'place', (save) => {
     const done = resolvePlaceFights(save, endsAt);
@@ -80,8 +81,16 @@ function fightAt(sim: Sim, kind: FightPlaceKind): PlaceMiss | null {
       if (fight.placeId === spawn.id) won = fight.won;
       if (fight.won) countLoot(sim, fight.reward, spawn.kind as LootSourceId);
     }
+    rescues = done.rescues;
     return done.save;
   });
+  for (const rescue of Object.values(rescues)) {
+    sim.log.offered[rescue.offer.id] = rescue.offer.classId;
+    if (rescue.joined) {
+      sim.log.recruits.push({ day: sim.day, classId: rescue.offer.classId, price: 0, trait: rescue.offer.trait, source: 'rescue' });
+      mark(sim, `recruit:${sim.save.heroes.length}`);
+    }
+  }
   row(sim, spawn.kind, tier, party.odds.success, won);
   return null;
 }
@@ -245,7 +254,7 @@ export function openSecrets(sim: Sim) {
     sim.log.offered[offer.id] = offer.classId;
     if (secretRecruitProblem(sim.save, place, place.position, sim.now) === null) {
       act(sim, 'secret', (save) => recruitAtSecret(save, place, place.position, sim.now));
-      sim.log.recruits.push({ day: sim.day, classId: offer.classId, price: offer.price, trait: offer.trait });
+      sim.log.recruits.push({ day: sim.day, classId: offer.classId, price: offer.price, trait: offer.trait, source: 'secret' });
       mark(sim, `recruit:${sim.save.heroes.length}`);
     }
   }

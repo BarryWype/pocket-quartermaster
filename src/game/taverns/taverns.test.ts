@@ -171,15 +171,17 @@ const eligible = (tier: number) => new Set(recruitPool(tier).map(({ classId }) =
 describe('wanted this week', () => {
   const DAYS = recruitRules.wantedDays;
 
-  it('is one family a week, the same for every player of a tier, and the first offer of every tavern is of it', () => {
+  it('is one family a week, the same for every player of a tier, and the first offers of every tavern are of it', () => {
     const save = unlocked();
     const week = rotationWeek(now);
     const family = wantedFamily(week, 2);
     for (const tavern of ['tavern:a:0', 'tavern:b:0', 'tavern:c:0']) {
-      const [first, ...rest] = tavernOffers(save, tavern, now);
-      expect(first.wanted).toBe(family);
-      expect(heroClasses[first.classId].familyTag).toBe(family);
-      for (const offer of rest) expect(offer.wanted).toBeUndefined();
+      const offers = tavernOffers(save, tavern, now);
+      for (const offer of offers.slice(0, recruitRules.wantedOffers)) {
+        expect(offer.wanted).toBe(family);
+        expect(heroClasses[offer.classId].familyTag).toBe(family);
+      }
+      for (const offer of offers.slice(recruitRules.wantedOffers)) expect(offer.wanted).toBeUndefined();
     }
     expect(wantedFamily(week, 2)).toBe(family);
   });
@@ -204,7 +206,9 @@ describe('wanted this week', () => {
 
 describe('every class can be found', () => {
   // A single tavern a day, the starting trio on the roster: the rate each class
-  // of the tier's pool the roster lacks is offered at.
+  // of the tier's pool the roster lacks is offered at. Two of the four offers
+  // go to the week's wanted family, so the weekly floor is a share, not a whole.
+  const WEEKLY_FLOOR = 0.75;
   const tierSave = (tier: number) => unlocked({ clearedDungeons: dungeons.filter((d) => d.tier < Math.max(2, tier)).map((d) => d.id) });
   const lacking = (save: SaveData, tier: number) => {
     const owned = new Set(save.heroes.map((h) => h.classId));
@@ -221,9 +225,12 @@ describe('every class can be found', () => {
       for (const classId of lacking(save, tier)) {
         const { weight } = pool.find((p) => p.classId === classId)!;
         const family = pool.filter((p) => heroClasses[p.classId].familyTag === heroClasses[classId].familyTag).reduce((sum, p) => sum + p.weight, 0);
-        // Offers after the first draw from the whole pool; the first draws from the week's family, each family's turn coming once a cycle.
-        const perWeek = recruitRules.wantedDays * ((recruitRules.offersPerTavern - 1) * (weight / total) + (1 / families.size) * (weight / family));
-        expect({ tier, classId, enough: perWeek >= 1 }).toEqual({ tier, classId, enough: true });
+        // Offers after the wanted ones draw from the whole pool; the first ones draw from the week's family, each family's turn coming once a cycle.
+        const perWeek =
+          recruitRules.wantedDays *
+          ((recruitRules.offersPerTavern - recruitRules.wantedOffers) * (weight / total) +
+            (recruitRules.wantedOffers / families.size) * (weight / family));
+        expect({ tier, classId, enough: perWeek >= WEEKLY_FLOOR }).toEqual({ tier, classId, enough: true });
       }
     }
   });
@@ -236,8 +243,8 @@ describe('every class can be found', () => {
         for (const offer of tavernOffers(save, 'tavern:year:0', now + day * DAY)) counts.set(offer.classId, (counts.get(offer.classId) ?? 0) + 1);
       }
       for (const classId of lacking(save, tier)) {
-        // 0.75 a week leaves room for a year's luck around the at-least-one-a-week mean above.
-        expect({ tier, classId, enough: (counts.get(classId) ?? 0) / 52 >= 0.75 }).toEqual({ tier, classId, enough: true });
+        // The floor leaves room for a year's luck around the weights' mean above.
+        expect({ tier, classId, enough: (counts.get(classId) ?? 0) / 52 >= WEEKLY_FLOOR }).toEqual({ tier, classId, enough: true });
       }
     }
   });

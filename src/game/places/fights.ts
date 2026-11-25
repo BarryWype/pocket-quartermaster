@@ -3,6 +3,8 @@ import { mobById, placeMobId } from '@/content/enemies';
 import { placeFightRules, type FightPlaceKind } from '@/content/placeFights';
 import { threatLevelFor } from '@/content/difficulty';
 import { placeInfo, placeRules, type PlaceKind } from '@/content/places';
+import { lootConfig } from '@/content/loot/config';
+import { lootMatrix } from '@/content/loot/matrix';
 
 import { ELEMENTS, type Element } from '../elements';
 import { estimatePartyOdds, ODDS_RUNS, type Odds } from '../expeditions/odds';
@@ -21,6 +23,7 @@ import { grantTip, rollTip, type TipOutcome } from '../secrets/tips';
 import type { SaveData } from '../save';
 import { applyRunHp, isExhausted } from '../team/health';
 import { isBusy } from '../team/team';
+import { rollFreeRecruit, freeRecruitOrGold, type RecruitOutcome } from '../taverns/freeRecruit';
 import type { ActiveThreat, Briefing, BossDef, DungeonDef, EncounterDef, PlaceFight } from '../types';
 import { placeGroupOf, placesAround, type PlaceSpawn } from './generate';
 import { questEvent } from '../quests/progress';
@@ -167,6 +170,11 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
     run.bossDefeated && (kind === 'banditCamp' || kind === 'monsterLair') && rollTip(kind, spawn.id)
       ? { source: kind, sourceId: spawn.id, anchor: spawn.position }
       : undefined;
+  // A won fight may free a prisoner, fixed at the start by the kind's Recruit mark.
+  const rescue =
+    run.bossDefeated && createRng(`${id}|rescue`).chance(lootConfig.markChances[lootMatrix[kind].recruit])
+      ? rollFreeRecruit(save, `${id}|rescue|recruit`, `rescue:${id}`, 'roll')
+      : undefined;
 
   return {
     ...save,
@@ -185,6 +193,7 @@ export function startPlaceFight(save: SaveData, spawn: PlaceSpawn, heroIds: stri
         hp: run.hp,
         salvaged: untriggeredSalvage(party, run),
         reward,
+        ...(rescue ? { rescue } : {}),
         ...(tip ? { tip } : {}),
       },
     ],
@@ -206,18 +215,24 @@ export function placeFightOdds(save: SaveData, spawn: PlaceSpawn, heroIds: strin
  * left them, and a win pays its rewards and hides the place until it expires.
  * A lost fight leaves the place on the map.
  */
-export function resolvePlaceFights(save: SaveData, now: number): { save: SaveData; resolved: PlaceFight[]; tips: TipOutcome[] } {
+export function resolvePlaceFights(save: SaveData, now: number): { save: SaveData; resolved: PlaceFight[]; tips: TipOutcome[]; rescues: Record<string, RecruitOutcome> } {
   const due = save.placeFights.filter((fight) => fight.endsAt <= now).sort((a, b) => a.endsAt - b.endsAt);
-  if (due.length === 0) return { save, resolved: [], tips: [] };
+  if (due.length === 0) return { save, resolved: [], tips: [], rescues: {} };
 
   let next: SaveData = { ...save, placeFights: save.placeFights.filter((fight) => fight.endsAt > now) };
   const tips: TipOutcome[] = [];
+  const rescues: Record<string, RecruitOutcome> = {};
   for (const fight of due) {
     next = settleConsumables(next, fight.heroIds, fight.salvaged);
     if (fight.won) {
       next = grantLoot(next, fight.heroIds, fight.reward, fight.endsAt, 'placeFight');
       next = { ...next, usedPlaces: { ...next.usedPlaces, [fight.placeId]: fight.placeExpiresAt } };
       next = questEvent(next, { kind: 'placeUsed', placeId: fight.placeId }, fight.endsAt);
+      if (fight.rescue) {
+        const freed = freeRecruitOrGold(next, fight.rescue, fight.tier);
+        next = freed.save;
+        rescues[fight.id] = freed.outcome;
+      }
       if (fight.tip) {
         const granted = grantTip(next, fight.tip, fight.endsAt);
         next = granted.save;
@@ -226,7 +241,7 @@ export function resolvePlaceFights(save: SaveData, now: number): { save: SaveDat
     }
     next = applyRunHp(next, fight.hp, fight.endsAt);
   }
-  return { save: next, resolved: due, tips };
+  return { save: next, resolved: due, tips, rescues };
 }
 
 /** Live monster lairs around a position: each one boosts nearby patrol spawns. */

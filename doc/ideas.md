@@ -29,6 +29,7 @@ Design catalogues for what's built or being built live in `doc/design/` (threats
 - Charms became loot trinkets: worn in the trinket slot, forged from 8 parts; the Lucky ear is gone.
 - Supply network (2026-11-18, `doc/design/supply-lines/`, branch `feat/supply-lines`): from tier 2, a hall, buildings on sites you discover, orders at taverns, smithies, apothecaries and markets, a cart on a planned route, raids and network quests. It replaced the material shops and the guild gathering jobs with their work tools; places last six days in three groups.
 - The report is the reward (2026-11-13, `doc/design/report/`): runs keep a tally of who did what (per hero, affix, family level, consumable, meal, weakness item, and what each missed threat cost); the report card credits the player's work by name, says what would have helped and names the hero of the run; every reward is a tile grid with rarity frames, a reveal, "New" ribbons and item sheets; gear keeps its history and earns names; heroes keep a record, earn titles and become companions. Collect all waits for the dispatch board.
+- More ways to get heroes: rescues, a recruit on long quests, wanted family takes two offers, Recruit column in the loot matrix.
 
 **Experimenting**
 - Live combat for places, patrols and Sanctums, with route, damage forecast and enemy intent (branch `feature/live-combat`).

@@ -41,7 +41,7 @@ export type RecruitOffer = {
   price: number;
   /** When the tavern's offers refresh. */
   expiresAt: number;
-  /** The week's wanted family, on the tavern's first offer only (see wantedFamily). */
+  /** The week's wanted family, on the tavern's first offers (see wantedFamily). */
   wanted?: FamilyId;
 };
 
@@ -164,8 +164,8 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
   const owned = new Set(save.heroes.map((h) => h.classId));
   const wanted = wantedFamily(rotationWeek(now, rules), tier, rules);
   return Array.from({ length: tavernOfferCount(save) }, (_, i) => {
-    // The first offer is of the week's wanted family.
-    const classId = pickRecruitClass(rng, tier, rules, owned, i === 0 ? wanted : null);
+    // The week's wanted family fills the first offers.
+    const classId = pickRecruitClass(rng, tier, rules, owned, i < rules.wantedOffers ? wanted : null);
     const rarity = heroClasses[classId].rarity;
     const names = heroNames[classId];
     const positive = rng.chance(rules.positiveTraitChance);
@@ -187,7 +187,7 @@ export function tavernOffers(save: SaveData, tavernId: string, now: number, seed
         recruitPrice(rarity, level, save.heroes.length, positive, tier, grade, rules) * discount,
       ),
       expiresAt: nextRotationAt(now),
-      ...(i === 0 ? { wanted } : {}),
+      ...(i < rules.wantedOffers ? { wanted } : {}),
     };
   });
 }

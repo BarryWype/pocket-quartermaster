@@ -36,7 +36,7 @@ import { addAnchor, addAnchorsFromFixes } from '@/game/jobs/gatherer';
 import { assignJob, assignProblem, collectJob, jobOutputNow, recallFromJob, setGathererFocus, settleJobs } from '@/game/jobs/jobs';
 import { isTravellerKind, type PatrolSpawn, type TravellerKind } from '@/game/patrols/generate';
 import { resolvePatrolFights as resolveDueFights, startPatrolFight, type PatrolFight } from '@/game/patrols/fight';
-import { acceptRecruit, helpTraveller as helpTravellerRule, trade, type TravellerRecruit, type TravellerReward } from '@/game/patrols/travellers';
+import { helpTraveller as helpTravellerRule, trade, type TravellerReward } from '@/game/patrols/travellers';
 import { addPatrolsToWalks, escortHpChange, walkPatrolsFrom } from '@/game/patrols/walkPatrols';
 import { challengeSanctum, type SanctumResult, type SanctumSpawn } from '@/game/sanctums/sanctums';
 import { closeTip as closeTipRule, dueTips, noteTips as queueTips } from '@/game/reveal/reveal';
@@ -54,6 +54,7 @@ import type { TipOutcome } from '@/game/secrets/tips';
 import { buyAtBlackMarket, enterSecret, recruitAtSecret } from '@/game/secrets/places';
 import type { TipId } from '@/content/reveal';
 import { claimFreePick } from '@/game/taverns/freePick';
+import { joinFreeRecruit, type FreeRecruit, type RecruitOutcome } from '@/game/taverns/freeRecruit';
 import { dismissHero, equip, isAway, markClassesSeen, unequip } from '@/game/team/team';
 import { chooseTitle } from '@/game/team/record';
 import { buySupply, recruit, tavernNameOf, withTavernName, type RecruitOffer } from '@/game/taverns/taverns';
@@ -203,7 +204,7 @@ type GameState = {
   /** Makes one of a trader's deals. */
   tradeWithTrader: (spawn: PatrolSpawn, tradeIndex: number, player: LatLng) => void;
   /** Takes a traveller up on joining the roster. */
-  acceptTravellerRecruit: (offer: TravellerRecruit) => void;
+  acceptTravellerRecruit: (offer: FreeRecruit) => void;
   /** Sets the hero the background task sends at patrols by itself; null clears it. */
   setEscort: (heroId: string | null) => void;
   /** Returns the forged gear piece, for gear recipes. Provisions can be made `count` at a time. */
@@ -265,7 +266,7 @@ type GameState = {
   /** Sends one hero on a thieves' guild heist. */
   startHeist: (spawn: PlaceSpawn, heroId: string, player: LatLng) => void;
   /** Settles place fights and heists whose time is up. */
-  resolvePlaces: () => { fights: PlaceFight[]; heists: Heist[] };
+  resolvePlaces: () => { fights: PlaceFight[]; heists: Heist[]; rescues: Record<string, RecruitOutcome> };
   digRuin: (spawn: PlaceSpawn, player: LatLng) => { reward: Loot; relic: boolean };
   /** Fishes at a dock; returns the fish caught. */
   fish: (spawn: PlaceSpawn, player: LatLng) => Loot;
@@ -297,7 +298,7 @@ type GameState = {
   fixQuestTargets: (candidates: PlaceSpawn[], player: LatLng) => void;
   markQuestsSeen: () => void;
   rerollQuest: (questId: string) => void;
-  claimQuest: (questId: string) => Loot;
+  claimQuest: (questId: string) => { loot: Loot; recruit: RecruitOutcome | null };
   deliverQuest: (questId: string, place: PlaceSpawn, player: LatLng) => void;
   /** At the secret quest's strange mark: done, and a secret place tipped off (`isNearWater` once map tiles are in). */
   reachMark: (questId: string, isNearWater?: (point: LatLng) => boolean) => void;
@@ -500,7 +501,7 @@ export const useGameStore = create<GameState>()(
       },
       tradeWithTrader: (spawn, tradeIndex, player) =>
         set(({ save }) => ({ save: trade(save, spawn, tradeIndex, player, Date.now()) })),
-      acceptTravellerRecruit: (offer) => set(({ save }) => ({ save: acceptRecruit(save, offer) })),
+      acceptTravellerRecruit: (offer) => set(({ save }) => ({ save: joinFreeRecruit(save, offer) })),
       setEscort: (heroId) => {
         const save = get().save;
         if (heroId && !save.heroes.some((h) => h.id === heroId)) throw new Error(`Unknown hero ${heroId}`);
@@ -604,7 +605,7 @@ export const useGameStore = create<GameState>()(
         const heists = resolveHeists(fights.save, now);
         if (heists.save !== get().save) set({ save: heists.save });
         noteTips([...fights.tips, ...heists.tips]);
-        return { fights: fights.resolved, heists: heists.resolved };
+        return { fights: fights.resolved, heists: heists.resolved, rescues: fights.rescues };
       },
       digRuin: (spawn, player) => {
         const { save, reward, relic } = digRuin(get().save, spawn, player, Date.now());
@@ -674,9 +675,9 @@ export const useGameStore = create<GameState>()(
       rerollQuest: (questId) =>
         set(({ save }) => ({ save: rerollQuest(save, questId, Date.now()) })),
       claimQuest: (questId) => {
-        const { save, loot } = claimQuest(get().save, questId, Date.now());
+        const { save, loot, recruit } = claimQuest(get().save, questId, Date.now());
         set({ save });
-        return loot;
+        return { loot, recruit };
       },
       deliverQuest: (questId, place, player) => set(({ save }) => ({ save: deliver(save, questId, place, player, Date.now()) })),
       reachMark: (questId, isNearWater) => {

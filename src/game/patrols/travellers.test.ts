@@ -1,6 +1,8 @@
 import { offerLevel } from '../taverns/taverns';
 import { heroClasses, newHero } from '@/content/heroes';
-import { patrolRules, travellerRules } from '@/content/patrols';
+import { travellerRules } from '@/content/patrols';
+import { lootConfig } from '@/content/loot/config';
+import { lootMatrix } from '@/content/loot/matrix';
 import { traits } from '@/content/traits';
 
 import { distanceMeters } from '../generation/geo';
@@ -13,7 +15,8 @@ import { duplicateTipGold, rollTip } from '../secrets/tips';
 import { currentHp, isExhausted, setHeroHp } from '../team/health';
 import type { PatrolSpawn } from './generate';
 import { findSpawn, fixOn, tierTeam } from './testHelpers';
-import { acceptRecruit, helpProblem, helpTraveller, trade, tradeProblem, traderOffers, travellerOffer, type TravellerReward } from './travellers';
+import { joinFreeRecruit } from '../taverns/freeRecruit';
+import { helpProblem, helpTraveller, trade, tradeProblem, traderOffers, travellerOffer, type TravellerReward } from './travellers';
 import { isGone } from './visibility';
 
 const MINUTE = 60_000;
@@ -126,7 +129,6 @@ describe('travellers', () => {
 });
 
 describe('traveller recruits', () => {
-  const always = { ...patrolRules, recruitChance: 1 };
   /** A roster of `size`, with Guild Hall roster slot 13 bought so there is room for one more. */
   const withRoster = (size: number): SaveData => {
     let save: SaveData = { ...stocked(), guild: { rosterSlot13: 1 } };
@@ -135,57 +137,58 @@ describe('traveller recruits', () => {
   };
 
   it('only offer to join a roster of at least 6', () => {
-    expect(helpTraveller(withRoster(5), wounded, here(wounded, at), at, undefined, always).reward.kind).not.toBe('recruit');
-    expect(helpTraveller(withRoster(6), wounded, here(wounded, at), at, undefined, always).reward.kind).toBe('recruit');
+    expect(helpTraveller(withRoster(5), wounded, here(wounded, at), at, undefined, undefined, 1).reward.kind).not.toBe('recruit');
+    expect(helpTraveller(withRoster(6), wounded, here(wounded, at), at, undefined, undefined, 1).reward.kind).toBe('recruit');
   });
 
   it('offer a hero with a positive trait at the tavern offers’ level, if the roster has room', () => {
     const save = withRoster(6);
-    const { reward, rosterFull } = helpTraveller(save, wounded, here(wounded, at), at, undefined, always);
+    const { reward, rosterFull } = helpTraveller(save, wounded, here(wounded, at), at, undefined, undefined, 1);
     expect(rosterFull).toBe(false);
     if (reward.kind !== 'recruit') throw new Error('expected a recruit');
     expect(traits.find((t) => t.id === reward.offer.trait)!.positive).toBe(true);
     expect(reward.offer.level).toBe(offerLevel(save));
-    const joined = acceptRecruit(save, reward.offer);
+    const joined = joinFreeRecruit(save,reward.offer);
     expect(joined.heroes).toHaveLength(save.heroes.length + 1);
   });
 
   it('roll the recruit from the spawn alone and keep the roll when they join', () => {
     const save = withRoster(6);
-    const { reward } = helpTraveller(save, wounded, here(wounded, at), at, undefined, always);
+    const { reward } = helpTraveller(save, wounded, here(wounded, at), at, undefined, undefined, 1);
     if (reward.kind !== 'recruit') throw new Error('expected a recruit');
-    const again = helpTraveller(save, wounded, here(wounded, at), at, undefined, always);
+    const again = helpTraveller(save, wounded, here(wounded, at), at, undefined, undefined, 1);
     if (again.reward.kind !== 'recruit') throw new Error('expected a recruit');
     expect(again.reward.offer.roll).toEqual(reward.offer.roll);
     expect(again.reward.offer.grade).toBe(reward.offer.grade);
-    const joined = acceptRecruit(save, reward.offer);
+    const joined = joinFreeRecruit(save,reward.offer);
     expect(joined.heroes.at(-1)!.roll).toEqual(reward.offer.roll);
   });
 
   it('pay the normal reward instead with a full roster, and say so', () => {
     let save = stocked();
     while (save.heroes.length < rosterCap(save)) save = { ...save, heroes: [...save.heroes, newHero(`x${save.heroes.length}`, 'X', 'warrior', 'resilient')] };
-    const { reward, rosterFull } = helpTraveller(save, wounded, here(wounded, at), at, undefined, always);
+    const { reward, rosterFull } = helpTraveller(save, wounded, here(wounded, at), at, undefined, undefined, 1);
     expect(rosterFull).toBe(true);
     expect(reward.kind).not.toBe('recruit');
   });
 
-  it('come about 5% of the time', () => {
+  it('come about as often as the Traveller row’s recruit mark', () => {
     const save = withRoster(6);
     const helped = Array.from({ length: 400 }, (_, i) => {
       const spawn = { ...wounded, id: `${wounded.id}:${i}` };
       return helpTraveller(save, spawn, here(spawn, at), at).reward.kind;
     });
     const share = helped.filter((k) => k === 'recruit').length / helped.length;
-    expect(share).toBeGreaterThan(0.02);
-    expect(share).toBeLessThan(0.09);
+    const chance = lootConfig.markChances[lootMatrix.traveller.recruit];
+    expect(share).toBeGreaterThan(chance * 0.4);
+    expect(share).toBeLessThan(chance * 1.6);
   });
 
   it('are never a rare-rarity class', () => {
     const save = withRoster(6);
     for (let i = 0; i < 400; i++) {
       const spawn = { ...wounded, id: `${wounded.id}:${i}` };
-      const { reward } = helpTraveller(save, spawn, here(spawn, at), at, undefined, always);
+      const { reward } = helpTraveller(save, spawn, here(spawn, at), at, undefined, undefined, 1);
       if (reward.kind !== 'recruit') throw new Error('expected a recruit');
       expect(heroClasses[reward.offer.classId].rarity).not.toBe('rare');
     }

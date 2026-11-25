@@ -73,11 +73,16 @@ export function parseMatrixCsv(text: string): Record<LootSourceId, LootSourceRow
   const lines = text.split(/\r?\n/).filter((line) => line.length > 0);
   const header = parseCsvLine(lines[0]);
   const categories: LootCategory[] = [];
-  for (const column of header.slice(2, header.length - 1)) {
+  let recruitColumn = -1;
+  header.slice(2, header.length - 1).forEach((column, index) => {
+    if (column === 'Recruit') {
+      recruitColumn = index + 2;
+      return;
+    }
     const category = CATEGORY_COLUMNS[column];
     if (!category) throw new Error(`Unknown matrix column: ${column}`);
     categories.push(category);
-  }
+  });
   const rows: Record<LootSourceId, LootSourceRow> = {} as Record<LootSourceId, LootSourceRow>;
   for (const line of lines.slice(1)) {
     const fields = parseCsvLine(line);
@@ -90,10 +95,13 @@ export function parseMatrixCsv(text: string): Record<LootSourceId, LootSourceRow
       if (!['—', 'R/2', 'R', 'S', 'O', 'A'].includes(mark)) throw new Error(`Unknown mark: ${mark}`);
       marks[category] = mark;
     });
+    const recruit = fields[recruitColumn] as LootMark;
+    if (!['—', 'R/2', 'R', 'S', 'O', 'A'].includes(recruit)) throw new Error(`Unknown mark: ${recruit}`);
     rows[id] = {
       name: fields[0],
       visitsPerDay: Number(fields[1]),
       marks,
+      recruit,
       notes: fields[fields.length - 1] ?? '',
     };
   }

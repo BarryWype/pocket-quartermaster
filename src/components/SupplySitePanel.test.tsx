@@ -125,7 +125,10 @@ describe('the timer strip', () => {
       renderer = create(<TimerStrip expiresAt={Date.now() + 2 * 3_600_000} />);
     });
     expect(text(renderer!)).toContain('LAST DAY');
+    // Unmounted before the second mounts: a leaked strip keeps ticking its
+    // 10-second clock past the suite, and the worker blames this file for it.
     act(() => {
+      renderer!.unmount();
       renderer = create(<TimerStrip expiresAt={Date.now() + 3 * DAY} />);
     });
     expect(text(renderer!)).not.toContain('LAST DAY');

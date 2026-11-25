@@ -21,4 +21,13 @@ describe('the generated loot matrix', () => {
       }
     }
   });
+
+  it('marks a recruit chance on the traveller, the three rescue fights and long quests only', () => {
+    const withRecruit = ['traveller', 'banditCamp', 'goblinRaid', 'monsterLair', 'questLong'] as const;
+    for (const source of LOOT_SOURCES) {
+      const expected = (withRecruit as readonly string[]).includes(source) ? lootMatrix[source].recruit : '—';
+      expect(lootMatrix[source].recruit).toBe(expected);
+      expect(lootMatrix[source].recruit).not.toBe('A');
+    }
+  });
 });

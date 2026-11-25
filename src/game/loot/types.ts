@@ -56,6 +56,8 @@ export type LootSourceRow = {
   name: string;
   visitsPerDay: number;
   marks: Record<LootCategory, LootMark>;
+  /** The source's free-recruit chance, by mark (lootConfig.markChances); not a loot category, so rolls don't see it. */
+  recruit: LootMark;
   notes: string;
 };
 

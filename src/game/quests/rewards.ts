@@ -1,5 +1,8 @@
 import { questRules } from '@/content/quests';
+import { lootConfig } from '@/content/loot/config';
+import { lootMatrix } from '@/content/loot/matrix';
 
+import { highestUnlockedTier } from '../expeditions/expeditions';
 import { createRng } from '../generation/rng';
 import type { LatLng } from '../generation/types';
 import { rollForSave } from '../loot/context';
@@ -8,6 +11,7 @@ import type { Loot, LootSourceId } from '../loot/types';
 import type { SaveData } from '../save';
 import { duplicateTipGold, grantTip, questTipSecret, type TipOutcome } from '../secrets/tips';
 import { heroStats } from '../team/team';
+import { freeRecruitOrGold, rollFreeRecruit, type RecruitOutcome } from '../taverns/freeRecruit';
 import { questEvent } from './progress';
 import type { Quest } from './types';
 
@@ -39,13 +43,25 @@ export function claimProblem(save: SaveData, questId: string): 'gone' | 'notDone
   return quest.doneAt === null ? 'notDone' : null;
 }
 
-/** Pays a done quest and takes it off the list. */
-export function claimQuest(save: SaveData, questId: string, now: number): { save: SaveData; loot: Loot } {
+/** Whether a done quest's band's Recruit mark rolls a free recruit for this quest, fixed by the save's seed. */
+export function questRecruit(save: SaveData, quest: Quest): boolean {
+  return createRng(`quest-recruit|${save.playerSeed}|${quest.id}`).chance(lootConfig.markChances[lootMatrix[QUEST_SOURCES[quest.band]].recruit]);
+}
+
+/** Pays a done quest and takes it off the list; a rolled recruit joins (or pays gold) on top of the loot. */
+export function claimQuest(save: SaveData, questId: string, now: number): { save: SaveData; loot: Loot; recruit: RecruitOutcome | null } {
   const quest = save.quests.list.find((q) => q.id === questId);
   if (!quest || claimProblem(save, questId) !== null) throw new Error(`Cannot claim quest ${questId}`);
   const loot = questLoot(save, quest, now);
-  const paid = grantLoot(save, [], loot, now, 'quest');
-  return { save: { ...paid, quests: { ...paid.quests, list: paid.quests.list.filter((q) => q.id !== questId) } }, loot };
+  let paid = grantLoot(save, [], loot, now, 'quest');
+  let recruit: RecruitOutcome | null = null;
+  if (questRecruit(save, quest)) {
+    const offer = rollFreeRecruit(save, `quest-recruit|${save.playerSeed}|${quest.id}|who`, `quest:${quest.id}`, 'roll');
+    const joined = freeRecruitOrGold(paid, offer, highestUnlockedTier(save));
+    paid = joined.save;
+    recruit = joined.outcome;
+  }
+  return { save: { ...paid, quests: { ...paid.quests, list: paid.quests.list.filter((q) => q.id !== questId) } }, loot, recruit };
 }
 
 /**

@@ -19,7 +19,7 @@ import { LOOT_CATEGORIES, type LootCategory } from '@/game/loot/types';
 import type { PlaceSpawn } from '@/game/places/generate';
 import { rerollProblem, rerollsLeft } from '@/game/quests/arrival';
 import { deliverProblem } from '@/game/quests/progress';
-import { QUEST_SOURCES } from '@/game/quests/rewards';
+import { QUEST_SOURCES, questRecruit } from '@/game/quests/rewards';
 import { compassDirection, targetDistance } from '@/game/quests/targets';
 import type { Quest } from '@/game/quests/types';
 import { isRevealed } from '@/game/reveal/reveal';
@@ -172,7 +172,7 @@ function QuestsContent() {
   const game = useGameStore.getState();
   const player = useWorldStore((state) => state.player);
   const { places, ready } = useQuestPlaces(save, player, now);
-  const [claimed, setClaimed] = useState<Record<string, RewardTile[]>>({});
+  const [claimed, setClaimed] = useState<Record<string, { tiles: RewardTile[]; line: string | null }>>({});
   const rail = useQuestsRail();
   const [page, setPage] = useState<QuestsPageId>(() => rail.selected);
   const pager = useRef<PagerView>(null);
@@ -195,8 +195,9 @@ function QuestsContent() {
 
   const claim = (quest: Quest) => {
     const before = useGameStore.getState().save;
-    const loot = useGameStore.getState().claimQuest(quest.id);
-    setClaimed((current) => ({ ...current, [quest.id]: lootTiles(loot, { before }) }));
+    const { loot, recruit } = useGameStore.getState().claimQuest(quest.id);
+    const line = recruit ? (recruit.joined ? t('quests.recruitJoined', { name: recruit.offer.name }) : t('quests.recruitPaid', { gold: recruit.gold })) : null;
+    setClaimed((current) => ({ ...current, [quest.id]: { tiles: lootTiles(loot, { before }), line } }));
   };
 
   const targetLine = (quest: Quest) => {
@@ -252,10 +253,11 @@ function QuestsContent() {
           {quests.length === 0 && Object.keys(claimed).length === 0 && <Text style={styles.muted}>{t('quests.empty')}</Text>}
           {Object.entries(claimed)
             .filter(([id]) => !quests.some((q) => q.id === id))
-            .map(([id, tiles]) => (
+            .map(([id, { tiles, line }]) => (
               <View key={id} style={styles.claimed}>
                 <RewardLabel text={gainsPrefix(t('quests.claimed', { gains: '' }))} size={13} labelStyle={styles.claimedText} />
                 {tiles.length > 0 ? <LootGrid tiles={tiles} reveal /> : <Text style={styles.claimedText}>{t('quests.nothing')}</Text>}
+                {line && <Text style={styles.claimedText}>{line}</Text>}
               </View>
             ))}
           {quests.map((quest, index) => (
@@ -327,6 +329,7 @@ function QuestCard({
   onReroll: () => void;
 }) {
   const done = quest.doneAt !== null;
+  const save = useGameStore((state) => state.save);
   const emoji = quest.objective === 'mark' ? '❓' : objectives[quest.objective].emoji;
   const progress = progressText(quest);
   const { likely, maybe } = rewardCategories(quest);
@@ -345,6 +348,7 @@ function QuestCard({
           )}
         </Text>
         {target && <IconLabel emoji="🧭" label={target} size={13} gap={2} labelStyle={styles.sub} />}
+        {questRecruit(save, quest) && <IconLabel emoji="👤" label={t('quests.recruitReward')} size={13} gap={2} labelStyle={styles.sub} />}
       </View>
       {progress !== null && (
         <View style={styles.progressRow}>

@@ -93,8 +93,6 @@ export const patrolRules = {
   escort: { difficulties: ['easy', 'medium'] as PatrolDifficulty[], minOdds: 0.7, minHpShare: 0.5, oddsRuns: 60 },
   /** Patrol alerts: one per patrol, none closer together than this. */
   alerts: { cooldownMinutes: 5 },
-  /** Chance a traveller offers to join the roster when helped. */
-  recruitChance: 0.05,
   /** Travellers only offer to join a roster this big, so they never speed up the early recruits. */
   recruitMinRoster: 6,
   /** Applied background results are remembered this long, then pruned. */

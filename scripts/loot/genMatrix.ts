@@ -22,7 +22,7 @@ const row = (id: string, source: LootSourceRow) => {
   for (const [category, mark] of Object.entries(source.marks)) {
     lines.push(`      ${category}: '${mark}',`);
   }
-  lines.push('    },', `    notes: ${q(source.notes)},`, '  },');
+  lines.push('    },', `    recruit: '${source.recruit}',`, `    notes: ${q(source.notes)},`, '  },');
   return lines.join('\n');
 };
 

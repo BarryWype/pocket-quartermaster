@@ -14,7 +14,7 @@ Daily **quests** are short walking objectives that arrive on their own. They rep
 - **Targets**: "the nearest X" that exists within the band's distance. If no place of that kind is within range (rarer places are often more than 2 km away), pick another objective. Only kinds the player has seen or unlocked, at their tier (`objectives.csv`).
 - **No extra patrols along the route**: players will have a quest active most of the time.
 - **Pocket mode**: reaching the target sends a notification; the step resolves when the app opens (as patrols do).
-- **Rewards**: the "Quest, short / medium / long" rows of `doc/design/loot/matrix.csv`.
+- **Rewards**: the "Quest, short / medium / long" rows of `doc/design/loot/matrix.csv`. A long quest whose Recruit mark rolls one also pays a free recruit on claim (shown on the card), who joins or pays gold with a full roster.
 
 ## Secret quest
 - Pops when the player **completes 4 quests within 5 hours**. A player gets at most 3 a day and can stack 6, so it takes saving quests for one long outing.
